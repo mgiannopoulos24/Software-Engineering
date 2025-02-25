@@ -1,2 +1,2 @@
 # Software-Engineering
-This repository contains assignments for Software Engineering (ΥΣ09) course of DIT NKUA.
+This repository contains the assignments of Software Engineering (ΥΣ09) course of DIT NKUA. 
