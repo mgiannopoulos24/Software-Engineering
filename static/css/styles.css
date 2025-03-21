@@ -1,0 +1,20 @@
+.navbar {
+    padding: 0.5rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.navbar .left-section,
+.navbar .search-box,
+.navbar .d-flex {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.search-box {
+    margin: 0 1rem;
+    max-width: 600px; 
+}
