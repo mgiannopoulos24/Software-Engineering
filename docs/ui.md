@@ -1,4 +1,4 @@
 # UI Prototypes
 
 ## Index Page
-![alt text](index.png)
+![alt text](./Wireframes/index.png)
