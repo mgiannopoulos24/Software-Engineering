@@ -1,0 +1,23 @@
+body {
+    background-color: #f8f9fa;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0; 
+}
+
+.login-container {
+    width: 50%;
+    max-width: 800px; 
+    padding: 30px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.login-logo {
+    width: 120px;
+    margin: 0 auto;
+    display: block;
+}

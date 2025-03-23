@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AIS Tracking App</title>
-    <link rel="stylesheet" href="../css/style_user.css">
+    <link rel="stylesheet" href="../css/styles.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <!-- Leaflet CSS -->
@@ -57,118 +57,54 @@
                     <path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/>
                 </svg>
                 <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
+                    <span class="visually-hidden">New alerts</span>
                 </span>
             </div>
-            <div class="nav-icon-container mx-3" id="bookmarkIcon">
+            <div class="nav-icon-container mx-3">
                 <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bookmark"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
             </div>
-            <div class="nav-icon-container mx-3 text-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user-circle">
+            <div class="nav-icon-container mx-3 dropdown">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user-circle dropdown-toggle" id="userMenuDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <circle cx="12" cy="12" r="10"/>
                     <circle cx="12" cy="10" r="3"/>
                     <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/>
                 </svg>
+                
+                <!-- User dropdown menu -->
+                <ul class="dropdown-menu dropdown-menu-end user-dropdown shadow-sm" aria-labelledby="userMenuDropdown">
+                    <li>
+                        <a class="dropdown-item d-flex align-items-center" href="login.html">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2 lucide lucide-log-in">
+                                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                                <polyline points="10 17 15 12 10 7"/>
+                                <line x1="15" y1="12" x2="3" y2="12"/>
+                            </svg>
+                            Log In
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item d-flex align-items-center" href="signup.html">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2 lucide lucide-user-plus">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <line x1="19" y1="8" x2="19" y2="14"/>
+                                <line x1="16" y1="11" x2="22" y2="11"/>
+                            </svg>
+                            Sign Up
+                        </a>
+                    </li>
+                </ul>
             </div>
         </div>
         
     </nav>
     
-    <!-- Map Container -->
     <div id="mapContainer" style="width: 100%; height: 85vh; position: relative; left: 0; right: 0;">
-        <!-- Filters Panel (Initially Hidden) -->
-        <div id="filtersPanel" class="filters-panel shadow">
-            <h5 class="mb-3">Map Filters</h5>
-            
-            <div class="mb-3">
-                <label for="vesselType" class="form-label">Type</label>
-                <select class="form-select" id="vesselType">
-                    <option value="">All Types</option>
-                    <option value="cargo">Cargo</option>
-                    <option value="passenger">Passenger</option>
-                    <option value="tanker">Tanker</option>
-                    <option value="fishing">Fishing</option>
-                    <option value="other">Other</option>
-                </select>
-            </div>
-            
-            <div class="mb-3">
-                <label for="capacityRange" class="form-label">Capacity</label>
-                <div class="d-flex align-items-center">
-                    <input type="range" class="form-range" min="0" max="100" id="capacityRange">
-                    <span class="ms-2" id="capacityValue">0-100 tons</span>
-                </div>
-            </div>
-            
-            <div class="mb-3">
-                <label for="vesselStatus" class="form-label">Current status</label>
-                <select class="form-select" id="vesselStatus">
-                    <option value="">All Statuses</option>
-                    <option value="underway">Underway</option>
-                    <option value="anchored">Anchored</option>
-                    <option value="moored">Moored</option>
-                    <option value="unknown">Unknown</option>
-                </select>
-            </div>
-            
-            <div class="mb-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <label for="lastPosition" class="form-label mb-0">Last position received</label>
-                    <button class="btn btn-sm btn-link p-0" type="button" data-bs-toggle="collapse" data-bs-target="#lastPositionCollapse" aria-expanded="false" aria-controls="lastPositionCollapse">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down"><path d="m6 9 6 6 6-6"/></svg>
-                    </button>
-                </div>
-                <div class="collapse" id="lastPositionCollapse">
-                    <pre class="bg-light p-2 rounded small mt-2">
-{
-  "latitude": 37.9838,
-  "longitude": 23.7275,
-  "timestamp": "2025-03-23T14:32:11Z"
-}
-                    </pre>
-                </div>
-            </div>
-            
-            <div class="d-flex justify-content-between mt-4">
-                <button class="btn btn-secondary" id="resetFiltersBtn">Reset</button>
-                <button class="btn btn-primary" id="applyFiltersBtn">Apply</button>
-            </div>
-        </div>
-        
-        <!-- Bottom left button -->
-        <div class="map-button-container">
-            <button id="mapActionButton" class="btn btn-info text-white shadow">
-                Filters
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-settings-2">
-                    <path d="M20 7h-9"></path>
-                    <path d="M14 17H5"></path>
-                    <circle cx="17" cy="17" r="3"></circle>
-                    <circle cx="7" cy="7" r="3"></circle>
-                </svg>
-            </button>
-        </div>
     </div>
     
     <!-- Coordinate display container -->
     <div id="coordinates" class="text-center py-2 bg-light">
         Hover over the map to display coordinates
-    </div>
-
-    <!-- Saved Vessels Container (Initially Hidden) -->
-    <div id="savedVesselsContainer" class="saved-vessels-container">
-        <div class="container">
-            <div class="page-header d-flex align-items-center">
-                <h1>Saved Vessels</h1>
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bookmark"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
-            </div>
-            
-            <div class="row">
-                <div class="col-md-10 mx-auto">
-                    <div id="vessel-cards-container">
-                        <!-- Vessel cards will be inserted here by JavaScript -->
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Footer -->
@@ -201,7 +137,5 @@
     crossorigin=""></script>
     <script src="../js/map.js"></script>
     <script src="../js/tooltip.js"></script>
-    <script src="../js/vessels.js"></script>
-    <script src="../js/filters.js"></script>
 </body>
 </html>

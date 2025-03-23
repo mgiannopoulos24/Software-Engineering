@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="../css/style_login.css">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container d-flex justify-content-center align-items-center">
+        <div class="login-container text-center">
+            <h2 class="mb-3">Welcome back</h2>
+            
+            <hr class="my-4">
+            
+            <img src="../assets/boat.png" alt="Login Logo" class="login-logo mb-4">
+            
+            <!-- Toast for error messages -->
+            <div class="toast-container position-fixed top-0 end-0 p-3">
+                <div id="errorToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header bg-danger text-white">
+                        <strong class="me-auto">Error</strong>
+                        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                    <div class="toast-body">
+                        Account not found. Redirecting to signup page...
+                    </div>
+                </div>
+            </div>
+            
+            <form id="loginForm">
+                <div class="mb-3 text-start">
+                    <label for="emailOrPhone" class="form-label">Phone or Email</label>
+                    <input type="text" class="form-control" id="emailOrPhone" placeholder="Enter your email or phone number" required>
+                </div>
+                
+                <div class="mb-3 text-start">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="password" placeholder="Enter your password" required>
+                </div>
+                
+                <!-- Forgot password link moved above the login button -->
+                <div class="mb-3 text-start">
+                    <a href="#" class="text-decoration-none">Forgot password?</a>
+                </div>
+                
+                <!-- Login button made full width -->
+                <button type="submit" class="btn btn-primary w-100 mb-3">Log In</button>
+                
+                <div class="mt-2">
+                    <span>You don't have an account? </span>
+                    <a href="signup.html" class="text-decoration-none">Sign up</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script src="../js/login.js"></script>
+</body>
+</html>

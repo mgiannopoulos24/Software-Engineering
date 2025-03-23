@@ -1,0 +1,36 @@
+body {
+    background-color: #f8f9fa;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0; 
+}
+
+.signup-container {
+    width: 50%; 
+    max-width: 800px; 
+    padding: 30px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.signup-logo {
+    width: 120px;
+    margin: 0 auto;
+    display: block;
+}
+
+.signup-form {
+    display: none;
+}
+
+.small-logo {
+    width: 80px;
+    margin: 0 auto;
+}
+
+.container {
+    min-height: 100vh;
+}
