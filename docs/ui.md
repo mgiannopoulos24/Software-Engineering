@@ -25,3 +25,16 @@
 
 ## Administrator icon Button
 ![admin_dropdown](./Wireframes/admin_dropdown.png)
+
+## User
+### User Panel
+![user_panel](./Wireframes/user_panel.png)
+
+### User Dropdown
+![user_dropdown](./Wireframes/user_dropdown.png)
+
+### User Notifications
+![user_notif](./Wireframes/user_notif.png)
+
+### Saved Vessels
+![saved_vessels](./Wireframes/saved_vessels.png)
