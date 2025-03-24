@@ -1,40 +1,100 @@
 # UI Prototypes
 
 ## Index Page
-![alt text](./Wireframes/index.png)
+<p align="center">
+<img src="./Wireframes/index.png"/>
+</p>
+
+## User
+### User Page
+<p align="center">
+<img src="./Wireframes/user_panel.png"/>
+</p>
+
+### User Dropdown
+<p align="center">
+<img src="./Wireframes/user_dropdown.png"/>
+</p>
+
+### User Notifications
+<p align="center">
+<img src="./Wireframes/user_notif.png"/>
+</p>
+
+### Saved Vessels
+<p align="center">
+<img src="./Wireframes/saved_vessels.png"/>
+</p>
 
 ## User Filters
 ### User Filters Button
-![alt text](./Wireframes/user_filters_button.png)
+<p align="center">
+<img src="./Wireframes/user_filters_button.png"/>
+</p>
 
 ### User Filters
-![alt text](./Wireframes/user_filters.png)
+<p align="center">
+<img src="./Wireframes/user_filters.png"/>
+</p>
 
 ### User Filters Type
-![alt text](./Wireframes/user_filters_type.png)
+<p align="center">
+<img src="./Wireframes/user_filters_type.png"/>
+</p>
 
 ### User Filters Current Status
-![alt text](./Wireframes/user_filters_current_status.png)
+<p align="center">
+<img src="./Wireframes/user_filters_current_status.png"/>
+</p>
 
 ### User Filters Last Position Received
-![alt text](./Wireframes/user_filters_last_position_received_1.png)
-![alt text](./Wireframes/user_filters_last_position_received_2.png)
+<p align="center">
+<img src="./Wireframes/user_filters_last_position_received_1.png"/>
+</p>
+<p align="center">
+<img src="./Wireframes/user_filters_last_position_received_2.png"/>
+</p>
+
+## Admin
 
 ## Administrator Page
-![admin_panel](./Wireframes/admin_panel.png)
+<p align="center">
+<img src="./Wireframes/admin_panel.png"/>
+</p>
 
-## Administrator icon Button
-![admin_dropdown](./Wireframes/admin_dropdown.png)
+## Administrator Dropdown
+<p align="center">
+<img src="./Wireframes/admin_dropdown.png"/>
+</p>
 
-## User
-### User Panel
-![user_panel](./Wireframes/user_panel.png)
+## Login Form
+### Login Empty
+<p align="center">
+<img src="./Wireframes/log_in.png"/>
+</p>
 
-### User Dropdown
-![user_dropdown](./Wireframes/user_dropdown.png)
+### Login Filled
+<p align="center">
+<img src="./Wireframes/log_in_ok.png"/>
+</p>
 
-### User Notifications
-![user_notif](./Wireframes/user_notif.png)
+## Signup Form
+### Signup Page
+<p align="center">
+<img src="./Wireframes/home_page_sign_up.png"/>
+</p>
 
-### Saved Vessels
-![saved_vessels](./Wireframes/saved_vessels.png)
+### Signup Empty
+<p align="center">
+<img src="./Wireframes/sign_up_empty.png"/>
+</p>
+
+### Signup Filled
+<p align="center">
+<img src="./Wireframes/sign_up_ok.png"/>
+</p>
+
+### Signup Select Country
+<p align="center">
+<img src="./Wireframes/sign_up_select_country.png"/>
+</p>
