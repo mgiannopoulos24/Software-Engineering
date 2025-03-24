@@ -62,19 +62,43 @@
             <div class="nav-icon-container mx-3" id="bookmarkIcon">
                 <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bookmark"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
             </div>
-            <div class="nav-icon-container mx-3 text-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user-circle">
+            <div class="nav-icon-container mx-3 dropdown">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user-circle dropdown-toggle" id="userMenuDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <circle cx="12" cy="12" r="10"/>
                     <circle cx="12" cy="10" r="3"/>
                     <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/>
                 </svg>
+                
+                <!-- User dropdown menu -->
+                <ul class="dropdown-menu dropdown-menu-end user-dropdown shadow-sm" aria-labelledby="userMenuDropdown">
+                    <li>
+                        <a class="dropdown-item d-flex align-items-center" href="./profile.html">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2 lucide lucide-user">
+                                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                            My Profile
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item d-flex align-items-center" href="../index.html">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2 lucide lucide-log-out">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                                <polyline points="16 17 21 12 16 7"/>
+                                <line x1="21" x2="9" y1="12" y2="12"/>
+                            </svg>
+                            Logout
+                        </a>
+                    </li>
+                </ul>
             </div>
         </div>
         
     </nav>
     
     <!-- Map Container -->
-    <div id="mapContainer" style="width: 100%; height: 85vh; position: relative; left: 0; right: 0;">
+    <div id="mapContainer">
         <!-- Filters Panel (Initially Hidden) -->
         <div id="filtersPanel" class="filters-panel shadow">
             <h5 class="mb-3">Map Filters</h5>
@@ -133,6 +157,9 @@
                 <button class="btn btn-primary" id="applyFiltersBtn">Apply</button>
             </div>
         </div>
+        <div id="coordinates">
+            Hover coordinates
+        </div>
         
         <!-- Bottom left button -->
         <div class="map-button-container">
@@ -149,9 +176,9 @@
     </div>
     
     <!-- Coordinate display container -->
-    <div id="coordinates" class="text-center py-2 bg-light">
+    <!-- <div id="coordinates" class="text-center py-2 bg-light">
         Hover over the map to display coordinates
-    </div>
+    </div> -->
 
     <!-- Saved Vessels Container (Initially Hidden) -->
     <div id="savedVesselsContainer" class="saved-vessels-container">
