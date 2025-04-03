@@ -25,13 +25,13 @@ export const IndexNavbar = () => {
     setIsOpen(!isOpen);
   };
 
-  const toggleProfileDropdown = (e: React.MouseEvent) => {
+  const toggleProfileDropdown = (e: React.MouseEvent | React.PointerEvent) => {
     e.preventDefault();
     setIsProfileDropdownOpen(!isProfileDropdownOpen);
   };
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: PointerEvent) => {
       if (
         profileDropdownRef.current &&
         !profileDropdownRef.current.contains(event.target as Node)
@@ -40,9 +40,9 @@ export const IndexNavbar = () => {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('pointerdown', handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('pointerdown', handleClickOutside);
     };
   }, []);
 

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
 import boatLogo from '../assets/images/boat.png';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 interface Country {
   name: {
@@ -41,15 +41,18 @@ const Signup: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (countryDropdownRef.current && !countryDropdownRef.current.contains(event.target as Node)) {
+    function handleClickOutside(event: PointerEvent) {
+      if (
+        countryDropdownRef.current &&
+        !countryDropdownRef.current.contains(event.target as Node)
+      ) {
         setIsCountryOpen(false);
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('pointerdown', handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('pointerdown', handleClickOutside);
     };
   }, []);
 
@@ -102,19 +105,23 @@ const Signup: React.FC = () => {
   }, [password]);
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-[#f8f9fa] w-screen m-0">
-      <div className="signup-container text-center w-full max-w-[800px] p-[30px] bg-white rounded-[10px] shadow-[0_4px_10px_rgba(0,0,0,0.1)]">
+    <div className="m-0 flex min-h-screen w-screen items-center justify-center bg-[#f8f9fa]">
+      <div className="signup-container w-full max-w-[800px] rounded-[10px] bg-white p-[30px] text-center shadow-[0_4px_10px_rgba(0,0,0,0.1)]">
         {/* Initial signup view */}
         {!showForm ? (
           <div id="initial-view">
             <h2 className="mb-3 text-2xl font-semibold text-gray-800">Create your Account</h2>
             <hr className="my-4 border-gray-200" />
-            <img src={boatLogo} alt="Signup Logo" className="signup-logo mb-4 w-[120px] mx-auto block" />
+            <img
+              src={boatLogo}
+              alt="Signup Logo"
+              className="signup-logo mx-auto mb-4 block w-[120px]"
+            />
             <div className="mb-4">
               <button
                 type="button"
                 id="show-form-btn"
-                className="btn btn-primary w-full mb-3 py-2 bg-blue-500 hover:bg-blue-700 text-white font-medium rounded-md transition-colors duration-300"
+                className="btn btn-primary mb-3 w-full rounded-md bg-blue-500 py-2 font-medium text-white transition-colors duration-300 hover:bg-blue-700"
                 onClick={handleShowForm}
               >
                 Create account with email
@@ -139,12 +146,15 @@ const Signup: React.FC = () => {
             <hr className="my-4 border-gray-200" />
             <form onSubmit={handleSubmit}>
               <div className="mb-3 text-start">
-                <label htmlFor="emailOrPhone" className="form-label block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="emailOrPhone"
+                  className="form-label mb-1 block text-sm font-medium text-gray-700"
+                >
                   Email or Phone number
                 </label>
                 <input
                   type="text"
-                  className="form-control w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-control w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   id="emailOrPhone"
                   placeholder="Enter your email or phone number"
                   value={emailOrPhone}
@@ -152,12 +162,15 @@ const Signup: React.FC = () => {
                 />
               </div>
               <div className="mb-3 text-start">
-                <label htmlFor="firstName" className="form-label block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="firstName"
+                  className="form-label mb-1 block text-sm font-medium text-gray-700"
+                >
                   First name
                 </label>
                 <input
                   type="text"
-                  className="form-control w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-control w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   id="firstName"
                   placeholder="Enter your first name"
                   value={firstName}
@@ -165,12 +178,15 @@ const Signup: React.FC = () => {
                 />
               </div>
               <div className="mb-3 text-start">
-                <label htmlFor="lastName" className="form-label block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="lastName"
+                  className="form-label mb-1 block text-sm font-medium text-gray-700"
+                >
                   Last name
                 </label>
                 <input
                   type="text"
-                  className="form-control w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="form-control w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   id="lastName"
                   placeholder="Enter your last name"
                   value={lastName}
@@ -178,17 +194,21 @@ const Signup: React.FC = () => {
                 />
               </div>
               <div className="mb-3 text-start">
-                <label htmlFor="country" className="form-label block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="country"
+                  className="form-label mb-1 block text-sm font-medium text-gray-700"
+                >
                   Country
                 </label>
                 <div ref={countryDropdownRef} className="relative">
                   <div
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer flex justify-between items-center"
+                    className="flex w-full cursor-pointer items-center justify-between rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     onClick={() => setIsCountryOpen(!isCountryOpen)}
                   >
                     <span>
                       {country
-                        ? countries.find((c) => c.cca2 === country)?.name.common || 'Select your country'
+                        ? countries.find((c) => c.cca2 === country)?.name.common ||
+                          'Select your country'
                         : 'Select your country'}
                     </span>
                     <svg
@@ -205,12 +225,12 @@ const Signup: React.FC = () => {
                     </svg>
                   </div>
                   {isCountryOpen && (
-                    <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-1 text-base overflow-hidden focus:outline-none top-full">
-                      <div className="sticky top-0 bg-white p-2 border-b border-gray-200">
+                    <div className="absolute top-full z-10 mt-1 w-full overflow-hidden rounded-md bg-white py-1 text-base shadow-lg focus:outline-none">
+                      <div className="sticky top-0 border-b border-gray-200 bg-white p-2">
                         <input
                           ref={inputRef}
                           type="text"
-                          className="w-full px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          className="w-full rounded-md border border-gray-300 px-3 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
                           placeholder="Search countries..."
                           value={searchQuery}
                           onChange={handleSearchChange}
@@ -222,7 +242,7 @@ const Signup: React.FC = () => {
                           filteredCountries.map((c) => (
                             <div
                               key={c.cca2}
-                              className={`cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-gray-100 ${
+                              className={`relative cursor-pointer select-none py-2 pl-3 pr-9 hover:bg-gray-100 ${
                                 country === c.cca2 ? 'bg-blue-100' : ''
                               }`}
                               onClick={(e) => {
@@ -236,7 +256,7 @@ const Signup: React.FC = () => {
                             </div>
                           ))
                         ) : (
-                          <div className="py-2 px-3 text-gray-500">No countries found</div>
+                          <div className="px-3 py-2 text-gray-500">No countries found</div>
                         )}
                       </div>
                     </div>
@@ -244,58 +264,76 @@ const Signup: React.FC = () => {
                 </div>
               </div>
               <div className="mb-4 text-start">
-                <label htmlFor="password" className="form-label block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="password"
+                  className="form-label mb-1 block text-sm font-medium text-gray-700"
+                >
                   Password
                 </label>
                 <div className="relative">
                   <input
                     type="password"
-                    className="form-control w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="form-control w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     id="password"
                     placeholder="Create a password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
-                  <div className="absolute right-2 top-3 group">
-                    <div className="text-gray-500 cursor">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                  <div className="group absolute right-2 top-3">
+                    <div className="cursor text-gray-500">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
+                          clipRule="evenodd"
+                        />
                       </svg>
                     </div>
-                    <div className="absolute hidden group-hover:block right-0 w-64 p-2 bg-gray-800 text-white text-sm rounded-md z-10">
-                      Password should be at least 8 characters and include uppercase, lowercase, numbers, and special characters.
+                    <div className="absolute right-0 z-10 hidden w-64 rounded-md bg-gray-800 p-2 text-sm text-white group-hover:block">
+                      Password should be at least 8 characters and include uppercase, lowercase,
+                      numbers, and special characters.
                     </div>
                   </div>
                 </div>
                 <div className="mt-1">
-                  <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                    <div 
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-200">
+                    <div
                       className={`h-full ${
-                        passwordStrength === 0 ? 'w-0' : 
-                        passwordStrength === 1 ? 'w-1/5 bg-red-500' : 
-                        passwordStrength === 2 ? 'w-2/5 bg-orange-500' : 
-                        passwordStrength === 3 ? 'w-3/5 bg-yellow-500' : 
-                        passwordStrength === 4 ? 'w-4/5 bg-blue-500' : 
-                        'w-full bg-green-500'
+                        passwordStrength === 0
+                          ? 'w-0'
+                          : passwordStrength === 1
+                            ? 'w-1/5 bg-red-500'
+                            : passwordStrength === 2
+                              ? 'w-2/5 bg-orange-500'
+                              : passwordStrength === 3
+                                ? 'w-3/5 bg-yellow-500'
+                                : passwordStrength === 4
+                                  ? 'w-4/5 bg-blue-500'
+                                  : 'w-full bg-green-500'
                       } transition-all duration-300`}
                     ></div>
                   </div>
-                  <p className="text-xs text-gray-600 mt-1">
-                    {passwordStrength === 0 && "Enter a password"}
-                    {passwordStrength === 1 && "Very weak"}
-                    {passwordStrength === 2 && "Weak"}
-                    {passwordStrength === 3 && "Medium"}
-                    {passwordStrength === 4 && "Strong"}
-                    {passwordStrength === 5 && "Very strong"}
+                  <p className="mt-1 text-xs text-gray-600">
+                    {passwordStrength === 0 && 'Enter a password'}
+                    {passwordStrength === 1 && 'Very weak'}
+                    {passwordStrength === 2 && 'Weak'}
+                    {passwordStrength === 3 && 'Medium'}
+                    {passwordStrength === 4 && 'Strong'}
+                    {passwordStrength === 5 && 'Very strong'}
                   </p>
                 </div>
               </div>
-              <div className="text-center mb-4">
-                <img src={boatLogo} alt="Small Logo" className="small-logo w-[80px] mx-auto" />
+              <div className="mb-4 text-center">
+                <img src={boatLogo} alt="Small Logo" className="small-logo mx-auto w-[80px]" />
               </div>
               <button
                 type="submit"
-                className="btn btn-primary w-full mb-3 bg-blue-500 hover:bg-blue-700 text-white font-medium rounded-md transition-colors duration-300"
+                className="btn btn-primary mb-3 w-full rounded-md bg-blue-500 font-medium text-white transition-colors duration-300 hover:bg-blue-700"
               >
                 Create your account
               </button>
