@@ -1,20 +1,19 @@
-import React from 'react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import Index from '@/pages/Index';
 import L from 'leaflet';
 
-// Mock IndexNavbar to avoid dependency issues
+// Mock IndexNavbar
 vi.mock('@/components/layout/IndexNavbar', () => ({
   IndexNavbar: () => <nav data-testid="navbar" />,
 }));
 
 // Mock leaflet
 vi.mock('leaflet', () => {
-  const handlers: Record<string, Function[]> = {};
+  const handlers: Record<string, Array<(...args: unknown[]) => void>> = {};
   const mapMock = {
     setView: vi.fn().mockReturnThis(),
-    on: vi.fn(function (event, cb) {
+    on: vi.fn(function (event: string, cb: (...args: unknown[]) => void) {
       handlers[event] = handlers[event] || [];
       handlers[event].push(cb);
       return this;
@@ -22,7 +21,7 @@ vi.mock('leaflet', () => {
     invalidateSize: vi.fn(),
     remove: vi.fn(),
     _handlers: handlers,
-    fire: (event: string, data?: any) => {
+    fire: (event: string, data?: unknown) => {
       (handlers[event] || []).forEach(cb => cb(data));
     },
   };
@@ -53,7 +52,7 @@ describe('Index Page', () => {
   it('shows coordinates on mousemove and resets on mouseout', async () => {
     render(<Index />);
     // Simulate Leaflet map events
-    const mapInstance = (L.map as any).mock.results[0].value;
+    const mapInstance = ((L.map as unknown) as Mock).mock.results[0].value;
     // Simulate mousemove
     mapInstance.fire('mousemove', { latlng: { lat: 12.345678, lng: 98.765432 } });
     expect(await screen.findByText('Latitude: 12.345678, Longitude: 98.765432')).toBeInTheDocument();
@@ -64,8 +63,7 @@ describe('Index Page', () => {
 
   it('cleans up map instance on unmount', () => {
     const { unmount } = render(<Index />);
-    // Simulate Leaflet map instance
-    const mapInstance = (L.map as any).mock.results[0].value;
+    const mapInstance = ((L.map as unknown) as Mock).mock.results[0].value;
     unmount();
     expect(mapInstance.remove).toHaveBeenCalled();
   });

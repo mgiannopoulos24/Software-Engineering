@@ -23,7 +23,7 @@ vi.mock('lucide-react', () => ({
 
 // Mock react-router-dom
 vi.mock('react-router-dom', () => ({
-  Link: ({ to, children, ...props }: any) => (
+  Link: ({ to, children, ...props }: { to: string; children: React.ReactNode } & React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
     <a href={to} {...props}>
       {children}
     </a>
