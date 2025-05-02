@@ -10,14 +10,15 @@ const Index: React.FC = () => {
 
   useEffect(() => {
     if (mapRef.current && !mapInstanceRef.current) {
-      // Initialize the map
-      const map = L.map(mapRef.current).setView([37.9, 23.0], 7);
+      // Initialize the map with bounds
+      const map = L.map(mapRef.current, {
+        maxBounds: L.latLngBounds(L.latLng(-90, -180), L.latLng(90, 180)),
+        maxBoundsViscosity: 1.0,
+      }).setView([37.9, 23.0], 7);
 
       // Add the OpenStreetMap tiles
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
-        // attribution:
-        //   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       }).addTo(map);
 
       // Store the map instance for cleanup
