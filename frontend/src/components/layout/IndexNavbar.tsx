@@ -55,7 +55,7 @@ export const IndexNavbar = () => {
             <li>
               <a
                 href="#"
-                className="flex flex-col items-center rounded-sm px-1 py-1 text-gray-900 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-700 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent md:dark:hover:text-blue-500"
+                className="flex flex-col items-center rounded-sm px-1 py-1 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:hover:bg-transparent md:hover:text-blue-700 md:dark:hover:bg-transparent md:dark:hover:text-blue-500"
               >
                 <LocateFixed size={20} className="md:h-5 md:w-5 lg:h-6 lg:w-6" />
                 <span className="mt-1 text-[10px] lg:text-xs">Locate</span>
@@ -64,7 +64,7 @@ export const IndexNavbar = () => {
             <li>
               <a
                 href="#"
-                className="flex flex-col items-center rounded-sm px-1 py-1 text-gray-900 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-700 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent md:dark:hover:text-blue-500"
+                className="flex flex-col items-center rounded-sm px-1 py-1 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:hover:bg-transparent md:hover:text-blue-700 md:dark:hover:bg-transparent md:dark:hover:text-blue-500"
               >
                 <Info size={20} className="md:h-5 md:w-5 lg:h-6 lg:w-6" />
                 <span className="mt-1 text-[10px] lg:text-xs">Info</span>
@@ -73,7 +73,7 @@ export const IndexNavbar = () => {
             <li>
               <a
                 href="#"
-                className="flex flex-col items-center rounded-sm px-1 py-1 text-gray-900 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-700 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent md:dark:hover:text-blue-500"
+                className="flex flex-col items-center rounded-sm px-1 py-1 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:hover:bg-transparent md:hover:text-blue-700 md:dark:hover:bg-transparent md:dark:hover:text-blue-500"
               >
                 <Compass size={20} className="md:h-5 md:w-5 lg:h-6 lg:w-6" />
                 <span className="mt-1 text-[10px] lg:text-xs">Compass</span>
@@ -82,7 +82,7 @@ export const IndexNavbar = () => {
             <li>
               <a
                 href="#"
-                className="flex flex-col items-center rounded-sm px-1 py-1 text-gray-900 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-700 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent md:dark:hover:text-blue-500"
+                className="flex flex-col items-center rounded-sm px-1 py-1 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:hover:bg-transparent md:hover:text-blue-700 md:dark:hover:bg-transparent md:dark:hover:text-blue-500"
               >
                 <Globe size={20} className="md:h-5 md:w-5 lg:h-6 lg:w-6" />
                 <span className="mt-1 text-[10px] lg:text-xs">Globe</span>
@@ -111,7 +111,7 @@ export const IndexNavbar = () => {
             <li>
               <a
                 href="#"
-                className="flex flex-col items-center rounded-sm px-1 py-1 text-gray-900 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-700 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent md:dark:hover:text-blue-500"
+                className="flex flex-col items-center rounded-sm px-1 py-1 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:hover:bg-transparent md:hover:text-blue-700 md:dark:hover:bg-transparent md:dark:hover:text-blue-500"
               >
                 <Settings size={20} className="md:h-5 md:w-5 lg:h-6 lg:w-6" />
                 <span className="mt-1 text-[10px] lg:text-xs">Settings</span>
@@ -120,7 +120,7 @@ export const IndexNavbar = () => {
             <li>
               <a
                 href="#"
-                className="flex flex-col items-center rounded-sm px-1 py-1 text-gray-900 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-700 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent md:dark:hover:text-blue-500"
+                className="flex flex-col items-center rounded-sm px-1 py-1 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:hover:bg-transparent md:hover:text-blue-700 md:dark:hover:bg-transparent md:dark:hover:text-blue-500"
               >
                 <Bell size={20} className="md:h-5 md:w-5 lg:h-6 lg:w-6" />
                 <span className="mt-1 text-[10px] lg:text-xs">Notifications</span>
@@ -129,7 +129,7 @@ export const IndexNavbar = () => {
             <li>
               <a
                 href="#"
-                className="flex flex-col items-center rounded-sm px-1 py-1 text-gray-900 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-700 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent md:dark:hover:text-blue-500"
+                className="flex flex-col items-center rounded-sm px-1 py-1 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:hover:bg-transparent md:hover:text-blue-700 md:dark:hover:bg-transparent md:dark:hover:text-blue-500"
               >
                 <Bookmark size={20} className="md:h-5 md:w-5 lg:h-6 lg:w-6" />
                 <span className="mt-1 text-[10px] lg:text-xs">Saved Vessels</span>
@@ -138,7 +138,7 @@ export const IndexNavbar = () => {
             <li ref={profileDropdownRef} className="relative">
               <a
                 href="#"
-                className="flex flex-col items-center rounded-sm px-1 py-1 text-gray-900 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-700 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent md:dark:hover:text-blue-500"
+                className="flex flex-col items-center rounded-sm px-1 py-1 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:hover:bg-transparent md:hover:text-blue-700 md:dark:hover:bg-transparent md:dark:hover:text-blue-500"
                 onClick={toggleProfileDropdown}
               >
                 <CircleUserRound size={20} className="md:h-5 md:w-5 lg:h-6 lg:w-6" />
@@ -176,7 +176,7 @@ export const IndexNavbar = () => {
               data-collapse-toggle="navbar-search"
               aria-controls="navbar-search"
               aria-expanded="false"
-              className="me-1 rounded-lg p-2.5 text-sm text-gray-500 hover:bg-gray-100  bg-white focus:outline-none focus:ring-4 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-700"
+              className="me-1 rounded-lg bg-white p-2.5 text-sm text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-700"
             >
               <Search size={20} />
               <span className="sr-only">Search</span>
@@ -185,7 +185,7 @@ export const IndexNavbar = () => {
               onClick={toggleNavbar}
               data-collapse-toggle="navbar-search"
               type="button"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-lg p-2 text-sm bg-white text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-white p-2 text-sm text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600"
               aria-controls="navbar-search"
               aria-expanded={isOpen}
             >
@@ -203,7 +203,7 @@ export const IndexNavbar = () => {
           {/* Close button for mobile drawer */}
           <button
             onClick={toggleNavbar}
-            className="absolute right-3 top-3 inline-flex items-center justify-center rounded-lg p-2 text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 md:hidden dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600"
+            className="absolute right-3 top-3 inline-flex items-center justify-center rounded-lg p-2 text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600 md:hidden"
           >
             <X size={20} />
             <span className="sr-only">Close menu</span>
