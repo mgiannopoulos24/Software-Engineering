@@ -2,16 +2,38 @@ version: '3.8'
 
 services:
   # Spring Boot application service
+  # app:
+  #   image: ubuntu:22.04
+  #   container_name: springboot-app
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8080:8080"
+  #   volumes:
+  #     - ./app:/app
+  #     - maven-repo:/root/.m2
+  #   working_dir: /app
+  #   depends_on:
+  #     - db
+  #     - zookeeper
+  #     - kafka
+  #   environment:
+  #     - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/postgres
+  #     - SPRING_DATASOURCE_USERNAME=postgres
+  #     - SPRING_DATASOURCE_PASSWORD=postgres
+  #     - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+  #     # Kafka bootstrap servers for Spring Boot
+  #     - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+  #   command: >
+  #     bash -c "apt-get update && 
+  #              apt-get install -y openjdk-17-jdk maven && 
+  #              mvn spring-boot:run"
   app:
-    image: ubuntu:22.04
+    build:
+      context: .
     container_name: springboot-app
     restart: unless-stopped
     ports:
       - "8080:8080"
-    volumes:
-      - ./app:/app
-      - maven-repo:/root/.m2
-    working_dir: /app
     depends_on:
       - db
       - zookeeper
@@ -21,48 +43,35 @@ services:
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-      # Kafka bootstrap servers for Spring Boot
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
     command: >
       bash -c "apt-get update && 
-               apt-get install -y openjdk-17-jdk maven && 
-               mvn spring-boot:run"
+          apt-get install -y openjdk-17-jdk maven && 
+          mvn spring-boot:run"
 
   # PostgreSQL database service
   db:
-    image: ubuntu:22.04
+    image: postgres:15
     container_name: postgres-db
     restart: unless-stopped
-    ports:
-      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
     volumes:
       - postgres-data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=postgres
-    command: >
-      bash -c "apt-get update && 
-               apt-get install -y postgresql && 
-               service postgresql start && 
-               tail -f /dev/null"
+    ports:
+      - "5432:5432"
 
-  # ZooKeeper service required by Kafka
+    # ZooKeeper service required by Kafka
   zookeeper:
-    image: confluentinc/cp-zookeeper:latest
-    container_name: zookeeper
-    restart: unless-stopped
+    image: confluentinc/cp-zookeeper:7.5.1
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "2181:2181"
 
-  # Kafka broker service
   kafka:
-    image: confluentinc/cp-kafka:latest
-    container_name: kafka
-    restart: unless-stopped
+    image: confluentinc/cp-kafka:7.5.1
     depends_on:
       - zookeeper
     ports:
@@ -70,8 +79,9 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
 volumes:
