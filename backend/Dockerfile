@@ -1,10 +1,5 @@
-# FROM openjdk:17
-# COPY target/ais-monitor-0.0.1-SNAPSHOT.jar app.jar
-# ENTRYPOINT ["java", "-jar", "app.jar"]
-
-# Use a Maven+JDK image to build your app
+# Use a Maven+JDK image to build 
 FROM maven:3.9.4-eclipse-temurin-17 AS build
-
 WORKDIR /app
 COPY . /app
 RUN mvn clean package -DskipTests
