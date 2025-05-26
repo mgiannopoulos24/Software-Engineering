@@ -52,6 +52,13 @@
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
 
+        <!-- PostgreSQL JDBC driver -->
+        <dependency>
+          <groupId>org.postgresql</groupId>
+          <artifactId>postgresql</artifactId>
+          <scope>runtime</scope>
+        </dependency>
+
         <!-- Lombok, for reducing boilerplate code (optional) -->
         <dependency>
             <groupId>org.projectlombok</groupId>
