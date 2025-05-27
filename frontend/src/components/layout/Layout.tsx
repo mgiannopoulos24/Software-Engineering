@@ -9,7 +9,7 @@ const Navbar = () => {
 
   // Check if we're on a user page
   const isUserPage = location.pathname === '/user' || location.pathname.startsWith('/user/');
-  const isAdminPage = location.pathname === '/admin';
+  const isAdminPage = location.pathname === '/admin' || location.pathname.startsWith('/admin/');
 
   const toggleSheet = () => {
     setIsSheetOpen(!isSheetOpen);
@@ -59,7 +59,7 @@ const Navbar = () => {
                     <Bookmark size={18} />
                   </Link>
                   <Link
-                    to="/user"
+                    to={isAdminPage ? "/admin" : "/user"}
                     className="flex items-center space-x-2 rounded-full bg-gray-700 p-2 text-white transition-colors hover:bg-gray-600"
                   >
                     <Map size={18} />
@@ -218,7 +218,7 @@ const Navbar = () => {
                         <span>Saved Vessels</span>
                       </Link>
                       <Link
-                        to="/user"
+                        to={isAdminPage ? "/admin" : "/user"}
                         className="flex w-full items-center space-x-3 text-left text-gray-600 transition-colors hover:text-gray-900"
                         onClick={() => setIsSheetOpen(false)}
                       >
