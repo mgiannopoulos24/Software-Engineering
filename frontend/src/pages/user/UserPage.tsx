@@ -2,7 +2,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import React, { useEffect, useRef, useState } from 'react';
 
-const Index: React.FC = () => {
+const UserPage: React.FC = () => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const [coordinates, setCoordinates] = useState('Hover over the map to display coordinates');
@@ -48,18 +48,16 @@ const Index: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex h-screen w-screen flex-col">
-      <div className="relative w-full flex-1">
-        <div id="map" ref={mapRef} className="h-full w-full"></div>
-        <div
-          id="coordinates"
-          className="w-240 absolute bottom-2.5 left-1/2 z-[999] -translate-x-1/2 transform overflow-hidden whitespace-nowrap rounded border border-white/30 bg-black/60 px-2.5 py-0.5 text-center text-xs font-medium text-white shadow-md"
-        >
-          {coordinates}
-        </div>
+    <div className="relative h-screen w-full flex-1">
+      <div id="map" ref={mapRef} className="h-full w-full"></div>
+      <div
+        id="coordinates"
+        className="w-240 absolute bottom-2.5 left-1/2 z-[999] -translate-x-1/2 transform overflow-hidden whitespace-nowrap rounded border border-white/30 bg-black/60 px-2.5 py-0.5 text-center text-xs font-medium text-white shadow-md"
+      >
+        {coordinates}
       </div>
     </div>
   );
 };
 
-export default Index;
+export default UserPage;

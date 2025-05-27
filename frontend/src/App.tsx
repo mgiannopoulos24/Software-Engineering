@@ -1,19 +1,47 @@
-import './App.css';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import Layout from './components/layout/Layout';
 import Index from './pages/Index';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
-import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
+import AdminPage from './pages/admin/AdminPage';
+import UserPage from './pages/user/UserPage';
+import { Route, BrowserRouter, Routes } from 'react-router-dom';
 
-function App() {
+export default function App() {
   return (
-    <Router>
+    <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Index />} />
+        <Route
+          path="/"
+          element={
+            <Layout>
+              <Index />
+            </Layout>
+          }
+        />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route
+          path="/user"
+          element={
+            <ProtectedRoute requiredRole="user">
+              <Layout>
+                <UserPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Layout>
+                <AdminPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
       </Routes>
-    </Router>
+    </BrowserRouter>
   );
 }
-
-export default App;

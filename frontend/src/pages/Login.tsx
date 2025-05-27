@@ -11,11 +11,22 @@ const Login: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Add your login logic here
 
-    // For demonstration purposes, show error toast
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
+    const emailOrPhone = (
+      document.getElementById('emailOrPhone') as HTMLInputElement
+    )?.value?.trim();
+
+    // Simple mock login logic - replace with actual authentication
+    if (emailOrPhone === 'admin@ais.com') {
+      // Redirect to admin page
+      window.location.href = '/admin';
+    } else if (emailOrPhone === 'user@ais.com') {
+      // Redirect to user page
+      window.location.href = '/user';
+    } else {
+      // Handle invalid login
+      setError('Invalid credentials');
+    }
   };
 
   return (
