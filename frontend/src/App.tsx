@@ -4,6 +4,7 @@ import Index from './pages/Index';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import AdminPage from './pages/admin/AdminPage';
+import SavedVessels from './pages/user/SavedVessels';
 import UserPage from './pages/user/UserPage';
 import { Route, BrowserRouter, Routes } from 'react-router-dom';
 
@@ -30,6 +31,16 @@ export default function App() {
               </Layout>
             </ProtectedRoute>
           }
+        />
+        <Route 
+        path="/user/vessels"
+        element={
+          <ProtectedRoute requiredRole="user">
+            <Layout>
+              <SavedVessels />
+            </Layout>
+          </ProtectedRoute>
+        }
         />
         <Route
           path="/admin"

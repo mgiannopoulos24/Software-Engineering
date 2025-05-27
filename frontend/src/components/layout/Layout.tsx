@@ -1,6 +1,6 @@
 import { Bookmark, Map, MapPin, Menu, Search, User, Users, X } from 'lucide-react';
 import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 const Navbar = () => {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -8,7 +8,7 @@ const Navbar = () => {
   const location = useLocation();
 
   // Check if we're on a user page
-  const isUserPage = location.pathname === '/user';
+  const isUserPage = location.pathname === '/user' || location.pathname.startsWith('/user/');
   const isAdminPage = location.pathname === '/admin';
 
   const toggleSheet = () => {
@@ -27,7 +27,9 @@ const Navbar = () => {
           <div className="flex h-16 items-center justify-between">
             {/* Logo/Title */}
             <div className="flex-shrink-0">
-              <h1 className="text-lg font-bold text-white">AIS Service</h1>
+              <Link to="/" className="text-lg font-bold text-white hover:text-gray-200">
+                AIS Service
+              </Link>
             </div>
 
             {/* Desktop Navigation */}
@@ -50,12 +52,18 @@ const Navbar = () => {
               {/* Show user navigation icons only on user page */}
               {(isUserPage || isAdminPage) && (
                 <>
-                  <button className="flex items-center space-x-2 rounded-full bg-gray-700 p-2 text-white transition-colors hover:bg-gray-600">
+                  <Link 
+                    to="/user/vessels"
+                    className="flex items-center space-x-2 rounded-full bg-gray-700 p-2 text-white transition-colors hover:bg-gray-600"
+                  >
                     <Bookmark size={18} />
-                  </button>
-                  <button className="flex items-center space-x-2 rounded-full bg-gray-700 p-2 text-white transition-colors hover:bg-gray-600">
+                  </Link>
+                  <Link 
+                    to="/user"
+                    className="flex items-center space-x-2 rounded-full bg-gray-700 p-2 text-white transition-colors hover:bg-gray-600"
+                  >
                     <Map size={18} />
-                  </button>
+                  </Link>
                   <button className="flex items-center space-x-2 rounded-full bg-gray-700 p-2 text-white transition-colors hover:bg-gray-600">
                     <MapPin size={18} />
                   </button>
@@ -78,62 +86,69 @@ const Navbar = () => {
                 </button>
 
                 {isUserDropdownOpen && (
-                  <div className="absolute right-0 z-50 z-[999] mt-2 w-48 rounded-md border border-gray-200 bg-white py-1 shadow-lg">
+                  <div className="absolute right-0 z-[999] mt-2 w-48 rounded-md border border-gray-200 bg-white py-1 shadow-lg">
                     {isUserPage || isAdminPage ? (
                       // User/Admin page dropdown
                       <>
-                        <a
-                          href="/profile"
+                        <Link
+                          to="/user/profile"
                           className="block px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                          onClick={() => setIsUserDropdownOpen(false)}
                         >
                           Profile
-                        </a>
-                        <a
-                          href="/settings"
+                        </Link>
+                        <Link
+                          to="/user/settings"
                           className="block px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                          onClick={() => setIsUserDropdownOpen(false)}
                         >
                           Settings
-                        </a>
+                        </Link>
                         {isAdminPage && (
                           <>
                             <hr className="my-1" />
-                            <a
-                              href="/admin/users"
+                            <Link
+                              to="/admin/users"
                               className="block px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                              onClick={() => setIsUserDropdownOpen(false)}
                             >
                               Manage Users
-                            </a>
-                            <a
-                              href="/admin/system"
+                            </Link>
+                            <Link
+                              to="/admin/system"
                               className="block px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                              onClick={() => setIsUserDropdownOpen(false)}
                             >
                               System Settings
-                            </a>
+                            </Link>
                           </>
                         )}
                         <hr className="my-1" />
-                        <a
-                          href="/login"
+                        <Link
+                          to="/login"
                           className="block px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                          onClick={() => setIsUserDropdownOpen(false)}
                         >
                           Logout
-                        </a>
+                        </Link>
                       </>
                     ) : (
                       // Default dropdown
                       <>
-                        <a
-                          href="/login"
+                        <Link
+                          to="/login"
                           className="block px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                          onClick={() => setIsUserDropdownOpen(false)}
                         >
                           Login
-                        </a>
-                        <a
-                          href="/signup"
+                        </Link>
+                        <Link
+                          to="/signup"
                           className="block px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                          onClick={() => setIsUserDropdownOpen(false)}
                         >
                           Sign Up
-                        </a>
+                        </Link>
                       </>
                     )}
                   </div>
@@ -157,7 +172,7 @@ const Navbar = () => {
         {isSheetOpen && (
           <div className="md:hidden">
             <div
-              className="fixed inset-0 z-50 z-[999] bg-black bg-opacity-50"
+              className="fixed inset-0 z-[999] bg-black bg-opacity-50"
               onClick={toggleSheet}
             >
               <div
@@ -190,14 +205,22 @@ const Navbar = () => {
                   {/* Navigation Items Mobile */}
                   {isUserPage && (
                     <div className="space-y-4">
-                      <button className="flex w-full items-center space-x-3 text-left text-gray-600 transition-colors hover:text-gray-900">
+                      <Link
+                        to="/user/vessels"
+                        className="flex w-full items-center space-x-3 text-left text-gray-600 transition-colors hover:text-gray-900"
+                        onClick={() => setIsSheetOpen(false)}
+                      >
                         <Bookmark className="h-5 w-5" />
-                        <span>Bookmarks</span>
-                      </button>
-                      <button className="flex w-full items-center space-x-3 text-left text-gray-600 transition-colors hover:text-gray-900">
+                        <span>Saved Vessels</span>
+                      </Link>
+                      <Link
+                        to="/user"
+                        className="flex w-full items-center space-x-3 text-left text-gray-600 transition-colors hover:text-gray-900"
+                        onClick={() => setIsSheetOpen(false)}
+                      >
                         <Map className="h-5 w-5" />
                         <span>Map</span>
-                      </button>
+                      </Link>
                       <button className="flex w-full items-center space-x-3 text-left text-gray-600 transition-colors hover:text-gray-900">
                         <MapPin className="h-5 w-5" />
                         <span>Locate</span>
@@ -209,32 +232,36 @@ const Navbar = () => {
                   <div className="space-y-3 border-t border-gray-200 pt-6">
                     {isUserPage ? (
                       <>
-                        <a
-                          href="/profile"
+                        <Link
+                          to="/user/profile"
                           className="block w-full rounded-md bg-blue-600 px-4 py-2 text-center text-sm font-medium text-white transition-colors hover:bg-blue-700"
+                          onClick={() => setIsSheetOpen(false)}
                         >
                           Profile
-                        </a>
-                        <a
-                          href="/settings"
+                        </Link>
+                        <Link
+                          to="/user/settings"
                           className="block w-full rounded-md border border-blue-600 px-4 py-2 text-center text-sm font-medium text-blue-600 transition-colors hover:bg-blue-50"
+                          onClick={() => setIsSheetOpen(false)}
                         >
                           Settings
-                        </a>
-                        <a
-                          href="/logout"
+                        </Link>
+                        <Link
+                          to="/login"
                           className="block w-full rounded-md border border-red-600 px-4 py-2 text-center text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                          onClick={() => setIsSheetOpen(false)}
                         >
                           Logout
-                        </a>
+                        </Link>
                       </>
                     ) : (
-                      <a
-                        href="/login"
+                      <Link
+                        to="/login"
                         className="block w-full rounded-md bg-blue-600 px-4 py-2 text-center text-sm font-medium text-white transition-colors hover:bg-blue-700"
+                        onClick={() => setIsSheetOpen(false)}
                       >
                         Login
-                      </a>
+                      </Link>
                     )}
                   </div>
                 </div>

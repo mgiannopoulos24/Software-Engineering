@@ -1,11 +1,12 @@
-import { Button } from "@/components/ui/button";
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Table,
   TableBody,
@@ -13,15 +14,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { MoreHorizontal, Edit, Trash2 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/table';
+import { Edit, MoreHorizontal, Trash2 } from 'lucide-react';
 
 const AdminPage = () => {
   // Mock admin data
@@ -39,8 +33,8 @@ const AdminPage = () => {
   ];
 
   return (
-    <div className="h-screen w-full bg-background">
-      <div className="container py-10">
+    <div className="flex w-screen bg-background">
+      <div className="container mx-auto py-10">
         <div className="space-y-8">
           {/* Admin Header */}
           <div>
@@ -60,7 +54,7 @@ const AdminPage = () => {
                 <p className="text-2xl font-bold">{mockStats.totalUsers}</p>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -71,7 +65,7 @@ const AdminPage = () => {
                 <p className="text-2xl font-bold">{mockStats.activeVessels}</p>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -82,7 +76,7 @@ const AdminPage = () => {
                 <p className="text-2xl font-bold">{mockStats.totalReports}</p>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -120,9 +114,13 @@ const AdminPage = () => {
                       </TableCell>
                       <TableCell>{user.role}</TableCell>
                       <TableCell>
-                        <Badge 
-                          variant={user.status === 'Active' ? "success" : "destructive"}
-                          className={user.status === 'Active' ? "bg-green-100 text-green-800 hover:bg-green-100" : "bg-red-100 text-red-800 hover:bg-red-100"}
+                        <Badge
+                          variant={user.status === 'Active' ? 'success' : 'destructive'}
+                          className={
+                            user.status === 'Active'
+                              ? 'bg-green-100 text-green-800 hover:bg-green-100'
+                              : 'bg-red-100 text-red-800 hover:bg-red-100'
+                          }
                         >
                           {user.status}
                         </Badge>
@@ -130,7 +128,10 @@ const AdminPage = () => {
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
+                            <Button
+                              className="border-black bg-white text-black hover:bg-gray-200"
+                              size="icon"
+                            >
                               <MoreHorizontal className="h-4 w-4" />
                               <span className="sr-only">Open menu</span>
                             </Button>
