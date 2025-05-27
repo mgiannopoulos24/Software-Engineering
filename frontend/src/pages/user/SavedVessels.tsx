@@ -1,5 +1,5 @@
-import React from 'react';
 import { Anchor, Navigation, Waves } from 'lucide-react';
+import React from 'react';
 
 interface Vessel {
   id: string;
@@ -17,36 +17,32 @@ const SavedVessels: React.FC = () => {
       title: 'MV Mediterranean Star',
       destination: 'Piraeus, Greece',
       speed: 14.2,
-      draught: 8.5
+      draught: 8.5,
     },
     {
       id: '2',
       title: 'SS Atlantic Express',
       destination: 'Marseille, France',
       speed: 16.8,
-      draught: 9.2
+      draught: 9.2,
     },
     {
       id: '3',
       title: 'MV Aegean Explorer',
       destination: 'Istanbul, Turkey',
       speed: 12.5,
-      draught: 7.8
-    }
+      draught: 7.8,
+    },
   ];
 
   return (
     <div className="flex h-screen w-screen flex-col bg-gray-50 px-4 py-8 sm:px-6 lg:px-8">
       {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Saved Vessels</h1>
-          <p className="mt-2 text-gray-600">
-            Your bookmarked vessels and their current status
-          </p>
-        </div>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Saved Vessels</h1>
+        <p className="mt-2 text-gray-600">Your bookmarked vessels and their current status</p>
+      </div>
       <div className="mx-auto max-w-6xl">
-        
-
         {/* Vessels Grid */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {savedVessels.map((vessel) => (
@@ -57,9 +53,7 @@ const SavedVessels: React.FC = () => {
               {/* Vessel Title */}
               <div className="mb-4 flex items-center">
                 <Anchor className="mr-3 h-6 w-6 text-blue-600" />
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {vessel.title}
-                </h3>
+                <h3 className="text-lg font-semibold text-gray-900">{vessel.title}</h3>
               </div>
 
               {/* Vessel Details */}
@@ -106,7 +100,7 @@ const SavedVessels: React.FC = () => {
 
         {/* Empty State (if no vessels) */}
         {savedVessels.length === 0 && (
-          <div className="text-center py-12">
+          <div className="py-12 text-center">
             <Anchor className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">No saved vessels</h3>
             <p className="mt-1 text-sm text-gray-500">

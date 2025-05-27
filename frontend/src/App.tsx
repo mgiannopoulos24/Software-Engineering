@@ -6,7 +6,7 @@ import Signup from './pages/Signup';
 import AdminPage from './pages/admin/AdminPage';
 import SavedVessels from './pages/user/SavedVessels';
 import UserPage from './pages/user/UserPage';
-import { Route, BrowserRouter, Routes } from 'react-router-dom';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
 
 export default function App() {
   return (
@@ -32,15 +32,15 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route 
-        path="/user/vessels"
-        element={
-          <ProtectedRoute requiredRole="user">
-            <Layout>
-              <SavedVessels />
-            </Layout>
-          </ProtectedRoute>
-        }
+        <Route
+          path="/user/vessels"
+          element={
+            <ProtectedRoute requiredRole="user">
+              <Layout>
+                <SavedVessels />
+              </Layout>
+            </ProtectedRoute>
+          }
         />
         <Route
           path="/admin"
