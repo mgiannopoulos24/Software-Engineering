@@ -1,136 +1,136 @@
-import React, { useEffect, useRef, useState } from 'react';
-import L from 'leaflet';
-import { 
-  enableCriticalSectionCreation, 
-  CriticalSection, 
-  drawCriticalSection,
-  MAX_CRITICAL_SECTIONS
-} from '@/utils/mapUtils';
-import { Button } from "@/components/ui/button";
-import { toast } from '@/hooks/use-toast'; 
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
+import { toast } from '@/hooks/use-toast';
+import {
+  CriticalSection,
+  MAX_CRITICAL_SECTIONS,
+  drawCriticalSection,
+  enableCriticalSectionCreation,
+} from '@/utils/mapUtils';
+import L from 'leaflet';
 import { Settings2 } from 'lucide-react';
-import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
+import React, { useEffect, useRef, useState } from 'react';
 
 // Mock vessel data
 const mockVessels = [
   {
     id: 1,
-    name: "Mediterranean Star",
-    type: "cargo",
-    status: "underway",
+    name: 'Mediterranean Star',
+    type: 'cargo',
+    status: 'underway',
     lat: 37.9755,
     lng: 23.7348,
     speed: 14.2,
     heading: 45,
-    destination: "Piraeus Port"
+    destination: 'Piraeus Port',
   },
   {
     id: 2,
-    name: "Aegean Explorer",
-    type: "passenger",
-    status: "anchored",
-    lat: 37.9420,
-    lng: 23.6580,
+    name: 'Aegean Explorer',
+    type: 'passenger',
+    status: 'anchored',
+    lat: 37.942,
+    lng: 23.658,
     speed: 0.0,
     heading: 180,
-    destination: "Mykonos"
+    destination: 'Mykonos',
   },
   {
     id: 3,
-    name: "Blue Horizon",
-    type: "tanker",
-    status: "moored",
+    name: 'Blue Horizon',
+    type: 'tanker',
+    status: 'moored',
     lat: 37.9838,
     lng: 23.7275,
     speed: 0.0,
     heading: 270,
-    destination: "Rafina Port"
+    destination: 'Rafina Port',
   },
   {
     id: 4,
-    name: "Ocean Navigator",
-    type: "cargo",
-    status: "underway",
-    lat: 38.0150,
-    lng: 23.7950,
+    name: 'Ocean Navigator',
+    type: 'cargo',
+    status: 'underway',
+    lat: 38.015,
+    lng: 23.795,
     speed: 16.8,
     heading: 90,
-    destination: "Thessaloniki"
+    destination: 'Thessaloniki',
   },
   {
     id: 5,
-    name: "Sea Breeze",
-    type: "fishing",
-    status: "underway",
-    lat: 37.8900,
-    lng: 23.6200,
+    name: 'Sea Breeze',
+    type: 'fishing',
+    status: 'underway',
+    lat: 37.89,
+    lng: 23.62,
     speed: 8.5,
     heading: 315,
-    destination: "Fishing Grounds"
+    destination: 'Fishing Grounds',
   },
   {
     id: 6,
-    name: "Golden Wave",
-    type: "passenger",
-    status: "underway",
-    lat: 38.0500,
-    lng: 23.6800,
+    name: 'Golden Wave',
+    type: 'passenger',
+    status: 'underway',
+    lat: 38.05,
+    lng: 23.68,
     speed: 22.3,
     heading: 225,
-    destination: "Santorini"
+    destination: 'Santorini',
   },
   {
     id: 7,
-    name: "Atlantic Express",
-    type: "cargo",
-    status: "anchored",
-    lat: 37.9200,
-    lng: 23.8100,
+    name: 'Atlantic Express',
+    type: 'cargo',
+    status: 'anchored',
+    lat: 37.92,
+    lng: 23.81,
     speed: 0.0,
     heading: 0,
-    destination: "Waiting Area"
+    destination: 'Waiting Area',
   },
   {
     id: 8,
-    name: "Coastal Guardian",
-    type: "other",
-    status: "unknown",
-    lat: 38.0800,
-    lng: 23.7200,
+    name: 'Coastal Guardian',
+    type: 'other',
+    status: 'unknown',
+    lat: 38.08,
+    lng: 23.72,
     speed: 5.2,
     heading: 135,
-    destination: "Unknown"
+    destination: 'Unknown',
   },
   {
     id: 9,
-    name: "Sunset Voyager",
-    type: "tanker",
-    status: "underway",
-    lat: 37.8500,
-    lng: 23.7800,
+    name: 'Sunset Voyager',
+    type: 'tanker',
+    status: 'underway',
+    lat: 37.85,
+    lng: 23.78,
     speed: 12.1,
     heading: 60,
-    destination: "Elefsina"
+    destination: 'Elefsina',
   },
   {
     id: 10,
-    name: "Island Hopper",
-    type: "passenger",
-    status: "moored",
-    lat: 37.9600,
-    lng: 23.6000,
+    name: 'Island Hopper',
+    type: 'passenger',
+    status: 'moored',
+    lat: 37.96,
+    lng: 23.6,
     speed: 0.0,
     heading: 90,
-    destination: "Aegina Port"
-  }
+    destination: 'Aegina Port',
+  },
 ];
 
 const UserPage: React.FC = () => {
@@ -148,6 +148,13 @@ const UserPage: React.FC = () => {
   const [criticalSections, setCriticalSections] = useState<CriticalSection[]>([]);
   const [isCreatingCriticalSection, setIsCreatingCriticalSection] = useState(false);
   const criticalSectionCleanupRef = useRef<(() => void) | null>(null);
+  const criticalSectionsCountRef = useRef<number>(0);
+  const criticalSectionCirclesRef = useRef<Map<string, L.Circle>>(new Map());
+
+  // Update the ref whenever criticalSections changes
+  useEffect(() => {
+    criticalSectionsCountRef.current = criticalSections.length;
+  }, [criticalSections]);
 
   // Create vessel icon using Navigation2 from Lucide
   const getVesselIcon = (type: string, status: string, heading: number) => {
@@ -156,12 +163,12 @@ const UserPage: React.FC = () => {
       passenger: '#4ECDC4',
       tanker: '#45B7D1',
       fishing: '#96CEB4',
-      other: '#FFEAA7'
+      other: '#FFEAA7',
     };
 
     const color = colors[type as keyof typeof colors] || colors.other;
     const pulseAnimation = status === 'underway' ? 'animation: pulse 2s infinite;' : '';
-    
+
     return L.divIcon({
       html: `
         <div style="
@@ -184,14 +191,14 @@ const UserPage: React.FC = () => {
       `,
       className: 'vessel-marker',
       iconSize: [20, 20],
-      iconAnchor: [10, 10]
+      iconAnchor: [10, 10],
     });
   };
 
   const addVesselMarkers = (vessels: typeof mockVessels) => {
-    vessels.forEach(vessel => {
+    vessels.forEach((vessel) => {
       const marker = L.marker([vessel.lat, vessel.lng], {
-        icon: getVesselIcon(vessel.type, vessel.status, vessel.heading)
+        icon: getVesselIcon(vessel.type, vessel.status, vessel.heading),
       }).addTo(mapInstanceRef.current!);
 
       // Add click event to select vessel
@@ -260,13 +267,13 @@ const UserPage: React.FC = () => {
     return () => {
       if (mapInstanceRef.current) {
         // Clear markers
-        markersRef.current.forEach(marker => {
+        markersRef.current.forEach((marker) => {
           if (mapInstanceRef.current) {
             mapInstanceRef.current.removeLayer(marker);
           }
         });
         markersRef.current = [];
-        
+
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
@@ -278,9 +285,9 @@ const UserPage: React.FC = () => {
   };
 
   const handleFilterChange = (key: string, value: any) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
-      [key]: value
+      [key]: value,
     }));
   };
 
@@ -295,16 +302,16 @@ const UserPage: React.FC = () => {
 
   const applyFilters = () => {
     console.log('Applying filters:', filters);
-    
+
     // Filter vessels based on current filter settings
-    const filteredVessels = mockVessels.filter(vessel => {
+    const filteredVessels = mockVessels.filter((vessel) => {
       const typeMatch = filters.vesselType === 'all' || vessel.type === filters.vesselType;
       const statusMatch = filters.vesselStatus === 'all' || vessel.status === filters.vesselStatus;
       return typeMatch && statusMatch;
     });
 
     // Clear existing markers
-    markersRef.current.forEach(marker => {
+    markersRef.current.forEach((marker) => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.removeLayer(marker);
       }
@@ -319,28 +326,41 @@ const UserPage: React.FC = () => {
     setIsFiltersOpen(false);
   };
 
-  // Add this new function to handle critical section creation
+  // Update the handleCriticalSectionCreated function
   const handleCriticalSectionCreated = (section: CriticalSection) => {
-    setCriticalSections(prev => {
-      const updated = [...prev, section];
-      setIsCreatingCriticalSection(false);
-      return updated;
-    });
-    
+    // Just add to state - circle is already drawn by enableCriticalSectionCreation
+    setCriticalSections((prev) => [...prev, section]);
+
+    // Clean up the critical section creation mode
+    if (criticalSectionCleanupRef.current) {
+      criticalSectionCleanupRef.current();
+      criticalSectionCleanupRef.current = null;
+    }
+    setIsCreatingCriticalSection(false);
+
     // Show notification
     toast({
-      title: "Critical Section Created",
+      title: 'Critical Section Created',
       description: `New critical section added at ${section.center.lat.toFixed(5)}, ${section.center.lng.toFixed(5)}`,
+      className: 'z-[999]',
     });
   };
-  
+
   const handleRemoveCriticalSection = (id: string) => {
-    setCriticalSections(prev => prev.filter(section => section.id !== id));
-    
+    // Remove from state
+    setCriticalSections((prev) => prev.filter((section) => section.id !== id));
+
+    // Remove the circle from the map
+    const circle = criticalSectionCirclesRef.current.get(id);
+    if (circle && mapInstanceRef.current) {
+      mapInstanceRef.current.removeLayer(circle);
+      criticalSectionCirclesRef.current.delete(id);
+    }
+
     // Show notification
     toast({
-      title: "Critical Section Removed",
-      description: "The critical section has been removed.",
+      title: 'Critical Section Removed',
+      description: 'The critical section has been removed.',
     });
   };
 
@@ -348,7 +368,7 @@ const UserPage: React.FC = () => {
   useEffect(() => {
     const handleToggleCriticalSectionMode = () => {
       console.log('Toggle critical section mode event received');
-      
+
       if (mapInstanceRef.current) {
         if (isCreatingCriticalSection) {
           console.log('Disabling critical section mode');
@@ -360,41 +380,44 @@ const UserPage: React.FC = () => {
           setIsCreatingCriticalSection(false);
         } else {
           console.log('Enabling critical section mode');
-          
-          // Check if we've reached the limit
-          if (criticalSections.length >= MAX_CRITICAL_SECTIONS) {
+
+          // Check if we've reached the limit using the ref
+          if (criticalSectionsCountRef.current >= MAX_CRITICAL_SECTIONS) {
             toast({
-              title: "Maximum Limit Reached",
-              description: `You can only have ${MAX_CRITICAL_SECTIONS} critical sections at a time. Remove one to add another.`,
-              variant: "destructive"
+              title: 'Maximum Critical Sections Reached',
+              description: `You can only create ${MAX_CRITICAL_SECTIONS} critical sections. Remove one to add another.`,
+              className: 'z-[999]',
             });
-            return; // Don't enable if limit reached
+            return;
           }
-          
-          // Show toast with instruction message
-          toast({
-            title: "Critical Section Mode",
-            description: "Click on the map to mark a critical section",
-          });
-          
-          // Enable critical section mode (the function will handle the limit internally)
+
+          // Enable critical section creation mode
           const cleanup = enableCriticalSectionCreation(
             mapInstanceRef.current,
             handleCriticalSectionCreated,
-            criticalSections.length
+            criticalSectionsCountRef.current,
+            handleRemoveCriticalSection
           );
+
           criticalSectionCleanupRef.current = cleanup;
           setIsCreatingCriticalSection(true);
+
+          // Show toast with instruction message
+          toast({
+            title: 'Critical Section Mode Activated',
+            description: 'Click on the map to mark a critical section (up to 3 total)',
+            className: 'z-[999]',
+          });
         }
       } else {
         console.error('Map instance not available');
       }
     };
-    
+
     console.log('Adding event listener for toggle-critical-section-mode');
     window.addEventListener('toggle-critical-section-mode', handleToggleCriticalSectionMode);
     document.addEventListener('toggle-critical-section-mode', handleToggleCriticalSectionMode);
-    
+
     return () => {
       console.log('Removing event listener for toggle-critical-section-mode');
       window.removeEventListener('toggle-critical-section-mode', handleToggleCriticalSectionMode);
@@ -404,22 +427,32 @@ const UserPage: React.FC = () => {
         criticalSectionCleanupRef.current();
       }
     };
-  }, [isCreatingCriticalSection, criticalSections.length]);
-  
-  // Add this to render existing critical sections when map loads
+  }, []); // Keep empty dependencies
+
+  // Separate useEffect to handle cleanup when component unmounts
   useEffect(() => {
-    if (mapInstanceRef.current && criticalSections.length > 0) {
-      criticalSections.forEach(section => {
-        drawCriticalSection(mapInstanceRef.current!, section, handleRemoveCriticalSection);
+    return () => {
+      // Clean up critical section circles
+      criticalSectionCirclesRef.current.forEach((circle) => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.removeLayer(circle);
+        }
       });
-    }
-  }, [criticalSections]);
+      criticalSectionCirclesRef.current.clear();
+
+      // Clean up critical section mode if active when component unmounts
+      if (criticalSectionCleanupRef.current) {
+        criticalSectionCleanupRef.current();
+        criticalSectionCleanupRef.current = null;
+      }
+    };
+  }, []);
 
   return (
     <div className="relative flex h-screen w-screen flex-col">
       {/* Map Container */}
       <div id="map" ref={mapRef} className="h-full w-full"></div>
-      
+
       {/* Coordinates Display */}
       <div
         id="coordinates"
@@ -427,7 +460,7 @@ const UserPage: React.FC = () => {
       >
         {coordinates}
       </div>
-      
+
       {/* Critical Section Mode Indicator - Center */}
       {isCreatingCriticalSection && (
         <div className="absolute left-1/2 top-4 z-[999] -translate-x-1/2 transform text-center">
@@ -440,33 +473,32 @@ const UserPage: React.FC = () => {
           </div>
         </div>
       )}
-      
+
       {/* Critical Sections Counter and Done Button - Top Right */}
-      <div className="absolute right-6 top-4 z-[999] text-right justify-center">
+      <div className="absolute right-6 top-4 z-[999] justify-center text-right">
         <div className="rounded-md bg-black/80 px-3 py-2 text-sm text-white shadow-lg">
           Critical Sections: {criticalSections.length} / {MAX_CRITICAL_SECTIONS}
         </div>
-        
-        {/* Done Button - Only show when in critical section creation mode */}
+
         {isCreatingCriticalSection && (
-          <Button 
+          <button
             onClick={() => {
               if (criticalSectionCleanupRef.current) {
                 criticalSectionCleanupRef.current();
                 criticalSectionCleanupRef.current = null;
               }
               setIsCreatingCriticalSection(false);
+
               toast({
-                title: "Critical Section Mode",
-                description: "Exited critical section creation mode",
+                title: 'Critical Section Mode Disabled',
+                description: 'You can now interact with the map normally',
+                className: 'z-[999]',
               });
             }}
-            variant="secondary"
-            className="mt-2 bg-white text-red-600 hover:bg-gray-100"
-            size="sm"
+            className="mt-2 rounded-md bg-red-600 px-3 py-2 text-sm text-white shadow-lg hover:bg-red-700"
           >
             Done
-          </Button>
+          </button>
         )}
       </div>
 
@@ -485,7 +517,7 @@ const UserPage: React.FC = () => {
       {isFiltersOpen && (
         <div className="absolute bottom-16 left-4 z-[999] w-80 rounded-lg border bg-card p-6 shadow-xl">
           <h5 className="mb-4 text-lg font-semibold">Map Filters</h5>
-          
+
           {/* Vessel Type Filter */}
           <div className="mb-4 space-y-2">
             <Label htmlFor="vesselType">Type</Label>
@@ -496,7 +528,7 @@ const UserPage: React.FC = () => {
               <SelectTrigger>
                 <SelectValue placeholder="All Types" />
               </SelectTrigger>
-              <SelectContent className='z-[999]'>
+              <SelectContent className="z-[999]">
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="cargo">Cargo</SelectItem>
                 <SelectItem value="passenger">Passenger</SelectItem>
@@ -537,7 +569,7 @@ const UserPage: React.FC = () => {
               <SelectTrigger>
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
-              <SelectContent className='z-[999]'>
+              <SelectContent className="z-[999]">
                 <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="underway">Underway</SelectItem>
                 <SelectItem value="anchored">Anchored</SelectItem>
@@ -556,7 +588,7 @@ const UserPage: React.FC = () => {
                   {selectedVessel.name}
                 </div>
                 <pre className="text-xs">
-{`{
+                  {`{
   "latitude": ${selectedVessel.lat},
   "longitude": ${selectedVessel.lng},
   "timestamp": "2025-05-27T${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}:${new Date().getSeconds().toString().padStart(2, '0')}Z"
@@ -574,17 +606,10 @@ const UserPage: React.FC = () => {
 
           {/* Action Buttons */}
           <div className="flex justify-between space-x-3">
-            <Button
-              variant="outline"
-              onClick={resetFilters}
-              className="flex-1"
-            >
+            <Button variant="outline" onClick={resetFilters} className="flex-1">
               Reset
             </Button>
-            <Button
-              onClick={applyFilters}
-              className="flex-1"
-            >
+            <Button onClick={applyFilters} className="flex-1">
               Apply
             </Button>
           </div>
@@ -593,10 +618,7 @@ const UserPage: React.FC = () => {
 
       {/* Click outside to close filters */}
       {isFiltersOpen && (
-        <div 
-          className="fixed inset-0 z-[998]" 
-          onClick={() => setIsFiltersOpen(false)}
-        />
+        <div className="fixed inset-0 z-[998]" onClick={() => setIsFiltersOpen(false)} />
       )}
     </div>
   );

@@ -52,19 +52,26 @@ const Navbar = () => {
               {/* Show user navigation icons only on user page */}
               {(isUserPage || isAdminPage) && (
                 <>
-                  <Link 
+                  <Link
                     to="/user/vessels"
                     className="flex items-center space-x-2 rounded-full bg-gray-700 p-2 text-white transition-colors hover:bg-gray-600"
                   >
                     <Bookmark size={18} />
                   </Link>
-                  <Link 
+                  <Link
                     to="/user"
                     className="flex items-center space-x-2 rounded-full bg-gray-700 p-2 text-white transition-colors hover:bg-gray-600"
                   >
                     <Map size={18} />
                   </Link>
-                  <button className="flex items-center space-x-2 rounded-full bg-gray-700 p-2 text-white transition-colors hover:bg-gray-600">
+                  <button
+                    onClick={() => {
+                      // Dispatch custom event to trigger critical section mode
+                      const event = new CustomEvent('toggle-critical-section-mode');
+                      document.dispatchEvent(event);
+                    }}
+                    className="flex items-center space-x-2 rounded-full bg-gray-700 p-2 text-white transition-colors hover:bg-gray-600"
+                  >
                     <MapPin size={18} />
                   </button>
                   {/* Show Users icon only for admin */}
@@ -171,10 +178,7 @@ const Navbar = () => {
         {/* Mobile Sheet */}
         {isSheetOpen && (
           <div className="md:hidden">
-            <div
-              className="fixed inset-0 z-[999] bg-black bg-opacity-50"
-              onClick={toggleSheet}
-            >
+            <div className="fixed inset-0 z-[999] bg-black bg-opacity-50" onClick={toggleSheet}>
               <div
                 className="fixed inset-y-0 right-0 w-full max-w-xs bg-white shadow-xl"
                 onClick={(e) => e.stopPropagation()}
@@ -221,7 +225,14 @@ const Navbar = () => {
                         <Map className="h-5 w-5" />
                         <span>Map</span>
                       </Link>
-                      <button className="flex w-full items-center space-x-3 text-left text-gray-600 transition-colors hover:text-gray-900">
+                      <button
+                        onClick={() => {
+                          // Dispatch custom event to trigger critical section mode
+                          const event = new CustomEvent('toggle-critical-section-mode');
+                          window.dispatchEvent(event);
+                        }}
+                        className="flex w-full items-center space-x-3 text-left text-gray-600 transition-colors hover:text-gray-900"
+                      >
                         <MapPin className="h-5 w-5" />
                         <span>Locate</span>
                       </button>

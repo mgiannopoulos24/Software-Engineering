@@ -48,9 +48,9 @@ export const drawCriticalSection = (
     color: 'red',
     fillColor: '#f03',
     fillOpacity: 0.2,
-    weight: 2
+    weight: 2,
   }).addTo(map);
-  
+
   // Create popup content with delete button if onRemove is provided
   const popupContent = `
     <div class="critical-section-popup" style="min-width: 200px; font-family: system-ui, -apple-system, sans-serif;">
@@ -59,7 +59,9 @@ export const drawCriticalSection = (
         <div style="margin-bottom: 4px;"><strong>Center:</strong> ${section.center.lat.toFixed(5)}, ${section.center.lng.toFixed(5)}</div>
         <div style="margin-bottom: 4px;"><strong>Radius:</strong> ${section.radius} km</div>
         <div style="margin-bottom: 8px;"><strong>Created:</strong> ${section.createdAt.toLocaleString()}</div>
-        ${onRemove ? `
+        ${
+          onRemove
+            ? `
           <button 
             id="delete-cs-${section.id}" 
             style="width: 100%; padding: 6px 12px; background-color: #dc2626; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;"
@@ -68,14 +70,16 @@ export const drawCriticalSection = (
           >
             Delete Critical Section
           </button>
-        ` : ''}
+        `
+            : ''
+        }
       </div>
     </div>
   `;
-  
+
   const popup = L.popup().setContent(popupContent);
   circle.bindPopup(popup);
-  
+
   // If onRemove is provided, attach click handler to delete button when popup opens
   if (onRemove) {
     circle.on('popupopen', () => {
@@ -95,7 +99,7 @@ export const drawCriticalSection = (
       }, 100); // Small timeout to ensure DOM is ready
     });
   }
-  
+
   return circle;
 };
 
@@ -109,76 +113,76 @@ export const drawCriticalSection = (
  */
 export const enableCriticalSectionCreation = (
   map: L.Map,
-  onClick: (section: CriticalSection) => void,
+  onClick: (section: CriticalSection, circle: L.Circle) => void,
   currentCount: number,
   onRemove?: (id: string) => void
 ): (() => void) => {
   // Check if we've reached the limit
   const reachedLimit = currentCount >= MAX_CRITICAL_SECTIONS;
-  
+
   // Visual feedback for user - change cursor
   map.getContainer().style.cursor = reachedLimit ? 'not-allowed' : 'crosshair';
-  
+
   // Create tooltip for instructions
-  const tooltipContent = reachedLimit 
+  const tooltipContent = reachedLimit
     ? `Maximum limit of ${MAX_CRITICAL_SECTIONS} critical sections reached. Remove one to add another.`
     : 'Click on the map to create a critical section';
-    
+
   const tooltip = L.tooltip({
     permanent: true,
     direction: 'top',
-    className: reachedLimit ? 'critical-section-tooltip error' : 'critical-section-tooltip'
+    className: reachedLimit ? 'critical-section-tooltip error' : 'critical-section-tooltip',
   })
     .setLatLng(map.getCenter())
     .setContent(tooltipContent)
     .addTo(map);
-  
+
   // Track current hover position to keep tooltip following cursor
   const onMouseMove = (e: L.LeafletMouseEvent) => {
     tooltip.setLatLng(e.latlng);
   };
-  
+
   // Handle map click
   const onMapClick = (e: L.LeafletMouseEvent) => {
     console.log('Critical section map click detected', e.latlng);
-    
+
     // Stop the event from propagating to other click handlers
     L.DomEvent.stopPropagation(e);
-    
+
     // If we've reached the limit, don't create a new section
     if (reachedLimit) {
       console.log('Maximum critical sections limit reached, ignoring click');
       return false;
     }
-    
+
     const center = e.latlng;
     const defaultRadius = 50; // 50 km default radius
-    
+
     // Create the critical section object
     const criticalSection: CriticalSection = {
       id: `cs-${Date.now()}`,
       center,
       radius: defaultRadius,
-      createdAt: new Date()
+      createdAt: new Date(),
     };
-    
+
     // Draw circle on map with delete functionality
     const circle = drawCriticalSection(map, criticalSection, onRemove);
-    
+
     // Make sure popup opens immediately to show the user what they created
     circle.openPopup();
-    
-    // Notify parent component
-    onClick(criticalSection);
-    
+
+    // Notify parent component with both section and circle
+    onClick(criticalSection, circle);
+
     // Return false to prevent event propagation
     return false;
   };
-  
+
   // Add event listeners
   map.on('click', onMapClick);
   map.on('mousemove', onMouseMove);
-  
+
   // Cleanup function
   const disableCreation = () => {
     console.log('Cleaning up critical section mode');
@@ -189,7 +193,7 @@ export const enableCriticalSectionCreation = (
       map.removeLayer(tooltip);
     }
   };
-  
+
   // Return cleanup function
   return disableCreation;
 };
