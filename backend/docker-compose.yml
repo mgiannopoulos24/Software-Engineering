@@ -18,10 +18,10 @@ services:
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-    command: >
-      bash -c "apt-get update && 
-          apt-get install -y openjdk-17-jdk maven && 
-          mvn spring-boot:run"
+    # command: >  // Commented out to not download every time but instead automatically use the ENTRYPOINT from Dockerfile
+    #   bash -c "apt-get update && 
+    #       apt-get install -y openjdk-17-jdk maven && 
+    #       mvn spring-boot:run"
 
   # PostgreSQL database service
   db:

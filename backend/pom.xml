@@ -6,7 +6,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <!-- INSERT GROUP NUMBER -->
-    <groupId>com.group#</groupId>    
+    <groupId>com.group1</groupId>    
     <artifactId>ais-monitor</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
@@ -41,12 +41,6 @@
             <artifactId>spring-kafka</artifactId>
         </dependency>
 
-        <!-- PostgreSQL Driver -->
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-        </dependency>
-
         <!-- Spring Data JPA for database operations -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -60,11 +54,17 @@
           <scope>runtime</scope>
         </dependency>
 
-        <!-- Lombok, for reducing boilerplate code (optional) -->
+        <!-- Lombok, for reducing boilerplate code -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
+        </dependency>
+
+        <!-- Jakson  -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
         </dependency>
 
         <!-- Testing with Spring Boot -->
@@ -88,11 +88,13 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>MariTimeMap<!-- SHOULD CHANGE TO ACTUAL APP NAME -->.AisMonitorApplication</mainClass>
+                    <mainClass>marinemap.MarineMapApplication</mainClass>
                 </configuration>
             </plugin>
         </plugins>
+        
     </build>
+
 
 </project>
 
