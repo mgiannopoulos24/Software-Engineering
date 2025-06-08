@@ -9,10 +9,10 @@ import {
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { toast } from '@/hooks/use-toast';
+import { FilterValue, Vessel } from '@/types/types';
 import {
   CriticalSection,
   MAX_CRITICAL_SECTIONS,
-  drawCriticalSection,
   enableCriticalSectionCreation,
 } from '@/utils/mapUtils';
 import L from 'leaflet';
@@ -139,7 +139,7 @@ const UserPage: React.FC = () => {
   const markersRef = useRef<L.Marker[]>([]);
   const [coordinates, setCoordinates] = useState('Hover over the map to display coordinates');
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-  const [selectedVessel, setSelectedVessel] = useState<any>(null);
+  const [selectedVessel, setSelectedVessel] = useState<Vessel | null>(null);
   const [filters, setFilters] = useState({
     vesselType: 'all',
     capacity: [50],
@@ -284,7 +284,7 @@ const UserPage: React.FC = () => {
     setIsFiltersOpen(!isFiltersOpen);
   };
 
-  const handleFilterChange = (key: string, value: any) => {
+  const handleFilterChange = (key: string, value: FilterValue) => {
     setFilters((prev) => ({
       ...prev,
       [key]: value,

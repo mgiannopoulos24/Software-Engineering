@@ -28,8 +28,8 @@ jobs:
         run: npm run format
 
       # Temporarily disabled due to issues with linting
-      # - name: Lint code
-      #   run: npm run lint
+      - name: Lint code
+        run: npm run lint
         
       - name: Build
         run: npm run build
