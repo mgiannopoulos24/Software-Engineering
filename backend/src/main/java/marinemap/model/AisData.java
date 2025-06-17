@@ -31,7 +31,6 @@ public class AisData {
     private String timestamp;
 
     public AisData( String mmsi, double latitude, double longitude, double speedOverGround, double courseOverGround, String timestamp) {
-//        this.id = id;
         this.mmsi = mmsi;
         this.latitude = latitude;
         this.longitude = longitude;
@@ -42,12 +41,6 @@ public class AisData {
 
     //
     public AisData() {
-        id = null;
-        mmsi = null;
-        latitude = 0;
-        longitude = 0;
-        speedOverGround = 0;
-        courseOverGround = 0;
     }
 
     @Override

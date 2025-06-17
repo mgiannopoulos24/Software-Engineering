@@ -5,7 +5,7 @@ GET http://localhost:8080
 GET http://localhost:8080/ais_data
 
 ### Get AIS by ID
-GET http://localhost:8080/ais_data/0
+GET http://localhost:8080/ais_data/1
 
 ### POST AIS
 POST http://localhost:8080/ais_data
