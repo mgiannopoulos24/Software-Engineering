@@ -12,9 +12,11 @@ services:
       db: # Changed to map style for condition
         condition: service_healthy
       zookeeper: # Changed to map style for condition
-        condition: service_started # Basic check, or add a specific healthcheck if image supports
+        condition: service_started
       kafka: # Changed to map style for condition
-        condition: service_started   # Basic check, or add a specific healthcheck if image supports
+        condition: service_started
+    networks:
+      - db
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/postgres
       - SPRING_DATASOURCE_USERNAME=postgres
@@ -30,16 +32,19 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_USER: postgres
       POSTGRES_DB: postgres
+      PGDATA: /data/postgres
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - db:/data/postgres
     ports:
       - "5432:5432"
-    healthcheck: # Added healthcheck for PostgreSQL
+    networks:
+      - db
+    healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s # Optional: give it more time initially
+      start_period: 30s # Optional
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.1
@@ -48,6 +53,8 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - db
     ports: # Exposing port for potential external tools or debugging
       - "2181:2181"
     # You could look up if confluentinc/cp-zookeeper images have a healthcheck command
@@ -62,6 +69,8 @@ services:
     ports:
       - "9092:9092"
       - "29092:29092"
+    networks:
+      - db
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181 # This refers to the zookeeper service name
@@ -72,6 +81,10 @@ services:
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
     # You could look up if confluentinc/cp-kafka images have a healthcheck command
 
+networks:
+  db:
+    driver: bridge
+
 volumes:
-  # maven-repo: # This named volume doesn't seem to be used in your Dockerfile. Can be removed if not needed.
-  postgres-data: # This ensures your PostgreSQL data persists across `docker-compose down/up`
+  db:
+#  postgres-data:

@@ -1,77 +1,53 @@
-package marinemap.model; 
+package marinemap.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
+import java.time.LocalDateTime;
+import java.util.Objects;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import org.springframework.format.annotation.DateTimeFormat;
+
+@Setter
+@Getter
 @Entity
 @Table(name = "ais_data")
 public class AisData {
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String mmsi;             // Maritime Mobile Service Identity
-    private double latitude; 
+    private double latitude;
     private double longitude;
     private double speedOverGround;
     private double courseOverGround;
-    private String timestamp;        // Should change to proper Timestamp type
 
-    // Getters and setters, constructors, etc.
-    public Long getId() {
-        return id;
-    }
+//    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+//    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    private String timestamp;
 
-    public void setId(Long id) {
+    public AisData(Long id, String mmsi, double latitude, double longitude, double speedOverGround, double courseOverGround, String timestamp) {
         this.id = id;
-    }
-
-    public String getMmsi() {
-        return mmsi;
-    }
-
-    public void setMmsi(String mmsi) {
         this.mmsi = mmsi;
-    }
-
-    public double getLatitude() {
-        return latitude;
-    }
-
-    public void setLatitude(double latitude) {
         this.latitude = latitude;
-    }
-
-    public double getLongitude() {
-        return longitude;
-    }
-
-    public void setLongitude(double longitude) {
         this.longitude = longitude;
-    }
-
-    public double getSpeedOverGround() {
-        return speedOverGround;
-    }
-
-    public void setSpeedOverGround(double speedOverGround) {
         this.speedOverGround = speedOverGround;
-    }
-
-    public double getCourseOverGround() {
-        return courseOverGround;
-    }
-
-    public void setCourseOverGround(double courseOverGround) {
         this.courseOverGround = courseOverGround;
-    }
-
-    public String getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(String timestamp) {
         this.timestamp = timestamp;
+    }
+
+    //
+    public AisData() {
+        id = null;
+        mmsi = null;
+        latitude = 0;
+        longitude = 0;
+        speedOverGround = 0;
+        courseOverGround = 0;
     }
 
     @Override
@@ -85,5 +61,17 @@ public class AisData {
                ", courseOverGround=" + courseOverGround +
                ", timestamp='" + timestamp + '\'' +
                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        AisData aisData = (AisData) o;
+        return Double.compare(latitude, aisData.latitude) == 0 && Double.compare(longitude, aisData.longitude) == 0 && Double.compare(speedOverGround, aisData.speedOverGround) == 0 && Double.compare(courseOverGround, aisData.courseOverGround) == 0 && Objects.equals(id, aisData.id) && Objects.equals(mmsi, aisData.mmsi) && Objects.equals(timestamp, aisData.timestamp);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, mmsi, latitude, longitude, speedOverGround, courseOverGround, timestamp);
     }
 }
