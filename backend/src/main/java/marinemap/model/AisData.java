@@ -20,7 +20,7 @@ public class AisData {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String mmsi;             // Maritime Mobile Service Identity
+    private String mmsi;
     private double latitude;
     private double longitude;
     private double speedOverGround;
@@ -30,8 +30,8 @@ public class AisData {
 //    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private String timestamp;
 
-    public AisData(Long id, String mmsi, double latitude, double longitude, double speedOverGround, double courseOverGround, String timestamp) {
-        this.id = id;
+    public AisData( String mmsi, double latitude, double longitude, double speedOverGround, double courseOverGround, String timestamp) {
+//        this.id = id;
         this.mmsi = mmsi;
         this.latitude = latitude;
         this.longitude = longitude;
