@@ -20,51 +20,58 @@ public class AisData {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String mmsi;
-    private double latitude;
-    private double longitude;
-    private double speedOverGround;
-    private double courseOverGround;
 
-//    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-//    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    private String timestamp;
+    private String mmsi; // from sourcemmsi
+    private Integer navigationalStatus;
+    private Double rateOfTurn;
+    private Double speedOverGround;
+    private Double courseOverGround;
+    private Integer trueHeading; // 511 for "not available"
+    private Double longitude; // from lon
+    private Double latitude;  // from lat
+    private Long timestampEpoch; // from t (the epoch timestamp from CSV)
 
-    public AisData( String mmsi, double latitude, double longitude, double speedOverGround, double courseOverGround, String timestamp) {
+    public AisData( String mmsi, int navigationalStatus, Double rateOfTurn, double speedOverGround, double courseOverGround, int trueHeading, double latitude, double longitude, Long timestampEpoch) {
         this.mmsi = mmsi;
-        this.latitude = latitude;
-        this.longitude = longitude;
+        this.navigationalStatus = navigationalStatus;
+        this.rateOfTurn = rateOfTurn;
         this.speedOverGround = speedOverGround;
         this.courseOverGround = courseOverGround;
-        this.timestamp = timestamp;
+        this.trueHeading = trueHeading;
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.timestampEpoch = timestampEpoch;
     }
 
-    //
+    // Default constructor
     public AisData() {
     }
 
     @Override
-    public String toString() {
+    public String toString() { // Helpful for logging
         return "AisData{" +
-               "id=" + id +
-               ", mmsi='" + mmsi + '\'' +
-               ", latitude=" + latitude +
-               ", longitude=" + longitude +
-               ", speedOverGround=" + speedOverGround +
-               ", courseOverGround=" + courseOverGround +
-               ", timestamp='" + timestamp + '\'' +
-               '}';
+                "id=" + id +
+                ", mmsi='" + mmsi + '\'' +
+                ", navigationalStatus=" + navigationalStatus +
+                ", rateOfTurn=" + rateOfTurn +
+                ", speedOverGround=" + speedOverGround +
+                ", courseOverGround=" + courseOverGround +
+                ", trueHeading=" + trueHeading +
+                ", longitude=" + longitude +
+                ", latitude=" + latitude +
+                ", timestampEpoch=" + timestampEpoch +
+                '}';
     }
 
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         AisData aisData = (AisData) o;
-        return Double.compare(latitude, aisData.latitude) == 0 && Double.compare(longitude, aisData.longitude) == 0 && Double.compare(speedOverGround, aisData.speedOverGround) == 0 && Double.compare(courseOverGround, aisData.courseOverGround) == 0 && Objects.equals(id, aisData.id) && Objects.equals(mmsi, aisData.mmsi) && Objects.equals(timestamp, aisData.timestamp);
+        return Objects.equals(id, aisData.id) && Objects.equals(mmsi, aisData.mmsi) && Objects.equals(navigationalStatus, aisData.navigationalStatus) && Objects.equals(rateOfTurn, aisData.rateOfTurn) && Objects.equals(speedOverGround, aisData.speedOverGround) && Objects.equals(courseOverGround, aisData.courseOverGround) && Objects.equals(trueHeading, aisData.trueHeading) && Objects.equals(longitude, aisData.longitude) && Objects.equals(latitude, aisData.latitude) && Objects.equals(timestampEpoch, aisData.timestampEpoch);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, mmsi, latitude, longitude, speedOverGround, courseOverGround, timestamp);
+        return Objects.hash(id, mmsi, navigationalStatus, rateOfTurn, speedOverGround, courseOverGround, trueHeading, longitude, latitude, timestampEpoch);
     }
 }

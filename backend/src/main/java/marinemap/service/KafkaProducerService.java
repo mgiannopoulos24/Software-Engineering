@@ -4,18 +4,26 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
-// import marinemap.model.AisData;
-
 @Service
 public class KafkaProducerService {
 
-    private static final String TOPIC = "ais-data-topic"; 
+    // Might have to change name or define in application.properties and inject it.
+    public static final String AIS_TOPIC_NAME = "ais-data-stream"; // Example topic name
+
+    private final KafkaTemplate<String, String> kafkaTemplate; // To send JSON strings
 
     @Autowired
-    private KafkaTemplate<String, String> kafkaTemplate; // Should change to KafkaTemplate <String, AISData>
+    public KafkaProducerService(KafkaTemplate<String, String> kafkaTemplate) {
+        this.kafkaTemplate = kafkaTemplate;
+    }
 
-    public void sendAISData(String message) {
-        this.kafkaTemplate.send(TOPIC, message);
-        System.out.println("Sent AIS data: " + message);
+    public void sendAisDataAsJson(String key, String aisDataJson) {
+        try {
+            kafkaTemplate.send(AIS_TOPIC_NAME, key, aisDataJson);
+            // System.out.println("Sent to Kafka topic '" + AIS_TOPIC_NAME + "', key='" + key + "': " + aisDataJson.substring(0, Math.min(100, aisDataJson.length())) + "...");
+        } catch (Exception e) {
+            System.err.println("Error sending message to Kafka: " + e.getMessage());
+            // Consider more robust error handling
+        }
     }
 }
