@@ -24,7 +24,6 @@ public class Ship {
     @NotNull
     private Long mmsi;
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "ship_type")
     private ShipType shiptype;
 }
