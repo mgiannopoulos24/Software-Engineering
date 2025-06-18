@@ -1,5 +1,0 @@
-/home/argylaz/Code/Software-Engineering/backend/src/main/java/marinemap/MarineMapApplication.java
-/home/argylaz/Code/Software-Engineering/backend/src/main/java/marinemap/repository/AisDataRepository.java
-/home/argylaz/Code/Software-Engineering/backend/src/main/java/marinemap/service/KafkaProducerService.java
-/home/argylaz/Code/Software-Engineering/backend/src/main/java/marinemap/service/KafkaConsumerService.java
-/home/argylaz/Code/Software-Engineering/backend/src/main/java/marinemap/model/AisData.java
