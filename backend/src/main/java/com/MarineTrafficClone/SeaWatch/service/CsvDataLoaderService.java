@@ -1,7 +1,7 @@
-package marinemap.service;
+package com.MarineTrafficClone.SeaWatch.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import marinemap.model.AisData;
+import com.MarineTrafficClone.SeaWatch.model.AisData;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;

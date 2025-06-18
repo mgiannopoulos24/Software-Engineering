@@ -1,4 +1,4 @@
-package marinemap.model;
+package com.MarineTrafficClone.SeaWatch.model;
 
 import jakarta.persistence.*;
 import lombok.Getter;

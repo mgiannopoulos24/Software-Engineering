@@ -1,7 +1,7 @@
-package marinemap.service;
+package com.MarineTrafficClone.SeaWatch.service;
 
-import marinemap.model.AisData;
-import marinemap.repository.AisDataRepository;
+import com.MarineTrafficClone.SeaWatch.model.AisData;
+import com.MarineTrafficClone.SeaWatch.repository.AisDataRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

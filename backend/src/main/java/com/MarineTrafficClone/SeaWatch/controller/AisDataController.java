@@ -1,7 +1,7 @@
-package marinemap.controller;
+package com.MarineTrafficClone.SeaWatch.controller;
 
-import marinemap.model.AisData;
-import marinemap.service.AisDataService;
+import com.MarineTrafficClone.SeaWatch.model.AisData;
+import com.MarineTrafficClone.SeaWatch.service.AisDataService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

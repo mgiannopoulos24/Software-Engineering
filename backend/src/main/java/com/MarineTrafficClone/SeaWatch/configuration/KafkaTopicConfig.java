@@ -1,6 +1,6 @@
-package marinemap.config;
+package com.MarineTrafficClone.SeaWatch.configuration;
 
-import marinemap.service.KafkaProducerService; // To use the constant
+import com.MarineTrafficClone.SeaWatch.service.KafkaProducerService; // To use the constant
 import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
