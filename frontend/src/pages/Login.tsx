@@ -1,31 +1,44 @@
 import boatLogo from '../assets/images/boat.png';
 import { Eye, EyeOff } from 'lucide-react';
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const Login: React.FC = () => {
-  const [emailOrPhone, setEmailOrPhone] = useState<string>('');
+  const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showToast, setShowToast] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
+  const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const emailOrPhone = (
-      document.getElementById('emailOrPhone') as HTMLInputElement
-    )?.value?.trim();
+    console.log('Email:', email); // Log the email
+    console.log('Password:', password); // Log the password
 
-    // Simple mock login logic - replace with actual authentication
-    if (emailOrPhone === 'admin@ais.com') {
-      // Redirect to admin page
-      window.location.href = '/admin';
-    } else if (emailOrPhone === 'user@ais.com') {
-      // Redirect to user page
-      window.location.href = '/user';
-    } else {
-      // Handle invalid login
+    try {
+      const response = await axios.post('http://localhost:8080/api/auth/login', {
+        email: email,
+        password: password,
+      });
+
+      const token = response.data.token;
+      localStorage.setItem('token', token);
+
+      // Decode JWT token to get user roles
+      const decodedToken = JSON.parse(atob(token.split('.')[1]));
+
+      if (decodedToken.role === 'ADMIN') {
+        navigate('/admin');
+      } else {
+        navigate('/user');
+      }
+    } catch (error: any) {
       setError('Invalid credentials');
+      setShowToast(true);
+      console.error('Login failed:', error.response?.data?.message || error.message);
     }
   };
 
@@ -50,7 +63,7 @@ const Login: React.FC = () => {
             <div className="fixed right-4 top-4 z-50 flex w-72 items-center justify-between rounded bg-red-500 px-4 py-2 text-white shadow-lg">
               <div>
                 <p className="font-bold">Error</p>
-                <p className="text-sm">Account not found. Redirecting to signup page...</p>
+                <p className="text-sm">{error || 'Invalid credentials'}</p>
               </div>
               <button
                 onClick={() => setShowToast(false)}
@@ -75,18 +88,18 @@ const Login: React.FC = () => {
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
               <label
-                htmlFor="emailOrPhone"
+                htmlFor="email"
                 className="mb-1 block text-sm font-medium text-gray-700"
               >
-                Phone or Email
+                Email
               </label>
               <input
-                type="text"
-                id="emailOrPhone"
-                placeholder="Enter your email or phone number"
+                type="email"
+                id="email"
+                placeholder="Enter your email"
                 required
-                value={emailOrPhone}
-                onChange={(e) => setEmailOrPhone(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
