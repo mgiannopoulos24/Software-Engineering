@@ -1,48 +1,90 @@
-version: '3.8'
+# version: '3.8'
 
 services:
-  # Spring Boot application service
   app:
-    image: ubuntu:22.04
+    build:
+      context: .
     container_name: springboot-app
     restart: unless-stopped
     ports:
       - "8080:8080"
-    volumes:
-      - ./app:/app
-      - maven-repo:/root/.m2
-    working_dir: /app
     depends_on:
+      db: # Changed to map style for condition
+        condition: service_healthy
+      zookeeper: # Changed to map style for condition
+        condition: service_started
+      kafka: # Changed to map style for condition
+        condition: service_started
+    networks:
       - db
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/postgres
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-    command: >
-      bash -c "apt-get update && 
-               apt-get install -y openjdk-17-jdk maven && 
-               mvn spring-boot:run"
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
 
-  # PostgreSQL database service
   db:
-    image: ubuntu:22.04
+    image: postgres:15
     container_name: postgres-db
     restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+      PGDATA: /data/postgres
+    volumes:
+      - db:/data/postgres
     ports:
       - "5432:5432"
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s # Optional
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.1
+    container_name: zookeeper # Added for consistency
+    restart: unless-stopped   # Added for consistency
     environment:
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=postgres
-    command: >
-      bash -c "apt-get update && 
-               apt-get install -y postgresql && 
-               service postgresql start && 
-               tail -f /dev/null"
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - db
+    ports: # Exposing port for potential external tools or debugging
+      - "2181:2181"
+    # You could look up if confluentinc/cp-zookeeper images have a healthcheck command
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.1
+    container_name: kafka # Added for consistency
+    restart: unless-stopped # Added for consistency
+    depends_on: # Ensure Zookeeper is at least started
+      zookeeper:
+        condition: service_started # Or add a specific healthcheck for zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    networks:
+      - db
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181 # This refers to the zookeeper service name
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1 # Suitable for single-node Kafka dev setup
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
+    # You could look up if confluentinc/cp-kafka images have a healthcheck command
+
+networks:
+  db:
+    driver: bridge
 
 volumes:
-  maven-repo:
-  postgres-data:
+  db:
+#  postgres-data:
