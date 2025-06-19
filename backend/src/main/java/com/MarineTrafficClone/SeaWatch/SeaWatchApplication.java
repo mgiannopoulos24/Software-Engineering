@@ -22,7 +22,7 @@ public class SeaWatchApplication {
         return args -> {
             if (userRepository.findByRole(RoleType.ADMIN).isEmpty()) {
                 User user = new User(
-                        "admin@mail.com",
+                        "admin@ais.com",
                         passwordEncoder.encode("12345")
                 );
                 user.setRole(RoleType.ADMIN);
