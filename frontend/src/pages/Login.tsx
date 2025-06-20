@@ -1,7 +1,7 @@
 import boatLogo from '../assets/images/boat.png';
 import axios from 'axios';
 import { Eye, EyeOff } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 const Login: React.FC = () => {
@@ -12,15 +12,12 @@ const Login: React.FC = () => {
   const [error, setError] = useState<string>('');
   const navigate = useNavigate();
 
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Remove console.log in production
-    console.log('Email:', email);
-    console.log('Password:', password);
-
     try {
-      const response = await axios.post('http://localhost:8080/api/auth/login', {
+      const response = await axios.post('http://195.168.1.5:8080/api/auth/login', {
         email,
         password,
       });
@@ -28,12 +25,8 @@ const Login: React.FC = () => {
       const token = response.data.token;
       localStorage.setItem('token', token);
       // Set token as default authorization header for future requests
-      // axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-
-      
-     navigate('/admin');
-
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      navigate('/admin');
     } catch (error: any) {
       setError('Invalid credentials');
       setShowToast(true);
