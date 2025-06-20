@@ -1,4 +1,3 @@
-import ProtectedRoute from './components/auth/ProtectedRoute';
 import Layout from './components/layout/Layout';
 import Index from './pages/Index';
 import Login from './pages/Login';
@@ -25,31 +24,25 @@ export default function App() {
         <Route
           path="/user"
           element={
-            <ProtectedRoute requiredRole="user">
-              <Layout>
-                <UserPage />
-              </Layout>
-            </ProtectedRoute>
+            <Layout>
+              <UserPage />
+            </Layout>
           }
         />
         <Route
           path="/user/vessels"
           element={
-            <ProtectedRoute requiredRole="user">
-              <Layout>
-                <SavedVessels />
-              </Layout>
-            </ProtectedRoute>
+            <Layout>
+              <SavedVessels />
+            </Layout>
           }
         />
         <Route
           path="/admin"
           element={
-            <ProtectedRoute requiredRole="admin">
-              <Layout>
-                <AdminPage />
-              </Layout>
-            </ProtectedRoute>
+            <Layout>
+              <AdminPage />
+            </Layout>
           }
         />
       </Routes>

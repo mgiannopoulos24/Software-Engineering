@@ -1,8 +1,8 @@
 import boatLogo from '../assets/images/boat.png';
+import axios from 'axios';
 import { Eye, EyeOff } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState<string>('');
@@ -15,26 +15,25 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    console.log('Email:', email); // Log the email
-    console.log('Password:', password); // Log the password
+    // Remove console.log in production
+    console.log('Email:', email);
+    console.log('Password:', password);
 
     try {
       const response = await axios.post('http://localhost:8080/api/auth/login', {
-        email: email,
-        password: password,
+        email,
+        password,
       });
 
       const token = response.data.token;
       localStorage.setItem('token', token);
+      // Set token as default authorization header for future requests
+      // axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-      // Decode JWT token to get user roles
-      const decodedToken = JSON.parse(atob(token.split('.')[1]));
 
-      if (decodedToken.role === 'ADMIN') {
-        navigate('/admin');
-      } else {
-        navigate('/user');
-      }
+      
+     navigate('/admin');
+
     } catch (error: any) {
       setError('Invalid credentials');
       setShowToast(true);
@@ -43,22 +42,17 @@ const Login: React.FC = () => {
   };
 
   return (
-    // Full viewport container
     <div className="m-0 flex min-h-screen w-screen items-center justify-center bg-[#f8f9fa]">
-      {/* Responsive container with padding */}
       <div className="w-full max-w-[800px] px-4 sm:px-6 md:w-4/5 lg:w-3/4 xl:w-1/2">
-        {/* Actual login container */}
         <div className="w-full rounded-[10px] bg-white p-[30px] shadow-[0_4px_10px_rgba(0,0,0,0.1)]">
           <h2 className="mb-3 text-center text-2xl font-semibold text-gray-800">Welcome back</h2>
 
           <hr className="my-4 border-gray-200" />
 
-          {/* Match login-logo styles from CSS */}
           <div className="mb-6 flex justify-center">
             <img src={boatLogo} alt="Login Logo" className="mx-auto block w-[120px]" />
           </div>
 
-          {/* Toast notification */}
           {showToast && (
             <div className="fixed right-4 top-4 z-50 flex w-72 items-center justify-between rounded bg-red-500 px-4 py-2 text-white shadow-lg">
               <div>
@@ -87,10 +81,7 @@ const Login: React.FC = () => {
 
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
-              <label
-                htmlFor="email"
-                className="mb-1 block text-sm font-medium text-gray-700"
-              >
+              <label htmlFor="email" className="mb-1 block text-sm font-medium text-gray-700">
                 Email
               </label>
               <input
