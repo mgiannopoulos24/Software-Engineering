@@ -1,6 +1,7 @@
 package com.MarineTrafficClone.SeaWatch.enumeration;
 
 import com.fasterxml.jackson.annotation.JsonValue;
+import java.util.stream.Stream; // Import Stream
 
 public enum ShipType {
     ANTI_POLLUTION("anti-pollution"),
@@ -38,8 +39,20 @@ public enum ShipType {
         this.value = value;
     }
 
-    @JsonValue
+    @JsonValue // This is for Jackson serialization/deserialization
     public String getValue() {
         return value;
+    }
+
+    // Static method to find Enum by its string value
+    public static ShipType fromValue(String value) {
+        if (value == null) {
+            return null; // Or throw IllegalArgumentException, or return UNKNOWN
+        }
+        return Stream.of(ShipType.values())
+                .filter(st -> st.getValue().equalsIgnoreCase(value.trim())) // Case-insensitive match
+                .findFirst()
+                .orElse(null); // Return null if not found, or throw new IllegalArgumentException("Unknown ShipType value: " + value)
+        // Returning UNKNOWN might be a good default if you prefer: .orElse(ShipType.UNKNOWN);
     }
 }

@@ -17,11 +17,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.TimeUnit;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 
 
 
 @Service
-public class CsvDataLoaderService {
+@Order(2)
+public class CsvDataLoaderService implements CommandLineRunner {
 
     private final KafkaProducerService kafkaProducerService;
     private final ObjectMapper objectMapper;
@@ -39,8 +42,8 @@ public class CsvDataLoaderService {
         this.objectMapper = objectMapper;
     }
 
-    @PostConstruct
-    public void startSimulation() {
+    @Override
+    public void run(String... args) throws Exception {
         System.out.println("SIMULATION (Rate-Limited Stream): Submitting CSV processing task.");
         simulationExecutor.submit(this::simulateRealTimeDataFlowFromSortedCsv);
     }
