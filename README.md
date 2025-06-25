@@ -1,6 +1,6 @@
 # Maritime Activity Monitoring Platform
 
-This repository contains the assignments for the Software Engineering (ΥΣ09) course at DIT NKUA.
+This repository contains the assignments for the Software Engineering (ΥΣ09) course of DIT NKUA.
 
 ## Project Description
 
@@ -21,11 +21,11 @@ Our project focuses on developing a web platform for monitoring maritime activit
 - **Γεώργιος Κορύλλος, Α.Μ. 1115202100069**
 - **Αργύριος Λαζαρίδης, Α.Μ. 1115202100083**
 - **Όλγα Πασβάνη, Α.Μ. 1115202100146**
-- **Δήμητρα Πολίτη, Α.Μ. 1115202200151**
 
 ## Technologies Used
 
-- Frontend: HTML, CSS, JavaScript, Bootstrap
+- Frontend: HTML, CSS, JavaScript, Tailwind CSS, React.js
 - Maps: Leaflet.js
-- Backend: TBD
-- Database: TBD
+- Backend: Java with Spring Boot
+- Database: PostgreSQL
+- Microservices: Docker
