@@ -14,5 +14,13 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src')
     }
+  },
+  server: {
+    proxy: {
+      '/ws-ais': {
+        target: 'http://localhost:8080',
+        ws: true,
+      }
+    }
   }
 })
