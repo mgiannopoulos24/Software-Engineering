@@ -14,4 +14,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT u FROM User u WHERE u.role = :type")
     List<User> findByRole(@PathVariable RoleType type);
+
+    // To find users with a specific ship in their fleet
+    @Query("SELECT u FROM User u JOIN u.fleet s WHERE s.mmsi = :mmsi")
+    List<User> findUsersWatchingMmsi(Long mmsi);
 }

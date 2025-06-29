@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "ships")
+@Table(name = "ships", uniqueConstraints = {@UniqueConstraint(columnNames = {"mmsi"})}) // Each mmsi should be unique
 public class Ship {
 
     @Id

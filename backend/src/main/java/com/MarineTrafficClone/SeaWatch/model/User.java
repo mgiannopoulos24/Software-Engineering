@@ -11,7 +11,9 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Data
@@ -39,6 +41,15 @@ public class User implements UserDetails {
     private RoleType role;
 
 
+    // This represents the user's single "fleet"
+    @ManyToMany(fetch = FetchType.LAZY) // EAGER can cause performance issues if fleets are large
+    @JoinTable(
+            name = "fleet", // Name of the join table
+            joinColumns = @JoinColumn(name = "user_id"),         // Foreign key for User in join table
+            inverseJoinColumns = @JoinColumn(name = "ship_mmsi", referencedColumnName = "mmsi") // Foreign key for Ship, referencing Ship's mmsi column
+    )
+    private Set<Ship> fleet = new HashSet<>();
+
     /* ------------------------- METHODS ------------------------- */
 
     @Override
@@ -54,6 +65,20 @@ public class User implements UserDetails {
     @Override
     public String getPassword() {
         return password;
+    }
+
+    // Helper methods to manage watchedShips
+    public void addShipToFleet(Ship ship) {
+        if (this.fleet == null) {
+            this.fleet = new HashSet<>();
+        }
+        this.fleet.add(ship);
+    }
+
+    public void removeShipFromFleet(Ship ship) {
+        if (this.fleet != null) {
+            this.fleet.remove(ship);
+        }
     }
 
     /* ------------------------- CONSTRUCTORS ------------------------- */
