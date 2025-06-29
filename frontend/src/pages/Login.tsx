@@ -12,7 +12,6 @@ const Login: React.FC = () => {
   const [error, setError] = useState<string>('');
   const navigate = useNavigate();
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 

@@ -1,13 +1,14 @@
 export type Vessel = {
   id: number;
-  name: string;
-  type: string;
-  status: string;
-  lat: number;
-  lng: number;
-  speed: number;
-  heading: number;
-  destination: string;
+  mmsi: string;
+  navigationalStatus: number;
+  rateOfTurn: number;
+  speedOverGround: number;
+  courseOverGround: number;
+  trueHeading: number;
+  longitude: number;
+  latitude: number;
+  timestampEpoch: number;
 };
 
 export type FilterValue = string | number[];
