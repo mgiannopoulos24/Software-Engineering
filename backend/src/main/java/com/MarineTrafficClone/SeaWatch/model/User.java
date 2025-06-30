@@ -40,13 +40,12 @@ public class User implements UserDetails {
     @Column(name = "role_type")
     private RoleType role;
 
-
     // This represents the user's single "fleet"
     @ManyToMany(fetch = FetchType.LAZY) // EAGER can cause performance issues if fleets are large
     @JoinTable(
-            name = "fleet", // Name of the join table
-            joinColumns = @JoinColumn(name = "user_id"),         // Foreign key for User in join table
-            inverseJoinColumns = @JoinColumn(name = "ship_mmsi", referencedColumnName = "mmsi") // Foreign key for Ship, referencing Ship's mmsi column
+            name = "fleet",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "ship_id")
     )
     private Set<Ship> fleet = new HashSet<>();
 

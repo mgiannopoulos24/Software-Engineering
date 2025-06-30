@@ -7,6 +7,7 @@ services:
     container_name: springboot-app
     restart: unless-stopped
     ports:
+      - "8443:8443"
       - "8080:8080"
     depends_on:
       db: # Changed to map style for condition

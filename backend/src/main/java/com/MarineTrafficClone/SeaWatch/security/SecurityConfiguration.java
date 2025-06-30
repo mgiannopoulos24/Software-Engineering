@@ -1,5 +1,6 @@
 package com.MarineTrafficClone.SeaWatch.security;
 
+import com.MarineTrafficClone.SeaWatch.enumeration.RoleType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,6 +31,7 @@ public class SecurityConfiguration {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/admin/**").hasAuthority(RoleType.ADMIN.name())
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session

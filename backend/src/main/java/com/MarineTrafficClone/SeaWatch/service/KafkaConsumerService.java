@@ -1,6 +1,9 @@
 package com.MarineTrafficClone.SeaWatch.service;
 
+import com.MarineTrafficClone.SeaWatch.dto.RealTimeShipUpdateDTO;
+import com.MarineTrafficClone.SeaWatch.enumeration.ShipType;
 import com.MarineTrafficClone.SeaWatch.model.AisData;
+import com.MarineTrafficClone.SeaWatch.model.Ship;
 import com.MarineTrafficClone.SeaWatch.model.User;
 import com.MarineTrafficClone.SeaWatch.repository.AisDataRepository;
 import com.MarineTrafficClone.SeaWatch.repository.ShipRepository;
@@ -38,7 +41,7 @@ public class KafkaConsumerService {
     }
 
     @KafkaListener(topics = KafkaProducerService.AIS_TOPIC_NAME, groupId = "${spring.kafka.consumer.group-id}")
-    @Transactional // Good to have for the DB save and subsequent logic
+    @Transactional
     public void consumeAisData(String messageJson) {
         try {
             AisData aisData = objectMapper.readValue(messageJson, AisData.class);
@@ -47,41 +50,57 @@ public class KafkaConsumerService {
             aisDataRepository.save(aisData);
             // System.out.println("Saved to DB: MMSI " + aisData.getMmsi() + ", ID: " + aisData.getId());
 
-            // --- WebSocket Push Logic ---
+            // --- 1. WebSocket Push Logic ---
 
-            // 1. ALWAYS send to the public "/topic/ais-updates" for "Watch All" mode
-            messagingTemplate.convertAndSend("/topic/ais-updates", aisData);
+            if (aisData.getMmsi() == null || aisData.getMmsi().isBlank()) {
+                // Αν δεν υπάρχει MMSI, δεν μπορούμε να κάνουμε τίποτα, οπότε σταματάμε.
+                return;
+            }
 
-            // 2. NOW, find specific users watching this ship and send to their private queue
-            if (aisData.getMmsi() != null && !aisData.getMmsi().isBlank()) {
-                try {
-                    Long mmsiLong = Long.parseLong(aisData.getMmsi());
-                    List<User> usersWatchingThisShip = userRepository.findUsersWatchingMmsi(mmsiLong);
+            Long mmsiLong = Long.parseLong(aisData.getMmsi());
 
-                    for (User user : usersWatchingThisShip) {
-                        // Spring uses the user's name (from the Principal) to route the message.
-                        // Ensure your UserDetailsService provides the user's email or username here.
-                        if (user.getEmail() != null) { // Or getUsername(), depending on what your security Principal uses
-                            messagingTemplate.convertAndSendToUser(
-                                    user.getEmail(),             // The user's principal name (must match what Spring Security uses)
-                                    "/queue/fleet-updates",      // The private queue destination
-                                    aisData                      // The message payload (AisData object)
-                            );
-                        }
-                    }
-                } catch (NumberFormatException e) {
-                    System.err.println("WEBSOCKET PUSH: Could not parse MMSI to Long: " + aisData.getMmsi());
-                } catch (Exception e) {
-                    // Catch other exceptions to prevent the whole consumer from failing
-                    System.err.println("WEBSOCKET PUSH: Error finding users or sending message for MMSI " + aisData.getMmsi() + ". Error: " + e.getMessage());
+            // Βρες το αντίστοιχο 'Ship' από τη βάση για να πάρεις τα στατικά του στοιχεία.
+            // Αν δεν βρεθεί το πλοίο (π.χ. είναι η πρώτη φορά που το βλέπουμε),
+            // χρησιμοποιούμε τον τύπο UNKNOWN ως προεπιλογή.
+            ShipType shipType = shipRepository.findByMmsi(mmsiLong)
+                    .map(Ship::getShiptype) // Πάρε μόνο τον τύπο του πλοίου
+                    .orElse(ShipType.UNKNOWN); // Αν δεν βρεθεί, χρησιμοποίησε UNKNOWN
+
+            // Δημιούργησε το νέο, εμπλουτισμένο DTO που θα σταλεί μέσω WebSocket.
+            RealTimeShipUpdateDTO updateDTO = new RealTimeShipUpdateDTO();
+            updateDTO.setMmsi(aisData.getMmsi());
+            updateDTO.setSpeedOverGround(aisData.getSpeedOverGround());
+            updateDTO.setCourseOverGround(aisData.getCourseOverGround());
+            updateDTO.setTrueHeading(aisData.getTrueHeading());
+
+            updateDTO.setLongitude(aisData.getLongitude());
+            updateDTO.setLatitude(aisData.getLatitude());
+            updateDTO.setTimestampEpoch(aisData.getTimestampEpoch());
+            updateDTO.setShiptype(shipType);
+
+            // --- 2. ΑΠΟΣΤΟΛΗ ΜΕΣΩ WEBSOCKET ---
+
+            // A. Στείλε το εμπλουτισμένο DTO στο public κανάλι για όλους.
+            messagingTemplate.convertAndSend("/topic/ais-updates", updateDTO);
+
+            // B. Στείλε το εμπλουτισμένο DTO στα ιδιωτικά κανάλια των χρηστών που παρακολουθούν το πλοίο.
+            List<User> usersWatchingThisShip = userRepository.findUsersWatchingMmsi(mmsiLong);
+            for (User user : usersWatchingThisShip) {
+                if (user.getEmail() != null) {
+                    messagingTemplate.convertAndSendToUser(
+                            user.getEmail(),
+                            "/queue/fleet-updates",
+                            updateDTO // Στέλνουμε το ίδιο εμπλουτισμένο DTO
+                    );
                 }
             }
 
+        } catch (NumberFormatException e) {
+            System.err.println("KAFKA CONSUMER: Could not parse MMSI to Long. Message: " + messageJson);
         } catch (JsonProcessingException e) {
             System.err.println("KAFKA CONSUMER: Critical error deserializing message from Kafka. Message: " + messageJson + " | Error: " + e.getMessage());
         } catch (Exception e) {
-            System.err.println("KAFKA CONSUMER: Critical error saving to DB or during WebSocket push. Message: " + messageJson + " | Error: " + e.getMessage());
-            // Consider sending to a Dead Letter Topic (DLT) for unprocessable messages
+            System.err.println("KAFKA CONSUMER: Critical error during data enrichment or WebSocket push. Message: " + messageJson + " | Error: " + e.getMessage());
         }
     }
 }
