@@ -1,10 +1,10 @@
+import { Vessel } from '@/types/types';
 import { getVesselIcon } from '@/utils/vesselIcon';
 import { Client } from '@stomp/stompjs';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import React, { useEffect, useRef, useState } from 'react';
 import SockJS from 'sockjs-client';
-import { Vessel } from '@/types/types';
 
 const Index: React.FC = () => {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -40,8 +40,9 @@ const Index: React.FC = () => {
     }
 
     // WebSocket setup
+    // 8080 maps to 8443 in the Dockerfile
     const stompClient = new Client({
-      webSocketFactory: () => new SockJS('http://localhost:8080/ws-ais'),
+      webSocketFactory: () => new SockJS('https://localhost:8080/ws-ais'),
       reconnectDelay: 5000,
       debug: () => {},
     });
@@ -50,7 +51,7 @@ const Index: React.FC = () => {
       // Subscribe to the topic where backend broadcasts vessel updates
       stompClient.subscribe('/topic', (message) => {
         const vessel: Vessel = JSON.parse(message.body);
-        
+
         // Determine vessel type and status from navigationalStatus
         const vesselType = getVesselTypeFromData(vessel);
         const vesselStatus = getVesselStatusFromData(vessel);
@@ -122,16 +123,26 @@ const Index: React.FC = () => {
   const getVesselStatusFromData = (vessel: Vessel): string => {
     // Based on AIS navigational status codes
     switch (vessel.navigationalStatus) {
-      case 0: return 'underway';
-      case 1: return 'at anchor';
-      case 2: return 'not under command';
-      case 3: return 'restricted maneuverability';
-      case 4: return 'constrained by draft';
-      case 5: return 'moored';
-      case 6: return 'aground';
-      case 7: return 'fishing';
-      case 8: return 'sailing';
-      default: return 'unknown';
+      case 0:
+        return 'underway';
+      case 1:
+        return 'at anchor';
+      case 2:
+        return 'not under command';
+      case 3:
+        return 'restricted maneuverability';
+      case 4:
+        return 'constrained by draft';
+      case 5:
+        return 'moored';
+      case 6:
+        return 'aground';
+      case 7:
+        return 'fishing';
+      case 8:
+        return 'sailing';
+      default:
+        return 'unknown';
     }
   };
 

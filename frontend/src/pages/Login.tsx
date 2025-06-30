@@ -14,22 +14,24 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
 
     try {
-      const response = await axios.post('http://195.168.1.5:8080/api/auth/login', {
+      // Use HTTPS port 8443 as configured in your backend
+      const response = await axios.post('https://localhost:8443/api/auth/login', {
         email,
         password,
       });
 
       const token = response.data.token;
       localStorage.setItem('token', token);
-      // Set token as default authorization header for future requests
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       navigate('/admin');
     } catch (error: any) {
-      setError('Invalid credentials');
+      const errorMessage = error.response?.data?.message || 'Invalid credentials';
+      setError(errorMessage);
       setShowToast(true);
-      console.error('Login failed:', error.response?.data?.message || error.message);
+      console.error('Login failed:', errorMessage);
     }
   };
 
