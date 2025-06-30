@@ -29,3 +29,42 @@ Our project focuses on developing a web platform for monitoring maritime activit
 - Backend: Java with Spring Boot
 - Database: PostgreSQL
 - Microservices: Docker
+
+## Installation and Setup
+1. Clone the repository:
+```bash
+git clone
+```
+2. Navigate to the project directory:
+```bash
+cd Software-Engineering
+```
+3. Install dependencies:
+You need to use 2 separate terminals for the frontend and backend.
+
+Terminal 1 (Frontend):
+```bash
+cd frontend
+npm install
+```
+Terminal 2 (Backend):
+```bash
+cd backend
+sudo docker-compose up --build
+```
+
+4. Start the application:
+    - For the frontend, run:
+    ```bash
+    npm run dev
+    ```
+    - For the backend, ensure Docker is running and the services are up.    
+5. Access the application:
+    - Open your web browser and go to `https://localhost:5173` for the frontend.
+    - The backend API will be available at `http://localhost:8443`.
+
+## Cleaning Up
+To stop the backend services, run:
+```bash
+sudo docker-compose down
+```
