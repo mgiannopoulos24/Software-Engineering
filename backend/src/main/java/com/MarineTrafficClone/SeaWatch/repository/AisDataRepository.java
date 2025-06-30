@@ -1,6 +1,8 @@
 package com.MarineTrafficClone.SeaWatch.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.MarineTrafficClone.SeaWatch.model.AisData;
@@ -30,4 +32,11 @@ public interface AisDataRepository extends JpaRepository<AisData, Long> {
      * @return Ένα Optional που περιέχει την πιο πρόσφατη AisData, ή κενό αν δεν βρεθεί καμία.
      */
     Optional<AisData> findTopByMmsiOrderByTimestampEpochDesc(String mmsi);
+
+    /**
+     * Βρίσκει την πιο πρόσφατη εγγραφή AisData για κάθε MMSI σε μια δεδομένη λίστα.
+     * Χρησιμοποιεί ένα πιο σύνθετο JPQL query για βέλτιστη απόδοση, αποφεύγοντας το πρόβλημα N+1.
+     */
+    @Query("SELECT a FROM AisData a WHERE a.mmsi IN :mmsis AND a.timestampEpoch = (SELECT MAX(a2.timestampEpoch) FROM AisData a2 WHERE a2.mmsi = a.mmsi)")
+    List<AisData> findLatestAisDataForMmsiList(@Param("mmsis") List<String> mmsis);
 }

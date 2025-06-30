@@ -1,7 +1,7 @@
 package com.MarineTrafficClone.SeaWatch.controller;
 
-import com.MarineTrafficClone.SeaWatch.model.Ship;
-import com.MarineTrafficClone.SeaWatch.model.User; // Or your UserDetails implementation
+import com.MarineTrafficClone.SeaWatch.dto.ShipDetailsDTO;
+import com.MarineTrafficClone.SeaWatch.model.User;
 import com.MarineTrafficClone.SeaWatch.service.UserFleetService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -21,8 +21,8 @@ public class UserFleetController extends BaseApiController {
     }
 
     @GetMapping("/mine")
-    public ResponseEntity<Set<Ship>> getMyWatchedShipsDetails(@AuthenticationPrincipal User currentUser) {
-        Set<Ship> watchedShips = userFleetService.getWatchedShipsDetails(currentUser.getId());
+    public ResponseEntity<Set<ShipDetailsDTO>> getMyWatchedShipsDetails(@AuthenticationPrincipal User currentUser) {
+        Set<ShipDetailsDTO> watchedShips = userFleetService.getWatchedShipsDetails(currentUser.getId());
         return ResponseEntity.ok(watchedShips);
     }
 
