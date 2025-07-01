@@ -134,9 +134,6 @@ public class StaticShipDataLoaderService implements CommandLineRunner {
         } catch (Exception e) { // Catch errors related to opening or reading the file itself
             System.err.println("STATIC DATA LOADER: CRITICAL error loading or processing static ship data CSV file '" + filePath + "'.");
             e.printStackTrace();
-            // Depending on your application's needs, you might want to re-throw this as a
-            // RuntimeException to explicitly stop the application from proceeding if static data is critical.
-            // throw new RuntimeException("Failed to load critical static ship data.", e);
         }
     }
 }
