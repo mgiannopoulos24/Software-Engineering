@@ -1,8 +1,8 @@
 package com.MarineTrafficClone.SeaWatch;
 
 import com.MarineTrafficClone.SeaWatch.enumeration.RoleType;
-import com.MarineTrafficClone.SeaWatch.model.User;
-import com.MarineTrafficClone.SeaWatch.repository.UserRepository;
+import com.MarineTrafficClone.SeaWatch.model.UserEntity;
+import com.MarineTrafficClone.SeaWatch.repository.UserEntityRepository;
 import org.apache.catalina.Context;
 import org.apache.catalina.connector.Connector;
 import org.apache.tomcat.util.descriptor.web.SecurityCollection;
@@ -13,9 +13,11 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
 import org.springframework.boot.web.servlet.server.ServletWebServerFactory;
 import org.springframework.context.annotation.Bean;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @SpringBootApplication
+@EnableScheduling
 public class SeaWatchApplication {
 
 	public static void main(String[] args) {
@@ -24,7 +26,7 @@ public class SeaWatchApplication {
 
     @Bean
     public ServletWebServerFactory servletContainer() {
-        TomcatServletWebServerFactory tomcat = new TomcatServletWebServerFactory() {
+        TomcatServletWebServerFactory    tomcat = new TomcatServletWebServerFactory() {
             @Override
             protected void postProcessContext(Context context) {
                 SecurityConstraint securityConstraint = new SecurityConstraint();
@@ -49,15 +51,15 @@ public class SeaWatchApplication {
     }
 
     @Bean
-    CommandLineRunner initDatabase(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    CommandLineRunner initDatabase(UserEntityRepository userEntityRepository, PasswordEncoder passwordEncoder) {
         return args -> {
-            if (userRepository.findByRole(RoleType.ADMIN).isEmpty()) {
-                User user = new User(
+            if (userEntityRepository.findByRole(RoleType.ADMIN).isEmpty()) {
+                UserEntity userEntity = new UserEntity(
                         "admin@ais.com",
                         passwordEncoder.encode("12345")
                 );
-                user.setRole(RoleType.ADMIN);
-                userRepository.save(user);
+                userEntity.setRole(RoleType.ADMIN);
+                userEntityRepository.save(userEntity);
             }
         };
     }

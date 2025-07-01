@@ -21,7 +21,7 @@ import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "users")
-public class User implements UserDetails {
+public class UserEntity implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -91,7 +91,7 @@ public class User implements UserDetails {
 
     /* ------------------------- CONSTRUCTORS ------------------------- */
 
-    public User(@NonNull String email, @NotBlank String password) {
+    public UserEntity(@NonNull String email, @NotBlank String password) {
         this.email = email;
         this.password = password;
     }

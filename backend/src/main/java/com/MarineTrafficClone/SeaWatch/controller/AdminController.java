@@ -8,8 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/admin")
-public class AdminController extends BaseApiController {
+@RequestMapping("/api/admin")
+public class AdminController {
 
     private final AdminService adminService;
 

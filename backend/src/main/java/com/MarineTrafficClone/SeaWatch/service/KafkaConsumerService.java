@@ -1,15 +1,14 @@
 package com.MarineTrafficClone.SeaWatch.service;
 
-import com.MarineTrafficClone.SeaWatch.dto.NotificationDTO;
 import com.MarineTrafficClone.SeaWatch.dto.RealTimeShipUpdateDTO;
 import com.MarineTrafficClone.SeaWatch.enumeration.ShipType;
 import com.MarineTrafficClone.SeaWatch.model.AisData;
 import com.MarineTrafficClone.SeaWatch.model.Ship;
-import com.MarineTrafficClone.SeaWatch.model.User;
 import com.MarineTrafficClone.SeaWatch.model.ZoneOfInterest;
+import com.MarineTrafficClone.SeaWatch.model.UserEntity;
 import com.MarineTrafficClone.SeaWatch.repository.AisDataRepository;
 import com.MarineTrafficClone.SeaWatch.repository.ShipRepository;
-import com.MarineTrafficClone.SeaWatch.repository.UserRepository;
+import com.MarineTrafficClone.SeaWatch.repository.UserEntityRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +25,7 @@ import java.util.Optional;
 public class KafkaConsumerService {
 
     private final AisDataRepository aisDataRepository;
-    private final UserRepository userRepository;
+    private final UserEntityRepository userEntityRepository;
     private final ObjectMapper objectMapper;
     private final SimpMessagingTemplate messagingTemplate;
     private final ShipRepository shipRepository;
@@ -36,11 +35,11 @@ public class KafkaConsumerService {
     public KafkaConsumerService(AisDataRepository aisDataRepository,
                                 ShipRepository shipRepository,
                                 ObjectMapper objectMapper,
-                                UserRepository userRepository,
+                                UserEntityRepository userEntityRepository,
                                 SimpMessagingTemplate messagingTemplate,
                                 ZoneOfInterestCacheService zoneCache) {
         this.aisDataRepository = aisDataRepository;
-        this.userRepository = userRepository;
+        this.userEntityRepository = userEntityRepository;
         this.shipRepository = shipRepository;
         this.objectMapper = objectMapper;
         this.messagingTemplate = messagingTemplate;
@@ -95,11 +94,11 @@ public class KafkaConsumerService {
             messagingTemplate.convertAndSend("/topic/ais-updates", updateDTO);
 
             // B. Στείλε το εμπλουτισμένο DTO στα ιδιωτικά κανάλια των χρηστών που παρακολουθούν το πλοίο.
-            List<User> usersWatchingThisShip = userRepository.findUsersWatchingMmsi(mmsiLong);
-            for (User user : usersWatchingThisShip) {
-                if (user.getEmail() != null) {
+            List<UserEntity> usersWatchingThisShip = userEntityRepository.findUsersWatchingMmsi(mmsiLong);
+            for (UserEntity userEntity : usersWatchingThisShip) {
+                if (userEntity.getEmail() != null) {
                     messagingTemplate.convertAndSendToUser(
-                            user.getEmail(),
+                            userEntity.getEmail(),
                             "/queue/fleet-updates",
                             updateDTO // Στέλνουμε το ίδιο εμπλουτισμένο DTO
                     );

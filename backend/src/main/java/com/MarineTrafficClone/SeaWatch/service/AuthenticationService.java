@@ -2,8 +2,8 @@ package com.MarineTrafficClone.SeaWatch.service;
 
 import com.MarineTrafficClone.SeaWatch.dto.AuthDTO;
 import com.MarineTrafficClone.SeaWatch.enumeration.RoleType;
-import com.MarineTrafficClone.SeaWatch.model.User;
-import com.MarineTrafficClone.SeaWatch.repository.UserRepository;
+import com.MarineTrafficClone.SeaWatch.model.UserEntity;
+import com.MarineTrafficClone.SeaWatch.repository.UserEntityRepository;
 import com.MarineTrafficClone.SeaWatch.response.AuthenticationResponse;
 import com.MarineTrafficClone.SeaWatch.security.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -16,19 +16,19 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class AuthenticationService {
 
-    private final UserRepository userRepository;
+    private final UserEntityRepository userEntityRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
 
     public AuthenticationResponse register(AuthDTO AuthDTO) {
-        var user = User.builder()
+        var user = UserEntity.builder()
                 .email(AuthDTO.getEmail())
                 .password(passwordEncoder.encode(AuthDTO.getPassword()))
                 .role(RoleType.REGISTERED)
                 .build();
 
-        userRepository.save(user);
+        userEntityRepository.save(user);
 
         var jwtToken = jwtService.generateToken(user);
         return AuthenticationResponse.builder()
@@ -47,7 +47,7 @@ public class AuthenticationService {
                 )
         );
 
-        var user = userRepository.findByEmail(authDTO.getEmail())
+        var user = userEntityRepository.findByEmail(authDTO.getEmail())
                 .orElseThrow();
 
         var jwtToken = jwtService.generateToken(user);
