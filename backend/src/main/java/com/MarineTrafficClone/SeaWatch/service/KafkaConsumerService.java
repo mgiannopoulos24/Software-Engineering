@@ -1,5 +1,6 @@
 package com.MarineTrafficClone.SeaWatch.service;
 
+import com.MarineTrafficClone.SeaWatch.dto.NotificationDTO;
 import com.MarineTrafficClone.SeaWatch.dto.RealTimeShipUpdateDTO;
 import com.MarineTrafficClone.SeaWatch.enumeration.ShipType;
 import com.MarineTrafficClone.SeaWatch.model.AisData;
@@ -189,7 +190,7 @@ public class KafkaConsumerService {
     }
 
     private void sendNotification(String message, ZoneOfInterest violatedZone) {
-        User user = violatedZone.getUser();
+        UserEntity user = violatedZone.getUser();
         if (user != null && user.getEmail() != null) {
             System.out.println("NOTIFICATION -> To " + user.getEmail() + ": " + message);
             NotificationDTO notification = new NotificationDTO(Instant.now(), message, violatedZone.getId(), violatedZone.getName());
