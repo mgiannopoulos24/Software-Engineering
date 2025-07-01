@@ -1,7 +1,8 @@
 package com.MarineTrafficClone.SeaWatch.service;
 
+import com.MarineTrafficClone.SeaWatch.model.UserEntity;
 import com.MarineTrafficClone.SeaWatch.model.ZoneOfInterest;
-import com.MarineTrafficClone.SeaWatch.model.User;
+import com.MarineTrafficClone.SeaWatch.model.UserEntity;
 import com.MarineTrafficClone.SeaWatch.repository.ZoneOfInterestRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -23,7 +24,7 @@ public class ZoneOfInterestService {
     }
 
     @Transactional
-    public ZoneOfInterest createOrUpdateZone(ZoneOfInterest newZoneData, User currentUser) {
+    public ZoneOfInterest createOrUpdateZone(ZoneOfInterest newZoneData, UserEntity currentUser) {
         // Find the user's existing zone, if there is one
         ZoneOfInterest zone = zoneRepository.findByUserId(currentUser.getId())
                 .orElseGet(() -> {
