@@ -3,10 +3,10 @@ package com.MarineTrafficClone.SeaWatch.service;
 import com.MarineTrafficClone.SeaWatch.dto.ShipDetailsDTO;
 import com.MarineTrafficClone.SeaWatch.model.AisData;
 import com.MarineTrafficClone.SeaWatch.model.Ship;
-import com.MarineTrafficClone.SeaWatch.model.User;
+import com.MarineTrafficClone.SeaWatch.model.UserEntity;
 import com.MarineTrafficClone.SeaWatch.repository.AisDataRepository;
 import com.MarineTrafficClone.SeaWatch.repository.ShipRepository;
-import com.MarineTrafficClone.SeaWatch.repository.UserRepository;
+import com.MarineTrafficClone.SeaWatch.repository.UserEntityRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,13 +20,13 @@ import java.util.stream.Collectors;
 @Service
 public class UserFleetService {
 
-    private final UserRepository userRepository;
+    private final UserEntityRepository userEntityRepository;
     private final ShipRepository shipRepository;
     private final AisDataRepository aisDataRepository;
 
     @Autowired
-    public UserFleetService(UserRepository userRepository, ShipRepository shipRepository, AisDataRepository aisDataRepository) {
-        this.userRepository = userRepository;
+    public UserFleetService(UserEntityRepository userEntityRepository, ShipRepository shipRepository, AisDataRepository aisDataRepository) {
+        this.userEntityRepository = userEntityRepository;
         this.shipRepository = shipRepository;
         this.aisDataRepository = aisDataRepository;
     }
@@ -34,10 +34,10 @@ public class UserFleetService {
     @Transactional(readOnly = true)
     public Set<ShipDetailsDTO> getWatchedShipsDetails(Long userId) {
         // 1. Βρες τον χρήστη και τον στόλο του (Set<Ship>)
-        User user = userRepository.findById(userId)
+        UserEntity userEntity = userEntityRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
 
-        Set<Ship> fleetShips = user.getFleet();
+        Set<Ship> fleetShips = userEntity.getFleet();
         if (fleetShips.isEmpty()) {
             return Collections.emptySet();
         }
@@ -79,23 +79,23 @@ public class UserFleetService {
 
     @Transactional
     public void addShipToUserFleet(Long userId, Long shipMmsi) {
-        User user = userRepository.findById(userId)
+        UserEntity userEntity = userEntityRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
         Ship ship = shipRepository.findByMmsi(shipMmsi)
                 .orElseThrow(() -> new RuntimeException("Ship not found with MMSI: " + shipMmsi));
 
-        user.addShipToFleet(ship);
-        userRepository.save(user);
+        userEntity.addShipToFleet(ship);
+        userEntityRepository.save(userEntity);
     }
 
     @Transactional
     public void removeShipFromUserFleet(Long userId, Long shipMmsi) {
-        User user = userRepository.findById(userId)
+        UserEntity userEntity = userEntityRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
         Ship ship = shipRepository.findByMmsi(shipMmsi)
                 .orElseThrow(() -> new RuntimeException("Ship not found with MMSI: " + shipMmsi));
 
-        user.removeShipFromFleet(ship);
-        userRepository.save(user);
+        userEntity.removeShipFromFleet(ship);
+        userEntityRepository.save(userEntity);
     }
 }

@@ -10,8 +10,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/ship-data")
-public class AisDataController extends BaseApiController {
+@RequestMapping("/api/ship-data")
+public class AisDataController {
 
     private final AisDataService aisDataService;
 
