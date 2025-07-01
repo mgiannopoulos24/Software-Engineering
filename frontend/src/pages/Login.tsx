@@ -1,7 +1,7 @@
 import boatLogo from '../assets/images/boat.png';
 import axios from 'axios';
 import { Eye, EyeOff } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 const Login: React.FC = () => {
@@ -17,7 +17,6 @@ const Login: React.FC = () => {
     setError('');
 
     try {
-      // Use HTTPS port 8443 as configured in your backend
       const response = await axios.post('https://localhost:8443/api/auth/login', {
         email,
         password,
@@ -28,10 +27,11 @@ const Login: React.FC = () => {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       navigate('/admin');
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Invalid credentials';
+      const errorMessage =
+        error.response?.data?.message || 'Login failed. Please check the console for details.';
       setError(errorMessage);
       setShowToast(true);
-      console.error('Login failed:', errorMessage);
+      console.error('Login failed:', error);
     }
   };
 
