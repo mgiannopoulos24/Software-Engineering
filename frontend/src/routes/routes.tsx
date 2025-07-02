@@ -2,6 +2,7 @@ import Index from '@/pages/Index';
 import Login from '@/pages/Login';
 import Signup from '@/pages/Signup';
 import AdminPage from '@/pages/admin/AdminPage';
+import SavedVessels from '@/pages/user/SavedVessels';
 import UserPage from '@/pages/user/UserPage';
 
 type RouteConfig = {
@@ -41,6 +42,12 @@ const routes: RouteConfig[] = [
     protected: true,
     roles: ['registered'],
   },
+  {
+    path: '/user/vessels',
+    element: <SavedVessels />,
+    protected: true,
+    roles: ['registered'],
+  }
 ];
 
 export default routes;

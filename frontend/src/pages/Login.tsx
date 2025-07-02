@@ -1,8 +1,8 @@
 import boatLogo from '../assets/images/boat.png';
-import axios from 'axios';
 import { Eye, EyeOff } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState<string>('');
@@ -11,20 +11,14 @@ const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     try {
-      const response = await axios.post('https://localhost:8443/api/auth/login', {
-        email,
-        password,
-      });
-
-      const { token, role } = response.data;
-      localStorage.setItem('token', token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      const { role } = await login(email, password);
 
       if (role === 'admin') {
         navigate('/admin');
@@ -33,11 +27,10 @@ const Login: React.FC = () => {
       } else {
         setError('Unknown role. Please contact support.');
         setShowToast(true);
-        return;
       }
     } catch (error: any) {
       const errorMessage =
-        error.response?.data?.message || 'Login failed. Please check the console for details.';
+        error.response?.data?.message || 'Login failed. Please check your credentials.';
       setError(errorMessage);
       setShowToast(true);
       console.error('Login failed:', error);
