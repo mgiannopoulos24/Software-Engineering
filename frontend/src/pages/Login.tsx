@@ -22,10 +22,19 @@ const Login: React.FC = () => {
         password,
       });
 
-      const token = response.data.token;
+      const { token, role } = response.data;
       localStorage.setItem('token', token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      navigate('/admin');
+
+      if (role === 'admin') {
+        navigate('/admin');
+      } else if (role === 'registered') {
+        navigate('/user');
+      } else {
+        setError('Unknown role. Please contact support.');
+        setShowToast(true);
+        return;
+      }
     } catch (error: any) {
       const errorMessage =
         error.response?.data?.message || 'Login failed. Please check the console for details.';

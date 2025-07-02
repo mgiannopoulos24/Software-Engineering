@@ -1,13 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-// Define the user role type to match your backend's roles.
-// Simplified to only 'admin' for now as requested.
-type UserRole = 'admin' | null;
+// Update UserRole to support both roles
+type UserRole = 'admin' | 'registered' | null;
 
-// Define a user profile structure based on your backend's User model.
-// Adjust the properties to match what your API returns.
+// Update UserProfile to match your backend response
 interface UserProfile {
-  username: string; // This could be email or another unique identifier
+  id: number;
+  email?: string;    // Optional, if your backend returns it
   role: UserRole;
 }
 
@@ -16,6 +15,7 @@ interface AuthContextType {
   userRole: UserRole;
   loading: boolean;
   isAdmin: boolean;
+  isRegistered: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -23,6 +23,7 @@ const AuthContext = createContext<AuthContextType>({
   userRole: null,
   loading: true,
   isAdmin: false,
+  isRegistered: false,
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -35,17 +36,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const fetchUserSession = async () => {
       try {
-        // This endpoint should be protected by your Spring Boot security.
-        // It returns the logged-in user's data if the session is valid.
-        // You may need to adjust the endpoint URL.
         const response = await fetch('/api/auth/me');
-
         if (response.ok) {
           const userData: UserProfile = await response.json();
           setCurrentUser(userData);
           setUserRole(userData.role);
         } else {
-          // Handles cases where the user is not logged in or the session is invalid.
           setCurrentUser(null);
           setUserRole(null);
         }
@@ -66,6 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     userRole,
     loading,
     isAdmin: userRole === 'admin',
+    isRegistered: userRole === 'registered',
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

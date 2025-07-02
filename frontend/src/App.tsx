@@ -1,51 +1,34 @@
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import { AuthProvider } from './contexts/AuthContext';
+import routes from './routes/routes';
 import Layout from './components/layout/Layout';
-import Index from './pages/Index';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
-import AdminPage from './pages/admin/AdminPage';
-import SavedVessels from './pages/user/SavedVessels';
-import UserPage from './pages/user/UserPage';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import React from 'react';
+import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 
-export default function App() {
+const App: React.FC = () => {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <Layout>
-              <Index />
-            </Layout>
-          }
-        />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route
-          path="/user"
-          element={
-            <Layout>
-              <UserPage />
-            </Layout>
-          }
-        />
-        <Route
-          path="/user/vessels"
-          element={
-            <Layout>
-              <SavedVessels />
-            </Layout>
-          }
-        />
-        <Route
-          path="/admin"
-          element={
-            <Layout>
-              <AdminPage />
-            </Layout>
-          }
-        />
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          {routes.map((route, index) => (
+            <Route
+              key={index}
+              path={route.path}
+              element={
+                route.protected ? (
+                  <ProtectedRoute allowedRoles={route.roles!}>
+                    <Layout>{route.element}</Layout>
+                  </ProtectedRoute>
+                ) : (
+                  <Layout>{route.element}</Layout>
+                )
+              }
+            />
+          ))}
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
-}
+};
+
+export default App;

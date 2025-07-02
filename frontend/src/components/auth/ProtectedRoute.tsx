@@ -6,9 +6,10 @@ import { Navigate, useLocation } from 'react-router-dom';
 
 type ProtectedRouteProps = {
   children: React.ReactNode;
+  allowedRoles: string[]; 
 };
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
   const { currentUser, userRole, loading } = useAuth();
   const location = useLocation();
 
@@ -27,7 +28,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/" state={{ from: location }} replace />;
   }
 
-  if (userRole !== 'admin') {
+  if (!allowedRoles.includes(userRole)) {
     return <NotAuthorized />;
   }
 
