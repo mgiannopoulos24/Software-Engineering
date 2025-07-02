@@ -1,11 +1,13 @@
 package com.MarineTrafficClone.SeaWatch.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.MarineTrafficClone.SeaWatch.model.AisData;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -39,4 +41,23 @@ public interface AisDataRepository extends JpaRepository<AisData, Long> {
      */
     @Query("SELECT a FROM AisData a WHERE a.mmsi IN :mmsis AND a.timestampEpoch = (SELECT MAX(a2.timestampEpoch) FROM AisData a2 WHERE a2.mmsi = a.mmsi)")
     List<AisData> findLatestAisDataForMmsiList(@Param("mmsis") List<String> mmsis);
+
+    /**
+     * Επιστρέφει τη μέγιστη (πιο πρόσφατη) χρονοσφραγίδα που υπάρχει στον πίνακα ais_data.
+     * @return Ένα Optional<Long> που περιέχει τη χρονοσφραγίδα, ή κενό αν ο πίνακας είναι άδειος.
+     */
+    @Query("SELECT MAX(a.timestampEpoch) FROM AisData a")
+    Optional<Long> findLatestTimestampEpoch();
+
+    /**
+     * Διαγράφει όλες τις εγγραφές AisData που έχουν χρονοσφραγίδα παλαιότερη
+     * από τη δεδομένη τιμή (cutoff).
+     * Modifying: Ενημερώνει το Spring ότι αυτό το query δεν είναι ένα απλό SELECT, αλλά ένα query που τροποποιεί δεδομένα (DELETE ή UPDATE).
+     * Transactional: Εξασφαλίζει ότι η διαγραφή θα γίνει μέσα σε μια συναλλαγή.
+     *
+     * @param cutoffTimestampEpoch Το όριο χρονοσφραγίδας. Ό,τι είναι παλαιότερο θα διαγραφεί.
+     */
+    @Modifying
+    @Transactional
+    void deleteByTimestampEpochBefore(Long cutoffTimestampEpoch);
 }
