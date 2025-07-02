@@ -15,6 +15,7 @@ interface AuthContextType {
   isAdmin: boolean;
   isRegistered: boolean;
   login: (email: string, password: string) => Promise<{ role: UserRole }>;
+  signup: (email: string, password: string) => Promise<{ role: UserRole }>;
   logout: () => void;
 }
 
@@ -25,6 +26,7 @@ const AuthContext = createContext<AuthContextType>({
   isAdmin: false,
   isRegistered: false,
   login: async () => ({ role: null }),
+  signup: async () => ({ role: null }),
   logout: () => {},
 });
 
@@ -70,6 +72,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { role: userProfile.role };
     } catch (error) {
       console.error('Login error:', error);
+      throw error;
+    }
+  };
+
+  const signup = async (email: string, password: string): Promise<{ role: UserRole }> => {
+    try {
+      const response = await fetch('https://localhost:8443/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Registration failed');
+      }
+
+      const data = await response.json();
+      
+      // Store token if provided
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
+
+      // Create user profile from login response
+      const userProfile: UserProfile = {
+        id: data.id || data.user?.id,
+        email: email,
+        role: data.role || data.user?.role
+      };
+
+      setCurrentUser(userProfile);
+      setUserRole(userProfile.role);
+
+      return { role: userProfile.role };
+    } catch (error) {
+      console.error('Registration error:', error);
       throw error;
     }
   };
@@ -121,6 +162,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAdmin: userRole === 'admin',
     isRegistered: userRole === 'registered',
     login,
+    signup,
     logout,
   };
 
