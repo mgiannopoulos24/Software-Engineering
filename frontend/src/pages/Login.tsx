@@ -38,7 +38,7 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="m-0 flex min-h-screen w-screen items-center justify-center bg-[#f8f9fa]">
+    <div className="flex h-[89vh] w-screen items-center justify-center bg-[#f8f9fa]">
       <div className="w-full max-w-[800px] px-4 sm:px-6 md:w-4/5 lg:w-3/4 xl:w-1/2">
         <div className="w-full rounded-[10px] bg-white p-[30px] shadow-[0_4px_10px_rgba(0,0,0,0.1)]">
           <h2 className="mb-3 text-center text-2xl font-semibold text-gray-800">Welcome back</h2>

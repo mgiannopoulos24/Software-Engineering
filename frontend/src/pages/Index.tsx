@@ -155,11 +155,11 @@ const Index: React.FC = () => {
 
   return (
     <div className="flex w-screen">
-      <div className="h-screen w-full flex-1">
-        <div id="map" ref={mapRef} className="h-screen w-full"></div>
+      <div className="relative w-full flex-1">
+        <div id="map" ref={mapRef} className="h-[89vh] w-full"></div>
         <div
           id="coordinates"
-          className="w-240 absolute bottom-2.5 left-1/2 z-[999] -translate-x-1/2 transform overflow-hidden whitespace-nowrap rounded border border-white/30 bg-black/60 px-2.5 py-0.5 text-center text-xs font-medium text-white shadow-md"
+          className="w-240 absolute bottom-2.5 left-1/2 z-[999] -translate-x-1/2 transform whitespace-nowrap rounded border border-white/30 bg-black/60 px-2.5 text-center text-xs font-medium text-white shadow-md"
         >
           {coordinates}
         </div>
