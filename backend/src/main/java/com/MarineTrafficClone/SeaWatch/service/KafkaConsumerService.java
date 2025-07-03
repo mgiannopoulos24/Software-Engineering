@@ -3,15 +3,14 @@ package com.MarineTrafficClone.SeaWatch.service;
 import com.MarineTrafficClone.SeaWatch.dto.NotificationDTO;
 import com.MarineTrafficClone.SeaWatch.dto.RealTimeShipUpdateDTO;
 import com.MarineTrafficClone.SeaWatch.enumeration.ShipType;
-import com.MarineTrafficClone.SeaWatch.model.AisData;
-import com.MarineTrafficClone.SeaWatch.model.Ship;
-import com.MarineTrafficClone.SeaWatch.model.ZoneOfInterest;
-import com.MarineTrafficClone.SeaWatch.model.UserEntity;
+import com.MarineTrafficClone.SeaWatch.model.*;
 import com.MarineTrafficClone.SeaWatch.repository.AisDataRepository;
 import com.MarineTrafficClone.SeaWatch.repository.ShipRepository;
 import com.MarineTrafficClone.SeaWatch.repository.UserEntityRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -24,6 +23,8 @@ import java.util.Optional;
 
 @Service
 public class KafkaConsumerService {
+
+    private static final Logger log = LoggerFactory.getLogger(KafkaConsumerService.class);
 
     private final AisDataRepository aisDataRepository;
     private final UserEntityRepository userEntityRepository;
@@ -51,22 +52,15 @@ public class KafkaConsumerService {
     @Transactional
     public void consumeAisData(String messageJson) {
         try {
-            // AIS JSON -> Java object
             AisData aisData = objectMapper.readValue(messageJson, AisData.class);
 
-            // Fetching previous (if it exists) dynamic data for use in zone of interest logic
-            Optional<AisData> previous = aisDataRepository.findTopByMmsiOrderByTimestampEpochDesc(aisData.getMmsi());
-
-            // Save the dynamic data to the database
-            aisDataRepository.save(aisData);
-            // System.out.println("Saved to DB: MMSI " + aisData.getMmsi() + ", ID: " + aisData.getId());
-
-            // --- 1. WebSocket Push Logic ---
-
             if (aisData.getMmsi() == null || aisData.getMmsi().isBlank()) {
-                // Αν δεν υπάρχει MMSI, δεν μπορούμε να κάνουμε τίποτα, οπότε σταματάμε.
+                log.debug("Consumed AIS message with no MMSI. Skipping.");
                 return;
             }
+
+            Optional<AisData> previousAisDataOpt = aisDataRepository.findTopByMmsiOrderByTimestampEpochDesc(aisData.getMmsi());
+            aisDataRepository.save(aisData);
 
             Long mmsiLong = Long.parseLong(aisData.getMmsi());
 
@@ -74,96 +68,138 @@ public class KafkaConsumerService {
             // Αν δεν βρεθεί το πλοίο (π.χ. είναι η πρώτη φορά που το βλέπουμε),
             // χρησιμοποιούμε τον τύπο UNKNOWN ως προεπιλογή.
             ShipType shipType = shipRepository.findByMmsi(mmsiLong)
-                    .map(Ship::getShiptype) // Πάρε μόνο τον τύπο του πλοίου
-                    .orElse(ShipType.UNKNOWN); // Αν δεν βρεθεί, χρησιμοποίησε UNKNOWN
+                    .map(Ship::getShiptype)
+                    .orElse(ShipType.UNKNOWN);
 
-            // Δημιούργησε το νέο, εμπλουτισμένο DTO που θα σταλεί μέσω WebSocket.
-            RealTimeShipUpdateDTO updateDTO = new RealTimeShipUpdateDTO();
-            updateDTO.setMmsi(aisData.getMmsi());
-            updateDTO.setSpeedOverGround(aisData.getSpeedOverGround());
-            updateDTO.setCourseOverGround(aisData.getCourseOverGround());
-            updateDTO.setTrueHeading(aisData.getTrueHeading());
+            // --- 1. Αποστολή ενημερώσεων θέσης μέσω WebSocket ---
+            sendRealTimeUpdates(aisData, shipType, mmsiLong);
 
-            updateDTO.setLongitude(aisData.getLongitude());
-            updateDTO.setLatitude(aisData.getLatitude());
-            updateDTO.setTimestampEpoch(aisData.getTimestampEpoch());
-            updateDTO.setShiptype(shipType);
-
-            // --- 2. ΑΠΟΣΤΟΛΗ ΜΕΣΩ WEBSOCKET ---
-
-            // A. Στείλε το εμπλουτισμένο DTO στο public κανάλι για όλους.
-            messagingTemplate.convertAndSend("/topic/ais-updates", updateDTO);
-
-            // B. Στείλε το εμπλουτισμένο DTO στα ιδιωτικά κανάλια των χρηστών που παρακολουθούν το πλοίο.
-            List<UserEntity> usersWatchingThisShip = userEntityRepository.findUsersWatchingMmsi(mmsiLong);
-            for (UserEntity userEntity : usersWatchingThisShip) {
-                if (userEntity.getEmail() != null) {
-                    messagingTemplate.convertAndSendToUser(
-                            userEntity.getEmail(),
-                            "/queue/fleet-updates",
-                            updateDTO // Στέλνουμε το ίδιο εμπλουτισμένο DTO
-                    );
-                }
-            }
-
-            // --- Zone Violation Check Logic ---
-            checkAllZoneViolations(aisData, previous);
+            // --- 2. Έλεγχος παραβιάσεων ζωνών ενδιαφέροντος ---
+            checkAllZoneViolations(aisData, previousAisDataOpt, shipType);
 
         } catch (NumberFormatException e) {
-            System.err.println("KAFKA CONSUMER: Could not parse MMSI to Long. Message: " + messageJson);
+            log.warn("KAFKA CONSUMER: Could not parse MMSI to Long. Message: {}", messageJson, e);
         } catch (JsonProcessingException e) {
-            System.err.println("KAFKA CONSUMER: Critical error deserializing message from Kafka. Message: " + messageJson + " | Error: " + e.getMessage());
+            log.error("KAFKA CONSUMER: Critical error deserializing message from Kafka. Message: {}", messageJson, e);
         } catch (Exception e) {
-            System.err.println("KAFKA CONSUMER: Critical error during data enrichment or WebSocket push. Message: " + messageJson + " | Error: " + e.getMessage());
+            log.error("KAFKA CONSUMER: An unexpected critical error occurred. Message: {}", messageJson, e);
         }
     }
 
+    private void sendRealTimeUpdates(AisData aisData, ShipType shipType, Long mmsiLong) {
+        RealTimeShipUpdateDTO updateDTO = new RealTimeShipUpdateDTO();
+        updateDTO.setMmsi(aisData.getMmsi());
+        updateDTO.setSpeedOverGround(aisData.getSpeedOverGround());
+        updateDTO.setCourseOverGround(aisData.getCourseOverGround());
+        updateDTO.setTrueHeading(aisData.getTrueHeading());
+        updateDTO.setLongitude(aisData.getLongitude());
+        updateDTO.setLatitude(aisData.getLatitude());
+        updateDTO.setTimestampEpoch(aisData.getTimestampEpoch());
+        updateDTO.setShiptype(shipType);
 
-    // ------------------ Methods for Zone Of Interest Logic ---------------------------------------
+        // Public broadcast
+        messagingTemplate.convertAndSend("/topic/ais-updates", updateDTO);
 
-    private void checkAllZoneViolations(AisData currentPosition, Optional<AisData> previousAisData) {
+        // Private fleet updates
+        List<UserEntity> usersWatchingThisShip = userEntityRepository.findUsersWatchingMmsi(mmsiLong);
+        for (UserEntity userEntity : usersWatchingThisShip) {
+            if (userEntity.getEmail() != null) {
+                messagingTemplate.convertAndSendToUser(userEntity.getEmail(), "/queue/fleet-updates", updateDTO);
+            }
+        }
+    }
+
+    // ------------------ Μέθοδοι για τη Λογική των Ζωνών Ενδιαφέροντος ---------------------------------
+
+    private void checkAllZoneViolations(AisData currentPosition, Optional<AisData> previousAisData, ShipType shipType) {
         List<ZoneOfInterest> zones = zoneCache.getAllActiveZones();
-        if (zones.isEmpty() || currentPosition.getLatitude() == null) {
-            return; // Nothing to check
+        if (zones.isEmpty() || currentPosition.getLatitude() == null || currentPosition.getLongitude() == null) {
+            return;
         }
 
         for (ZoneOfInterest zone : zones) {
             boolean isCurrentlyInZone = isInsideZone(currentPosition.getLatitude(), currentPosition.getLongitude(), zone);
 
-            // For entry/exit, we need the previous position ( if it exists )
-            boolean wasPreviouslyInZone = false;
-            AisData previousPosition = previousAisData.orElse(null);
-            if (previousPosition != null && previousPosition.getLatitude() != null) {
-                wasPreviouslyInZone = isInsideZone(previousPosition.getLatitude(), previousPosition.getLongitude(), zone);
-            }
+            boolean wasPreviouslyInZone = previousAisData
+                    .filter(prev -> prev.getLatitude() != null && prev.getLongitude() != null)
+                    .map(prev -> isInsideZone(prev.getLatitude(), prev.getLongitude(), zone))
+                    .orElse(false);
 
-            switch (zone.getConstraintType()) {
-                case ZONE_ENTRY:
-                    if (isCurrentlyInZone && !wasPreviouslyInZone) {
-                        String msg = String.format("Ship %s entered zone '%s'", currentPosition.getMmsi(), zone.getName());
-                        sendNotification(msg, zone);
-                    }
-                    break;
-                case ZONE_EXIT:
-                    if (!isCurrentlyInZone && wasPreviouslyInZone) {
-                        String msg = String.format("Ship %s exited zone '%s'", currentPosition.getMmsi(), zone.getName());
-                        sendNotification(msg, zone);
-                    }
-                    break;
-                case SPEED_LIMIT_ABOVE:
-                    if (isCurrentlyInZone && currentPosition.getSpeedOverGround() > zone.getConstraintValue()) {
-                        String msg = String.format("Ship %s exceeded speed limit in zone '%s'. Speed: %.1f kts (Limit: %.1f kts)",
-                                currentPosition.getMmsi(), zone.getName(), currentPosition.getSpeedOverGround(), zone.getConstraintValue());
-                        sendNotification(msg, zone);
-                    }
-                    break;
-                case SPEED_LIMIT_BELOW:
-                    if (isCurrentlyInZone && currentPosition.getSpeedOverGround() < zone.getConstraintValue()) {
-                        String msg = String.format("Ship %s below minimum speed limit in zone '%s'. Speed: %.1f kts (Limit: %.1f kts)",
-                                currentPosition.getMmsi(), zone.getName(), currentPosition.getSpeedOverGround(), zone.getConstraintValue());
-                        sendNotification(msg, zone);
-                    }
-                    break;
+            // Τώρα, κάνουμε iterate στους περιορισμούς της ζώνης
+            for (ZoneConstraint constraint : zone.getConstraints()) {
+                String msg;
+                switch (constraint.getType()) {
+                    // --- Κανόνες Κίνησης (Entry/Exit) ---
+                    case ZONE_ENTRY:
+                        if (isCurrentlyInZone && !wasPreviouslyInZone) {
+                            msg = String.format("Ship %s entered zone '%s'", currentPosition.getMmsi(), zone.getName());
+                            sendNotification(msg, zone, currentPosition, constraint);
+                        }
+                        break;
+
+                    case ZONE_EXIT:
+                        if (!isCurrentlyInZone && wasPreviouslyInZone) {
+                            msg = String.format("Ship %s exited zone '%s'", currentPosition.getMmsi(), zone.getName());
+                            sendNotification(msg, zone, currentPosition, constraint);
+                        }
+                        break;
+
+                    // --- Κανόνες Κατάστασης (Ελέγχονται μόνο αν το πλοίο είναι ΜΕΣΑ) ---
+                    case SPEED_LIMIT_ABOVE:
+                        if (isCurrentlyInZone && currentPosition.getSpeedOverGround() != null) {
+                            try {
+                                double speedLimit = Double.parseDouble(constraint.getValue());
+                                if (currentPosition.getSpeedOverGround() > speedLimit) {
+                                    msg = String.format("Ship %s exceeded speed limit in zone '%s'. Speed: %.1f kts (Limit: %.1f kts)",
+                                            currentPosition.getMmsi(), zone.getName(), currentPosition.getSpeedOverGround(), speedLimit);
+                                    sendNotification(msg, zone, currentPosition, constraint);
+                                }
+                            } catch (NumberFormatException e) {
+                                log.warn("ZONE CHECK: Invalid speed limit value '{}' for zone '{}'", constraint.getValue(), zone.getName());
+                            }
+                        }
+                        break;
+
+                    case SPEED_LIMIT_BELOW:
+                        if (isCurrentlyInZone && currentPosition.getSpeedOverGround() != null) {
+                            try {
+                                double speedLimit = Double.parseDouble(constraint.getValue());
+                                if (currentPosition.getSpeedOverGround() < speedLimit) {
+                                    msg = String.format("Ship %s is below minimum speed in zone '%s'. Speed: %.1f kts (Limit: %.1f kts)",
+                                            currentPosition.getMmsi(), zone.getName(), currentPosition.getSpeedOverGround(), speedLimit);
+                                    sendNotification(msg, zone, currentPosition, constraint);
+                                }
+                            } catch (NumberFormatException e) {
+                                log.warn("ZONE CHECK: Invalid speed limit value '{}' for zone '{}'", constraint.getValue(), zone.getName());
+                            }
+                        }
+                        break;
+
+                    case FORBIDDEN_SHIP_TYPE:
+                        if (isCurrentlyInZone && shipType != null) {
+                            if (shipType.getValue().equalsIgnoreCase(constraint.getValue())) {
+                                msg = String.format("Forbidden ship type ('%s') detected in zone '%s'. Ship: %s",
+                                        shipType.getValue(), zone.getName(), currentPosition.getMmsi());
+                                sendNotification(msg, zone, currentPosition, constraint);
+                            }
+                        }
+                        break;
+
+                    case UNWANTED_NAV_STATUS:
+                        if (isCurrentlyInZone && currentPosition.getNavigationalStatus() != null) {
+                            try {
+                                int unwantedStatus = Integer.parseInt(constraint.getValue());
+                                if (currentPosition.getNavigationalStatus() == unwantedStatus) {
+                                    msg = String.format("Ship %s with unwanted status code (%d) detected in zone '%s'.",
+                                            currentPosition.getMmsi(), unwantedStatus, zone.getName());
+                                    sendNotification(msg, zone, currentPosition, constraint);
+                                }
+                            } catch (NumberFormatException e) {
+                                log.warn("ZONE CHECK: Invalid NavStatus value '{}' for zone '{}'", constraint.getValue(), zone.getName());
+                            }
+                        }
+                        break;
+                }
             }
         }
     }
@@ -189,11 +225,20 @@ public class KafkaConsumerService {
         return (R * c) <= zone.getRadiusInMeters();
     }
 
-    private void sendNotification(String message, ZoneOfInterest violatedZone) {
+    private void sendNotification(String message, ZoneOfInterest violatedZone, AisData shipData, ZoneConstraint violatedConstraint) {
         UserEntity user = violatedZone.getUser();
         if (user != null && user.getEmail() != null) {
-            System.out.println("NOTIFICATION -> To " + user.getEmail() + ": " + message);
-            NotificationDTO notification = new NotificationDTO(Instant.now(), message, violatedZone.getId(), violatedZone.getName());
+            log.info("NOTIFICATION -> To {}: {}", user.getEmail(), message);
+            NotificationDTO notification = NotificationDTO.builder()
+                    .timestamp(Instant.now())
+                    .message(message)
+                    .zoneId(violatedZone.getId())
+                    .zoneName(violatedZone.getName())
+                    .violationType(violatedConstraint.getType())
+                    .mmsi(shipData.getMmsi())
+                    .latitude(shipData.getLatitude())
+                    .longitude(shipData.getLongitude())
+                    .build();
             messagingTemplate.convertAndSendToUser(user.getEmail(), "/queue/notifications", notification);
         }
     }

@@ -1,22 +1,29 @@
 package com.MarineTrafficClone.SeaWatch.service;
 
+import com.MarineTrafficClone.SeaWatch.dto.ZoneOfInterestDTO;
 import com.MarineTrafficClone.SeaWatch.model.UserEntity;
+import com.MarineTrafficClone.SeaWatch.model.ZoneConstraint;
 import com.MarineTrafficClone.SeaWatch.model.ZoneOfInterest;
-import com.MarineTrafficClone.SeaWatch.model.UserEntity;
 import com.MarineTrafficClone.SeaWatch.repository.ZoneOfInterestRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class ZoneOfInterestService {
 
+    private final ZoneOfInterestRepository zoneRepository;
+    private final ZoneOfInterestCacheService zoneCacheService;
+
     @Autowired
-    private ZoneOfInterestRepository zoneRepository;
-    @Autowired
-    private ZoneOfInterestCacheService zoneCacheService; // To keep the cache in sync
+    public ZoneOfInterestService(ZoneOfInterestRepository zoneRepository,  ZoneOfInterestCacheService zoneCacheService) {
+        this.zoneRepository = zoneRepository;
+        this.zoneCacheService = zoneCacheService;
+    }
 
     @Transactional(readOnly = true)
     public Optional<ZoneOfInterest> getZoneForUser(Long userId) {
@@ -24,27 +31,33 @@ public class ZoneOfInterestService {
     }
 
     @Transactional
-    public ZoneOfInterest createOrUpdateZone(ZoneOfInterest newZoneData, UserEntity currentUser) {
-        // Find the user's existing zone, if there is one
+    public ZoneOfInterest createOrUpdateZone(ZoneOfInterestDTO zoneDTO, UserEntity currentUser) {
         ZoneOfInterest zone = zoneRepository.findByUserId(currentUser.getId())
                 .orElseGet(() -> {
-                    // If no zone exists, create a new one and link it to the user
-                    System.out.println("Creating new zone for user: " + currentUser.getEmail());
                     ZoneOfInterest newZone = new ZoneOfInterest();
                     newZone.setUser(currentUser);
                     return newZone;
                 });
 
-        // Update the zone's properties with the new data from the request
-        zone.setName(newZoneData.getName());
-        zone.setCenterLatitude(newZoneData.getCenterLatitude());
-        zone.setCenterLongitude(newZoneData.getCenterLongitude());
-        zone.setRadiusInMeters(newZoneData.getRadiusInMeters());
-        zone.setConstraintType(newZoneData.getConstraintType());
-        zone.setConstraintValue(newZoneData.getConstraintValue());
+        // Ενημέρωση των βασικών πεδίων της ζώνης
+        zone.setName(zoneDTO.getName());
+        zone.setCenterLatitude(zoneDTO.getCenterLatitude());
+        zone.setCenterLongitude(zoneDTO.getCenterLongitude());
+        zone.setRadiusInMeters(zoneDTO.getRadiusInMeters());
+
+        // Ενημέρωση της λίστας των περιορισμών
+        List<ZoneConstraint> newConstraints = zoneDTO.getConstraints().stream()
+                .map(dto -> {
+                    ZoneConstraint constraint = new ZoneConstraint();
+                    constraint.setType(dto.getType());
+                    constraint.setValue(dto.getValue());
+                    return constraint;
+                }).collect(Collectors.toList());
+
+        zone.setConstraints(newConstraints);
 
         ZoneOfInterest savedZone = zoneRepository.save(zone);
-        zoneCacheService.addOrUpdateZone(savedZone); // Update the cache
+        zoneCacheService.addOrUpdateZone(savedZone);
         return savedZone;
     }
 
