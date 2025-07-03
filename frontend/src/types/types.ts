@@ -1,14 +1,13 @@
-export type Vessel = {
-  id: number;
+export interface Vessel {
   mmsi: string;
-  navigationalStatus: number;
-  rateOfTurn: number;
   speedOverGround: number;
   courseOverGround: number;
-  trueHeading: number;
   longitude: number;
   latitude: number;
   timestampEpoch: number;
-};
+  trueHeading: number;
+  shiptype: string;
+  navigationalStatus?: number; // Add this if you need it for status determination
+}
 
 export type FilterValue = string | number[];

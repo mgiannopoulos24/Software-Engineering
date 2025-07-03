@@ -449,9 +449,9 @@ const UserPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="relative flex h-screen w-screen flex-col">
+    <div className="flex h-screen w-screen flex-col">
       {/* Map Container */}
-      <div id="map" ref={mapRef} className="h-full w-full"></div>
+      <div id="map" ref={mapRef} className="h-screen w-full"></div>
 
       {/* Coordinates Display */}
       <div

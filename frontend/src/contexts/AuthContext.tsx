@@ -53,7 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const data = await response.json();
-      
+
       // Store token if provided
       if (data.token) {
         localStorage.setItem('token', data.token);
@@ -63,7 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userProfile: UserProfile = {
         id: data.id || data.user?.id,
         email: email,
-        role: data.role || data.user?.role
+        role: data.role || data.user?.role,
       };
 
       setCurrentUser(userProfile);
@@ -92,7 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const data = await response.json();
-      
+
       // Store token if provided
       if (data.token) {
         localStorage.setItem('token', data.token);
@@ -102,7 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userProfile: UserProfile = {
         id: data.id || data.user?.id,
         email: email,
-        role: data.role || data.user?.role
+        role: data.role || data.user?.role,
       };
 
       setCurrentUser(userProfile);
@@ -148,7 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Token exists but no user data, clear token
         localStorage.removeItem('token');
       }
-      
+
       setLoading(false);
     };
 

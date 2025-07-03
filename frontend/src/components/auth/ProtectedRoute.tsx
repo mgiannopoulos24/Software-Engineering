@@ -6,7 +6,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 
 type ProtectedRouteProps = {
   children: React.ReactNode;
-  allowedRoles: string[]; 
+  allowedRoles: string[];
 };
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {

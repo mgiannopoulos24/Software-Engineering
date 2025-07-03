@@ -47,7 +47,7 @@ const routes: RouteConfig[] = [
     element: <SavedVessels />,
     protected: true,
     roles: ['registered'],
-  }
+  },
 ];
 
 export default routes;

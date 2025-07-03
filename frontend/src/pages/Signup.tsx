@@ -1,8 +1,8 @@
 import boatLogo from '../assets/images/boat.png';
+import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 
 const Signup: React.FC = () => {
   const [email, setEmail] = useState<string>('');
@@ -20,9 +20,7 @@ const Signup: React.FC = () => {
     setIsError(false);
 
     try {
-
       const { role } = await signup(email, password);
-
 
       if (role === 'registered') {
         navigate('/user');
@@ -34,8 +32,7 @@ const Signup: React.FC = () => {
         setTimeout(() => navigate('/login'), 2000);
       }
     } catch (error: any) {
-      const errorMessage =
-        error.response?.data?.message || 'An error occurred. Please try again.';
+      const errorMessage = error.response?.data?.message || 'An error occurred. Please try again.';
       setToastMessage(errorMessage);
       setIsError(true);
       setShowToast(true);
