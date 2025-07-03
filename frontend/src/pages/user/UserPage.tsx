@@ -208,19 +208,30 @@ const UserPage: React.FC = () => {
 
       // Add popup with vessel information
       marker.bindPopup(`
-        <div style="font-family: system-ui, -apple-system, sans-serif; min-width: 200px;">
-          <h4 style="margin: 0 0 8px 0; color: #1f2937; display: flex; items-center; gap: 8px;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="3,11 22,2 13,21 11,13 3,11"></polygon>
-            </svg>
-            ${vessel.name}
-          </h4>
-          <div style="font-size: 12px; line-height: 1.4; color: #374151;">
-            <div style="margin-bottom: 4px;"><strong>Type:</strong> ${vessel.type.charAt(0).toUpperCase() + vessel.type.slice(1)}</div>
-            <div style="margin-bottom: 4px;"><strong>Status:</strong> ${vessel.status.charAt(0).toUpperCase() + vessel.status.slice(1)}</div>
-            <div style="margin-bottom: 4px;"><strong>Speed:</strong> ${vessel.speed} knots</div>
-            <div style="margin-bottom: 4px;"><strong>Heading:</strong> ${vessel.heading}°</div>
-            <div><strong>Destination:</strong> ${vessel.destination}</div>
+        <div class="min-w-[240px] rounded-lg border bg-card text-card-foreground font-sans shadow-md">
+          <div class="flex flex-col space-y-1.5 p-4">
+            <div class="flex items-center space-x-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 text-muted-foreground">
+                <polygon points="3,11 22,2 13,21 11,13 3,11"></polygon>
+              </svg>
+              <h3 class="text-lg font-semibold leading-none tracking-tight">${vessel.name}</h3>
+            </div>
+            <p class="text-sm text-muted-foreground">${vessel.type.charAt(0).toUpperCase() + vessel.type.slice(1)} Ship</p>
+          </div>
+          <div class="p-4 pt-0">
+            <div class="grid grid-cols-[auto,1fr] gap-x-4 gap-y-2 text-sm">
+              <strong class="font-medium text-muted-foreground">Status</strong>
+              <span class="text-muted-foreground">${vessel.status.charAt(0).toUpperCase() + vessel.status.slice(1)}</span>
+
+              <strong class="font-medium text-muted-foreground">Speed</strong>
+              <span class="text-muted-foreground">${vessel.speed} knots</span>
+
+              <strong class="font-medium text-muted-foreground">Heading</strong>
+              <span class="text-muted-foreground">${vessel.heading}°</span>
+
+              <strong class="font-medium text-muted-foreground">Destination</strong>
+              <span class="text-muted-foreground">${vessel.destination}</span>
+            </div>
           </div>
         </div>
       `);
@@ -449,177 +460,178 @@ const UserPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex h-screen w-screen flex-col">
-      {/* Map Container */}
-      <div id="map" ref={mapRef} className="h-screen w-full"></div>
+    <div className="flex w-screen">
+      <div className="relative w-full flex-1">
+        <div id="map" ref={mapRef} className="h-[89vh] w-full"></div>
 
-      {/* Coordinates Display */}
-      <div
-        id="coordinates"
-        className="absolute bottom-2.5 left-1/2 z-[999] -translate-x-1/2 transform overflow-hidden whitespace-nowrap rounded border border-white/30 bg-black/60 px-2.5 py-0.5 text-center text-xs font-medium text-white shadow-md"
-      >
-        {coordinates}
-      </div>
-
-      {/* Critical Section Mode Indicator - Center */}
-      {isCreatingCriticalSection && (
-        <div className="absolute left-1/2 top-4 z-[999] -translate-x-1/2 transform text-center">
-          <div className="rounded-full bg-red-600 px-4 py-2 text-white shadow-lg">
-            {criticalSections.length >= MAX_CRITICAL_SECTIONS ? (
-              <>Maximum limit reached</>
-            ) : (
-              <>Click on the map to mark a critical section</>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Critical Sections Counter and Done Button - Top Right */}
-      <div className="absolute right-6 top-4 z-[999] justify-center text-right">
-        <div className="rounded-md bg-black/80 px-3 py-2 text-sm text-white shadow-lg">
-          Critical Sections: {criticalSections.length} / {MAX_CRITICAL_SECTIONS}
-        </div>
-
-        {isCreatingCriticalSection && (
-          <button
-            onClick={() => {
-              if (criticalSectionCleanupRef.current) {
-                criticalSectionCleanupRef.current();
-                criticalSectionCleanupRef.current = null;
-              }
-              setIsCreatingCriticalSection(false);
-
-              toast({
-                title: 'Critical Section Mode Disabled',
-                description: 'You can now interact with the map normally',
-                className: 'z-[999]',
-              });
-            }}
-            className="mt-2 rounded-md bg-red-600 px-3 py-2 text-sm text-white shadow-lg hover:bg-red-700"
-          >
-            Done
-          </button>
-        )}
-      </div>
-
-      {/* Filters Button */}
-      <div className="absolute bottom-4 left-4 z-[999]">
-        <Button
-          onClick={toggleFilters}
-          className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
+        {/* Coordinates Display */}
+        <div
+          id="coordinates"
+          className="w-240 absolute bottom-2.5 left-1/2 z-[999] -translate-x-1/2 transform whitespace-nowrap rounded border border-white/30 bg-black/60 px-2.5 text-center text-xs font-medium text-white shadow-md"
         >
-          <span>Filters</span>
-          <Settings2 size={18} />
-        </Button>
-      </div>
+          {coordinates}
+        </div>
 
-      {/* Filters Panel */}
-      {isFiltersOpen && (
-        <div className="absolute bottom-16 left-4 z-[999] w-80 rounded-lg border bg-card p-6 shadow-xl">
-          <h5 className="mb-4 text-lg font-semibold">Map Filters</h5>
-
-          {/* Vessel Type Filter */}
-          <div className="mb-4 space-y-2">
-            <Label htmlFor="vesselType">Type</Label>
-            <Select
-              value={filters.vesselType}
-              onValueChange={(value) => handleFilterChange('vesselType', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All Types" />
-              </SelectTrigger>
-              <SelectContent className="z-[999]">
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="cargo">Cargo</SelectItem>
-                <SelectItem value="passenger">Passenger</SelectItem>
-                <SelectItem value="tanker">Tanker</SelectItem>
-                <SelectItem value="fishing">Fishing</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Capacity Filter */}
-          <div className="mb-4 space-y-3">
-            <Label>Capacity</Label>
-            <div className="space-y-2">
-              <Slider
-                value={filters.capacity}
-                onValueChange={(value) => handleFilterChange('capacity', value)}
-                max={100}
-                min={0}
-                step={1}
-                className="w-full"
-              />
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>0 tons</span>
-                <span className="font-medium">{filters.capacity[0]} tons</span>
-                <span>100 tons</span>
-              </div>
+        {/* Critical Section Mode Indicator - Center */}
+        {isCreatingCriticalSection && (
+          <div className="absolute left-1/2 top-4 z-[999] -translate-x-1/2 transform text-center">
+            <div className="rounded-full bg-red-600 px-4 py-2 text-white shadow-lg">
+              {criticalSections.length >= MAX_CRITICAL_SECTIONS ? (
+                <>Maximum limit reached</>
+              ) : (
+                <>Click on the map to mark a critical section</>
+              )}
             </div>
           </div>
+        )}
 
-          {/* Vessel Status Filter */}
-          <div className="mb-4 space-y-2">
-            <Label htmlFor="vesselStatus">Current Status</Label>
-            <Select
-              value={filters.vesselStatus}
-              onValueChange={(value) => handleFilterChange('vesselStatus', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All Statuses" />
-              </SelectTrigger>
-              <SelectContent className="z-[999]">
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="underway">Underway</SelectItem>
-                <SelectItem value="anchored">Anchored</SelectItem>
-                <SelectItem value="moored">Moored</SelectItem>
-                <SelectItem value="unknown">Unknown</SelectItem>
-              </SelectContent>
-            </Select>
+        {/* Critical Sections Counter and Done Button - Top Right */}
+        <div className="absolute right-6 top-4 z-[999] justify-center text-right">
+          <div className="rounded-md bg-black/80 px-3 py-2 text-sm text-white shadow-lg">
+            Critical Sections: {criticalSections.length} / {MAX_CRITICAL_SECTIONS}
           </div>
 
-          {/* Last Position Display */}
-          <div className="mb-4">
-            <Label className="mb-2 block text-sm font-medium">Last position received</Label>
-            {selectedVessel ? (
-              <div className="rounded-md bg-muted p-3">
-                <div className="mb-2 text-xs font-medium text-foreground">
-                  {selectedVessel.name}
+          {isCreatingCriticalSection && (
+            <button
+              onClick={() => {
+                if (criticalSectionCleanupRef.current) {
+                  criticalSectionCleanupRef.current();
+                  criticalSectionCleanupRef.current = null;
+                }
+                setIsCreatingCriticalSection(false);
+
+                toast({
+                  title: 'Critical Section Mode Disabled',
+                  description: 'You can now interact with the map normally',
+                  className: 'z-[999]',
+                });
+              }}
+              className="mt-2 rounded-md bg-red-600 px-3 py-2 text-sm text-white shadow-lg hover:bg-red-700"
+            >
+              Done
+            </button>
+          )}
+        </div>
+
+        {/* Filters Button */}
+        <div className="absolute bottom-4 left-4 z-[999]">
+          <Button
+            onClick={toggleFilters}
+            className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
+          >
+            <span>Filters</span>
+            <Settings2 size={18} />
+          </Button>
+        </div>
+
+        {/* Filters Panel */}
+        {isFiltersOpen && (
+          <div className="absolute bottom-16 left-4 z-[999] w-80 rounded-lg border bg-card p-6 shadow-xl">
+            <h5 className="mb-4 text-lg font-semibold">Map Filters</h5>
+
+            {/* Vessel Type Filter */}
+            <div className="mb-4 space-y-2">
+              <Label htmlFor="vesselType">Type</Label>
+              <Select
+                value={filters.vesselType}
+                onValueChange={(value) => handleFilterChange('vesselType', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All Types" />
+                </SelectTrigger>
+                <SelectContent className="z-[999]">
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="cargo">Cargo</SelectItem>
+                  <SelectItem value="passenger">Passenger</SelectItem>
+                  <SelectItem value="tanker">Tanker</SelectItem>
+                  <SelectItem value="fishing">Fishing</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Capacity Filter */}
+            <div className="mb-4 space-y-3">
+              <Label>Capacity</Label>
+              <div className="space-y-2">
+                <Slider
+                  value={filters.capacity}
+                  onValueChange={(value) => handleFilterChange('capacity', value)}
+                  max={100}
+                  min={0}
+                  step={1}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>0 tons</span>
+                  <span className="font-medium">{filters.capacity[0]} tons</span>
+                  <span>100 tons</span>
                 </div>
-                <pre className="text-xs">
-                  {`{
+              </div>
+            </div>
+
+            {/* Vessel Status Filter */}
+            <div className="mb-4 space-y-2">
+              <Label htmlFor="vesselStatus">Current Status</Label>
+              <Select
+                value={filters.vesselStatus}
+                onValueChange={(value) => handleFilterChange('vesselStatus', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All Statuses" />
+                </SelectTrigger>
+                <SelectContent className="z-[999]">
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="underway">Underway</SelectItem>
+                  <SelectItem value="anchored">Anchored</SelectItem>
+                  <SelectItem value="moored">Moored</SelectItem>
+                  <SelectItem value="unknown">Unknown</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Last Position Display */}
+            <div className="mb-4">
+              <Label className="mb-2 block text-sm font-medium">Last position received</Label>
+              {selectedVessel ? (
+                <div className="rounded-md bg-muted p-3">
+                  <div className="mb-2 text-xs font-medium text-foreground">
+                    {selectedVessel.name}
+                  </div>
+                  <pre className="text-xs">
+                    {`{
   "latitude": ${selectedVessel.lat},
   "longitude": ${selectedVessel.lng},
   "timestamp": "2025-05-27T${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}:${new Date().getSeconds().toString().padStart(2, '0')}Z"
 }`}
-                </pre>
-              </div>
-            ) : (
-              <div className="rounded-md bg-muted p-3 text-center">
-                <div className="text-xs text-muted-foreground">
-                  Click on a vessel to view its last position
+                  </pre>
                 </div>
-              </div>
-            )}
-          </div>
+              ) : (
+                <div className="rounded-md bg-muted p-3 text-center">
+                  <div className="text-xs text-muted-foreground">
+                    Click on a vessel to view its last position
+                  </div>
+                </div>
+              )}
+            </div>
 
-          {/* Action Buttons */}
-          <div className="flex justify-between space-x-3">
-            <Button variant="outline" onClick={resetFilters} className="flex-1">
-              Reset
-            </Button>
-            <Button onClick={applyFilters} className="flex-1">
-              Apply
-            </Button>
+            {/* Action Buttons */}
+            <div className="flex justify-between space-x-3">
+              <Button variant="outline" onClick={resetFilters} className="flex-1">
+                Reset
+              </Button>
+              <Button onClick={applyFilters} className="flex-1">
+                Apply
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Click outside to close filters */}
-      {isFiltersOpen && (
-        <div className="fixed inset-0 z-[998]" onClick={() => setIsFiltersOpen(false)} />
-      )}
+        {/* Click outside to close filters */}
+        {isFiltersOpen && (
+          <div className="fixed inset-0 z-[998]" onClick={() => setIsFiltersOpen(false)} />
+        )}
+      </div>
     </div>
   );
 };
