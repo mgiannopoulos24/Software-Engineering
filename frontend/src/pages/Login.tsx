@@ -1,5 +1,5 @@
 import boatLogo from '../assets/images/boat.png';
-import axios from 'axios';
+import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -11,24 +11,26 @@ const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     try {
-      const response = await axios.post('https://localhost:8443/api/auth/login', {
-        email,
-        password,
-      });
+      const { role } = await login(email, password);
 
-      const token = response.data.token;
-      localStorage.setItem('token', token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      navigate('/admin');
+      if (role === 'admin') {
+        navigate('/admin');
+      } else if (role === 'registered') {
+        navigate('/user');
+      } else {
+        setError('Unknown role. Please contact support.');
+        setShowToast(true);
+      }
     } catch (error: any) {
       const errorMessage =
-        error.response?.data?.message || 'Login failed. Please check the console for details.';
+        error.response?.data?.message || 'Login failed. Please check your credentials.';
       setError(errorMessage);
       setShowToast(true);
       console.error('Login failed:', error);
@@ -36,7 +38,7 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="m-0 flex min-h-screen w-screen items-center justify-center bg-[#f8f9fa]">
+    <div className="flex h-[89vh] w-screen items-center justify-center bg-[#f8f9fa]">
       <div className="w-full max-w-[800px] px-4 sm:px-6 md:w-4/5 lg:w-3/4 xl:w-1/2">
         <div className="w-full rounded-[10px] bg-white p-[30px] shadow-[0_4px_10px_rgba(0,0,0,0.1)]">
           <h2 className="mb-3 text-center text-2xl font-semibold text-gray-800">Welcome back</h2>

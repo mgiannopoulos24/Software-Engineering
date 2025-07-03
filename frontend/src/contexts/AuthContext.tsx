@@ -1,13 +1,10 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-// Define the user role type to match your backend's roles.
-// Simplified to only 'admin' for now as requested.
-type UserRole = 'admin' | null;
+type UserRole = 'admin' | 'registered' | null;
 
-// Define a user profile structure based on your backend's User model.
-// Adjust the properties to match what your API returns.
 interface UserProfile {
-  username: string; // This could be email or another unique identifier
+  id: number;
+  email?: string;
   role: UserRole;
 }
 
@@ -16,6 +13,10 @@ interface AuthContextType {
   userRole: UserRole;
   loading: boolean;
   isAdmin: boolean;
+  isRegistered: boolean;
+  login: (email: string, password: string) => Promise<{ role: UserRole }>;
+  signup: (email: string, password: string) => Promise<{ role: UserRole }>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -23,6 +24,10 @@ const AuthContext = createContext<AuthContextType>({
   userRole: null,
   loading: true,
   isAdmin: false,
+  isRegistered: false,
+  login: async () => ({ role: null }),
+  signup: async () => ({ role: null }),
+  logout: () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -32,33 +37,122 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchUserSession = async () => {
-      try {
-        // This endpoint should be protected by your Spring Boot security.
-        // It returns the logged-in user's data if the session is valid.
-        // You may need to adjust the endpoint URL.
-        const response = await fetch('/api/auth/me');
+  const login = async (email: string, password: string): Promise<{ role: UserRole }> => {
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-        if (response.ok) {
-          const userData: UserProfile = await response.json();
-          setCurrentUser(userData);
-          setUserRole(userData.role);
-        } else {
-          // Handles cases where the user is not logged in or the session is invalid.
-          setCurrentUser(null);
-          setUserRole(null);
-        }
-      } catch (error) {
-        console.error('Error fetching user session:', error);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Login failed');
+      }
+
+      const data = await response.json();
+
+      // Store token if provided
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
+
+      // Create user profile from login response
+      const userProfile: UserProfile = {
+        id: data.id || data.user?.id,
+        email: email,
+        role: data.role || data.user?.role,
+      };
+
+      setCurrentUser(userProfile);
+      setUserRole(userProfile.role);
+
+      return { role: userProfile.role };
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
+  };
+
+  const signup = async (email: string, password: string): Promise<{ role: UserRole }> => {
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Registration failed');
+      }
+
+      const data = await response.json();
+
+      // Store token if provided
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
+
+      // Create user profile from login response
+      const userProfile: UserProfile = {
+        id: data.id || data.user?.id,
+        email: email,
+        role: data.role || data.user?.role,
+      };
+
+      setCurrentUser(userProfile);
+      setUserRole(userProfile.role);
+
+      return { role: userProfile.role };
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
+    }
+  };
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    setCurrentUser(null);
+    setUserRole(null);
+  };
+
+  useEffect(() => {
+    const checkExistingSession = () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
         setCurrentUser(null);
         setUserRole(null);
-      } finally {
         setLoading(false);
+        return;
       }
+
+      // Since you don't have a profile endpoint, we can't verify the token
+      // You might want to store user data in localStorage as well
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        try {
+          const userData: UserProfile = JSON.parse(storedUser);
+          setCurrentUser(userData);
+          setUserRole(userData.role);
+        } catch (error) {
+          console.error('Error parsing stored user data:', error);
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+        }
+      } else {
+        // Token exists but no user data, clear token
+        localStorage.removeItem('token');
+      }
+
+      setLoading(false);
     };
 
-    fetchUserSession();
+    checkExistingSession();
   }, []);
 
   const value = {
@@ -66,6 +160,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     userRole,
     loading,
     isAdmin: userRole === 'admin',
+    isRegistered: userRole === 'registered',
+    login,
+    signup,
+    logout,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

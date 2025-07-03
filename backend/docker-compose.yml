@@ -82,8 +82,27 @@ services:
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
     # You could look up if confluentinc/cp-kafka images have a healthcheck command
 
+  frontend:
+    build:
+      context: ../frontend
+    image: node:22
+    container_name: frontend-app
+    restart: unless-stopped
+    
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+    networks:
+      - frontend
+    command: sh -c "npm install && npm run dev"
+
 networks:
   db:
+    driver: bridge
+  frontend:
     driver: bridge
 
 volumes:
