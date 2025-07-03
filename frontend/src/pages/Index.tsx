@@ -11,6 +11,7 @@ const Index: React.FC = () => {
   const mapInstanceRef = useRef<L.Map | null>(null);
   const [coordinates, setCoordinates] = useState('Hover over the map to display coordinates');
   const vesselMarkersRef = useRef<Map<string, L.Marker>>(new Map()); // Changed to use MMSI as key
+  const stompClientRef = useRef<Client | null>(null); // Ref to hold the client instance
 
   // WebSocket connection and vessel state
   useEffect(() => {
@@ -39,60 +40,67 @@ const Index: React.FC = () => {
       map.invalidateSize();
     }
 
-    // WebSocket setup
-    // 8080 maps to 8443 in the Dockerfile
-    const stompClient = new Client({
-      webSocketFactory: () => new SockJS('https://localhost:8080/ws-ais'),
-      reconnectDelay: 5000,
-      debug: () => {},
-    });
-
-    stompClient.onConnect = () => {
-      // Subscribe to the topic where backend broadcasts vessel updates
-      stompClient.subscribe('/topic', (message) => {
-        const vessel: Vessel = JSON.parse(message.body);
-
-        // Determine vessel type and status from navigationalStatus
-        const vesselType = getVesselTypeFromData(vessel);
-        const vesselStatus = getVesselStatusFromData(vessel);
-
-        // Add or update marker
-        if (mapInstanceRef.current) {
-          let marker = vesselMarkersRef.current.get(vessel.mmsi);
-          if (marker) {
-            marker.setLatLng([vessel.latitude, vessel.longitude]);
-            marker.setIcon(getVesselIcon(vesselType, vesselStatus, vessel.trueHeading));
-          } else {
-            marker = L.marker([vessel.latitude, vessel.longitude], {
-              icon: getVesselIcon(vesselType, vesselStatus, vessel.trueHeading),
-            }).addTo(mapInstanceRef.current);
-            marker.bindPopup(`
-              <div style="font-family: system-ui, -apple-system, sans-serif; min-width: 200px;">
-                <h4 style="margin: 0 0 8px 0; color: #1f2937; display: flex; items-center; gap: 8px;">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="3,11 22,2 13,21 11,13 3,11"></polygon>
-                  </svg>
-                  Vessel ${vessel.mmsi}
-                </h4>
-                <div style="font-size: 12px; line-height: 1.4; color: #374151;">
-                  <div style="margin-bottom: 4px;"><strong>MMSI:</strong> ${vessel.mmsi}</div>
-                  <div style="margin-bottom: 4px;"><strong>Status:</strong> ${vesselStatus}</div>
-                  <div style="margin-bottom: 4px;"><strong>Speed:</strong> ${vessel.speedOverGround.toFixed(1)} knots</div>
-                  <div style="margin-bottom: 4px;"><strong>Heading:</strong> ${vessel.trueHeading !== 511 ? vessel.trueHeading + '°' : 'N/A'}</div>
-                  <div style="margin-bottom: 4px;"><strong>Course:</strong> ${vessel.courseOverGround.toFixed(1)}°</div>
-                  <div><strong>Last Updated:</strong> ${new Date(vessel.timestampEpoch).toLocaleString()}</div>
-                </div>
-              </div>
-            `);
-            vesselMarkersRef.current.set(vessel.mmsi, marker);
-          }
-        }
+    // Initialize and activate the STOMP client
+    if (!stompClientRef.current) {
+      stompClientRef.current = new Client({
+        webSocketFactory: () => new SockJS('https://localhost:8443/ws-ais'),
+        reconnectDelay: 5000,
+        debug: () => {},
       });
-    };
 
-    stompClient.activate();
+      stompClientRef.current.onConnect = () => {
+        // Subscribe to the topic where backend broadcasts vessel updates
+        stompClientRef.current?.subscribe('/topic/ais-updates', (message) => {
+          const vessel: Vessel = JSON.parse(message.body);
+
+          // Determine vessel type and status from navigationalStatus
+          const vesselType = getVesselTypeFromData(vessel);
+          const vesselStatus = getVesselStatusFromData(vessel);
+
+          // Add or update marker
+          if (mapInstanceRef.current) {
+            let marker = vesselMarkersRef.current.get(vessel.mmsi);
+            if (marker) {
+              marker.setLatLng([vessel.latitude, vessel.longitude]);
+              marker.setIcon(getVesselIcon(vesselType, vesselStatus, vessel.trueHeading));
+            } else {
+              marker = L.marker([vessel.latitude, vessel.longitude], {
+                icon: getVesselIcon(vesselType, vesselStatus, vessel.trueHeading),
+              }).addTo(mapInstanceRef.current);
+              marker.bindPopup(`
+                <div style="font-family: system-ui, -apple-system, sans-serif; min-width: 200px;">
+                  <h4 style="margin: 0 0 8px 0; color: #1f2937; display: flex; items-center; gap: 8px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="3,11 22,2 13,21 11,13 3,11"></polygon>
+                    </svg>
+                    Vessel ${vessel.mmsi}
+                  </h4>
+                  <div style="font-size: 12px; line-height: 1.4; color: #374151;">
+                    <div style="margin-bottom: 4px;"><strong>MMSI:</strong> ${vessel.mmsi}</div>
+                    <div style="margin-bottom: 4px;"><strong>Status:</strong> ${vesselStatus}</div>
+                    <div style="margin-bottom: 4px;"><strong>Speed:</strong> ${vessel.speedOverGround.toFixed(1)} knots</div>
+                    <div style="margin-bottom: 4px;"><strong>Heading:</strong> ${vessel.trueHeading !== 511 ? vessel.trueHeading + '°' : 'N/A'}</div>
+                    <div style="margin-bottom: 4px;"><strong>Course:</strong> ${vessel.courseOverGround.toFixed(1)}°</div>
+                    <div><strong>Last Updated:</strong> ${new Date(vessel.timestampEpoch).toLocaleString()}</div>
+                  </div>
+                </div>
+              `);
+              vesselMarkersRef.current.set(vessel.mmsi, marker);
+            }
+          }
+        });
+      };
+
+      stompClientRef.current.activate();
+    }
 
     return () => {
+      // Deactivate the client on component unmount
+      if (stompClientRef.current?.active) {
+        stompClientRef.current.deactivate();
+        stompClientRef.current = null;
+      }
+
       // Cleanup markers and map
       vesselMarkersRef.current.forEach((marker) => {
         if (mapInstanceRef.current) {
@@ -105,7 +113,6 @@ const Index: React.FC = () => {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
-      stompClient.deactivate();
     };
   }, []);
 
@@ -147,9 +154,9 @@ const Index: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen w-screen flex-col">
-      <div className="relative w-full flex-1">
-        <div id="map" ref={mapRef} className="h-full w-full"></div>
+    <div className="flex w-screen">
+      <div className="h-screen w-full flex-1">
+        <div id="map" ref={mapRef} className="h-screen w-full"></div>
         <div
           id="coordinates"
           className="w-240 absolute bottom-2.5 left-1/2 z-[999] -translate-x-1/2 transform overflow-hidden whitespace-nowrap rounded border border-white/30 bg-black/60 px-2.5 py-0.5 text-center text-xs font-medium text-white shadow-md"
