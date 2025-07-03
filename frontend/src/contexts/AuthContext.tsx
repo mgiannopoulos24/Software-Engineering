@@ -66,6 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role: data.role || data.user?.role,
       };
 
+      localStorage.setItem('user', JSON.stringify(userProfile)); // Store user profile
       setCurrentUser(userProfile);
       setUserRole(userProfile.role);
 
@@ -105,6 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role: data.role || data.user?.role,
       };
 
+      localStorage.setItem('user', JSON.stringify(userProfile)); // Store user profile
       setCurrentUser(userProfile);
       setUserRole(userProfile.role);
 
@@ -117,6 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user'); // Also remove user from storage
     setCurrentUser(null);
     setUserRole(null);
   };

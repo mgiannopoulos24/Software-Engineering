@@ -21,7 +21,7 @@ const Index: React.FC = () => {
         maxBoundsViscosity: 1.0,
       }).setView([37.9, 23.0], 7);
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         maxZoom: 19,
       }).addTo(map);
 

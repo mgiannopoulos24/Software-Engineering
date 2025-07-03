@@ -1,11 +1,14 @@
+import { useAuth } from '@/contexts/AuthContext';
 import { Bookmark, Map, MapPin, Menu, Search, User, Users, X } from 'lucide-react';
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
+  const { currentUser, isAdmin, logout } = useAuth();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Check if we're on a user page
   const isUserPage = location.pathname === '/user' || location.pathname.startsWith('/user');
@@ -19,6 +22,8 @@ const Navbar = () => {
     setIsUserDropdownOpen(!isUserDropdownOpen);
   };
 
+  const homePath = currentUser ? (isAdmin ? '/admin' : '/user') : '/';
+
   return (
     <>
       {/* Navbar */}
@@ -27,7 +32,7 @@ const Navbar = () => {
           <div className="flex h-16 items-center justify-between">
             {/* Logo/Title */}
             <div className="flex-shrink-0">
-              <Link to="/" className="text-lg font-bold text-white hover:text-gray-200">
+              <Link to={homePath} className="text-lg font-bold text-white hover:text-gray-200">
                 AIS Service
               </Link>
             </div>
@@ -64,16 +69,6 @@ const Navbar = () => {
                   >
                     <Map size={18} />
                   </Link>
-                  <button
-                    onClick={() => {
-                      // Dispatch custom event to trigger critical section mode
-                      const event = new CustomEvent('toggle-critical-section-mode');
-                      document.dispatchEvent(event);
-                    }}
-                    className="flex items-center space-x-2 rounded-full bg-gray-700 p-2 text-white transition-colors hover:bg-gray-600"
-                  >
-                    <MapPin size={18} />
-                  </button>
                   {/* Show Users icon only for admin */}
                   {isAdminPage && (
                     <button className="flex items-center space-x-2 rounded-full bg-gray-700 p-2 text-white transition-colors hover:bg-gray-600">
@@ -93,7 +88,7 @@ const Navbar = () => {
                 </button>
 
                 {isUserDropdownOpen && (
-                  <div className="absolute right-0 z-[999] mt-2 w-48 rounded-md border border-gray-200 bg-white py-1 shadow-lg">
+                  <div className="absolute right-0 z-[9999] mt-2 w-48 rounded-md border border-gray-200 bg-white py-1 shadow-lg">
                     {isUserPage || isAdminPage ? (
                       // User/Admin page dropdown
                       <>
@@ -131,13 +126,16 @@ const Navbar = () => {
                           </>
                         )}
                         <hr className="my-1" />
-                        <Link
-                          to="/login"
-                          className="block px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
-                          onClick={() => setIsUserDropdownOpen(false)}
+                        <button
+                          onClick={() => {
+                            logout();
+                            setIsUserDropdownOpen(false);
+                            navigate('/login');
+                          }}
+                          className="block w-full px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100"
                         >
                           Logout
-                        </Link>
+                        </button>
                       </>
                     ) : (
                       // Default dropdown
@@ -225,17 +223,6 @@ const Navbar = () => {
                         <Map className="h-5 w-5" />
                         <span>Map</span>
                       </Link>
-                      <button
-                        onClick={() => {
-                          // Dispatch custom event to trigger critical section mode
-                          const event = new CustomEvent('toggle-critical-section-mode');
-                          window.dispatchEvent(event);
-                        }}
-                        className="flex w-full items-center space-x-3 text-left text-gray-600 transition-colors hover:text-gray-900"
-                      >
-                        <MapPin className="h-5 w-5" />
-                        <span>Locate</span>
-                      </button>
                     </div>
                   )}
 
@@ -257,13 +244,16 @@ const Navbar = () => {
                         >
                           Settings
                         </Link>
-                        <Link
-                          to="/login"
+                        <button
+                          onClick={() => {
+                            logout();
+                            setIsSheetOpen(false);
+                            navigate('/login');
+                          }}
                           className="block w-full rounded-md border border-red-600 px-4 py-2 text-center text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
-                          onClick={() => setIsSheetOpen(false)}
                         >
                           Logout
-                        </Link>
+                        </button>
                       </>
                     ) : (
                       <Link

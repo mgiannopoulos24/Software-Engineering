@@ -36,7 +36,7 @@ const SavedVessels: React.FC = () => {
   ];
 
   return (
-    <div className="flex h-screen w-screen flex-col bg-gray-50 px-4 py-8 sm:px-6 lg:px-8">
+    <div className="flex h-[89vh] w-screen flex-col bg-gray-50 px-4 py-8 sm:px-6 lg:px-8">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Saved Vessels</h1>
