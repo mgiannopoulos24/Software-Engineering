@@ -1,6 +1,7 @@
 package com.MarineTrafficClone.SeaWatch.controller;
 
 import com.MarineTrafficClone.SeaWatch.dto.ShipDetailsDTO;
+import com.MarineTrafficClone.SeaWatch.dto.TrackPointDTO;
 import com.MarineTrafficClone.SeaWatch.model.AisData;
 import com.MarineTrafficClone.SeaWatch.service.AisDataService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,13 +38,13 @@ public class AisDataController {
     }
 
     /**
-     * GET /ais_data/track/{mmsi}
+     * GET /api/ship-data/track/{mmsi}
      * Επιστρέφει την πορεία ενός πλοίου για τις τελευταίες 12 ώρες.
      * @param mmsi Το MMSI του πλοίου που λαμβάνεται από το path.
-     * @return Μια λίστα με τα δεδομένα AIS της πορείας.
+     * @return Μια λίστα από σημεία της πορείας (TrackPointDTO).
      */
     @GetMapping("/track/{mmsi}")
-    public List<AisData> getShipTrack(@PathVariable String mmsi) {
+    public List<TrackPointDTO> getShipTrack(@PathVariable String mmsi) {
         return aisDataService.getShipTrack(mmsi);
     }
 
@@ -57,5 +58,17 @@ public class AisDataController {
     public ResponseEntity<ShipDetailsDTO> getShipDetails(@PathVariable Long mmsi) {
         ShipDetailsDTO details = aisDataService.getShipDetails(mmsi);
         return ResponseEntity.ok(details);
+    }
+
+    /**
+     * GET /api/ship-data/active-ships
+     * Επιστρέφει μια πλήρη "φωτογραφία" της τελευταίας γνωστής κατάστασης
+     * όλων των πλοίων στο σύστημα.
+     * @return Μια λίστα με DTOs που περιέχουν τις λεπτομέρειες κάθε πλοίου.
+     */
+    @GetMapping("/active-ships")
+    public ResponseEntity<List<ShipDetailsDTO>> getAllActiveShips() {
+        List<ShipDetailsDTO> allShipsDetails = aisDataService.getAllActiveShipsDetails();
+        return ResponseEntity.ok(allShipsDetails);
     }
 }

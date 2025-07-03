@@ -1,13 +1,14 @@
-package com.MarineTrafficClone.SeaWatch.service; // Your package
+package com.MarineTrafficClone.SeaWatch.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.MarineTrafficClone.SeaWatch.model.AisData; // Your model
+import com.MarineTrafficClone.SeaWatch.model.AisData;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy; // For shutting down the executor
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -36,6 +37,8 @@ public class CsvDataLoaderService implements CommandLineRunner {
     private final ExecutorService simulationExecutor = Executors.newSingleThreadExecutor();
     private volatile boolean shutdownSignal = false; // To signal shutdown
 
+    private static final Logger log = LoggerFactory.getLogger(CsvDataLoaderService.class);
+
     @Autowired
     public CsvDataLoaderService(KafkaProducerService kafkaProducerService, ObjectMapper objectMapper) {
         this.kafkaProducerService = kafkaProducerService;
@@ -43,7 +46,7 @@ public class CsvDataLoaderService implements CommandLineRunner {
     }
 
     @Override
-    public void run(String... args) throws Exception {
+    public void run(String... args) {
         System.out.println("SIMULATION (Rate-Limited Stream): Submitting CSV processing task.");
         simulationExecutor.submit(this::simulateRealTimeDataFlowFromSortedCsv);
     }
@@ -67,6 +70,7 @@ public class CsvDataLoaderService implements CommandLineRunner {
         }
     }
 
+    @SuppressWarnings("BusyWait")
     private void simulateRealTimeDataFlowFromSortedCsv() {
         String filePath = "AIS-Data/nari_dynamic.csv";
         System.out.println("SIMULATION (Rate-Limited Stream): Thread started. Processing CSV: " + filePath);
@@ -102,7 +106,7 @@ public class CsvDataLoaderService implements CommandLineRunner {
                         currentRecord.setRateOfTurn(parseDoubleOrNull(values[2].trim()));
                         currentRecord.setSpeedOverGround(Double.parseDouble(values[3].trim()));
                         currentRecord.setCourseOverGround(Double.parseDouble(values[4].trim()));
-                        currentRecord.setTrueHeading(parseIntegerOrSpecial(values[5].trim(), 511));
+                        currentRecord.setTrueHeading(parseTrueHeading(values[5].trim()));
                         currentRecord.setLongitude(Double.parseDouble(values[6].trim()));
                         currentRecord.setLatitude(Double.parseDouble(values[7].trim()));
                         currentRecord.setTimestampEpoch(Long.parseLong(values[8].trim()));
@@ -133,22 +137,21 @@ public class CsvDataLoaderService implements CommandLineRunner {
                         }
 
                     } catch (InterruptedException e) {
-                        System.err.println("SIMULATION (Rate-Limited Stream): Thread interrupted. Stopping simulation.");
-                        Thread.currentThread().interrupt(); // Preserve interrupt status
-                        break; // Exit loop
+                        log.warn("SIMULATION: Thread interrupted. Stopping simulation."); // Χρησιμοποιούμε warn αντί για error
+                        Thread.currentThread().interrupt();
+                        break;
                     } catch (NumberFormatException e) {
-                        System.err.println("SIMULATION (Rate-Limited Stream): CSV Parse Error (NumberFormat) on line: " + line + " | " + e.getMessage());
+                        log.error("SIMULATION: CSV Parse Error (NumberFormat) on line: {}", line, e); // Στέλνουμε και το exception για πλήρες stack trace στο log
                     } catch (Exception e) {
-                        System.err.println("SIMULATION (Rate-Limited Stream): Error processing line or sending to Kafka: " + line + " | " + e.getMessage());
+                        log.error("SIMULATION: Error processing line or sending to Kafka: {}", line, e);
                     }
                 } else {
                     System.err.println("SIMULATION (Rate-Limited Stream): Malformed CSV line (expected 9 columns): " + line);
                 }
             }
         } catch (Exception e) {
-            if (!shutdownSignal) { // Don't log as critical if it was a graceful shutdown request
-                System.err.println("SIMULATION (Rate-Limited Stream): Critical error reading CSV file '" + filePath + "': " + e.getMessage());
-                e.printStackTrace();
+            if (!shutdownSignal) {
+                log.error("SIMULATION: Critical error reading CSV file '{}'", filePath, e);
             }
         } finally {
             if (shutdownSignal) {
@@ -175,15 +178,16 @@ public class CsvDataLoaderService implements CommandLineRunner {
     }
 
     // Helper method to parse Integer, returning a default value if parsing fails or value is "NA"
-    private Integer parseIntegerOrSpecial(String value, Integer defaultValueForSpecial) {
+    private Integer parseTrueHeading(String value) {
+        final int UNAVAILABLE_HEADING = 511;
         if (value == null || value.trim().isEmpty() || value.equalsIgnoreCase("NA")) {
-            return defaultValueForSpecial;
+            return UNAVAILABLE_HEADING;
         }
         try {
             return Integer.parseInt(value.trim());
         } catch (NumberFormatException e) {
-            System.err.println("SIMULATION (Sorted CSV): Could not parse Integer: '" + value + "', using default: " + defaultValueForSpecial);
-            return defaultValueForSpecial;
+            log.warn("SIMULATION: Could not parse TrueHeading: '{}', using default: {}", value, UNAVAILABLE_HEADING);
+            return UNAVAILABLE_HEADING;
         }
     }
 }
