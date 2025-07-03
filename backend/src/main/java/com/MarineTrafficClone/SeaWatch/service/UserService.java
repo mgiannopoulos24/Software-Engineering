@@ -61,6 +61,8 @@ public class UserService {
         userDTO.setId(user.getId());
         userDTO.setEmail(user.getEmail());
         userDTO.setRole(user.getRole());
+        userDTO.setHasActiveInterestZone(user.getZoneOfInterest() != null);
+        userDTO.setHasActiveCollisionZone(user.getCollisionZone() != null);
         return userDTO;
     }
 }

@@ -106,6 +106,7 @@ public class KafkaConsumerService {
         updateDTO.setMmsi(aisData.getMmsi());
         updateDTO.setSpeedOverGround(aisData.getSpeedOverGround());
         updateDTO.setCourseOverGround(aisData.getCourseOverGround());
+        updateDTO.setNavigationalStatus(aisData.getNavigationalStatus());
         updateDTO.setTrueHeading(aisData.getTrueHeading());
         updateDTO.setLongitude(aisData.getLongitude());
         updateDTO.setLatitude(aisData.getLatitude());

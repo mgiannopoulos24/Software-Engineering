@@ -12,12 +12,12 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/ship-data")
-public class AisDataController {
+public class ShipDataController {
 
     private final AisDataService aisDataService;
 
     @Autowired
-    public AisDataController(AisDataService aisDataService) {
+    public ShipDataController(AisDataService aisDataService) {
         this.aisDataService = aisDataService;
     }
 
