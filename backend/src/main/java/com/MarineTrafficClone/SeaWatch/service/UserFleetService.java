@@ -1,6 +1,7 @@
 package com.MarineTrafficClone.SeaWatch.service;
 
 import com.MarineTrafficClone.SeaWatch.dto.ShipDetailsDTO;
+import com.MarineTrafficClone.SeaWatch.exception.ResourceNotFoundException;
 import com.MarineTrafficClone.SeaWatch.model.AisData;
 import com.MarineTrafficClone.SeaWatch.model.Ship;
 import com.MarineTrafficClone.SeaWatch.model.UserEntity;
@@ -35,7 +36,7 @@ public class UserFleetService {
     public Set<ShipDetailsDTO> getWatchedShipsDetails(Long userId) {
         // 1. Βρες τον χρήστη και τον στόλο του (Set<Ship>)
         UserEntity userEntity = userEntityRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
         Set<Ship> fleetShips = userEntity.getFleet();
         if (fleetShips.isEmpty()) {
@@ -80,9 +81,9 @@ public class UserFleetService {
     @Transactional
     public void addShipToUserFleet(Long userId, Long shipMmsi) {
         UserEntity userEntity = userEntityRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         Ship ship = shipRepository.findByMmsi(shipMmsi)
-                .orElseThrow(() -> new RuntimeException("Ship not found with MMSI: " + shipMmsi));
+                .orElseThrow(() -> new ResourceNotFoundException("Ship not found with MMSI: " + shipMmsi));
 
         userEntity.addShipToFleet(ship);
         userEntityRepository.save(userEntity);
@@ -91,9 +92,9 @@ public class UserFleetService {
     @Transactional
     public void removeShipFromUserFleet(Long userId, Long shipMmsi) {
         UserEntity userEntity = userEntityRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         Ship ship = shipRepository.findByMmsi(shipMmsi)
-                .orElseThrow(() -> new RuntimeException("Ship not found with MMSI: " + shipMmsi));
+                .orElseThrow(() -> new ResourceNotFoundException("Ship not found with MMSI: " + shipMmsi));
 
         userEntity.removeShipFromFleet(ship);
         userEntityRepository.save(userEntity);

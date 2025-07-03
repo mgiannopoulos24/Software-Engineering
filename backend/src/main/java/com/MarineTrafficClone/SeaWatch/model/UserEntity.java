@@ -41,13 +41,28 @@ public class UserEntity implements UserDetails {
     private RoleType role;
 
     // This represents the user's single "fleet"
-    @ManyToMany(fetch = FetchType.LAZY) // EAGER can cause performance issues if fleets are large
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "fleet",
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "ship_id")
     )
     private Set<Ship> fleet = new HashSet<>();
+
+    // One-to-One relationship for the single zone of interest that can be defined by the user
+    @OneToOne(
+            mappedBy = "user",         // The relationship is "owned" by the 'user' field in the ZoneOfInterest entity
+            cascade = CascadeType.ALL, // If a User is deleted, their Zone is also deleted
+            orphanRemoval = true       // To delete from db when set to null
+    )
+    private ZoneOfInterest zoneOfInterest;
+
+    @OneToOne(
+            mappedBy = "user",          // The relationship is "owned" by the 'user' field in the ZoneOfInterest entity
+            cascade = CascadeType.ALL,  // If a User is deleted, their Zone is also deleted
+            orphanRemoval = true        // To delete from db when set to null
+    )
+    private CollisionZone collisionZone;
 
     /* ------------------------- METHODS ------------------------- */
 
