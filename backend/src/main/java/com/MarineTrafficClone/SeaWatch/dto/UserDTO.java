@@ -14,4 +14,6 @@ public class UserDTO {
     private Long id;
     private String email;
     private RoleType role;
+    private boolean hasActiveInterestZone;
+    private boolean hasActiveCollisionZone;
 }
