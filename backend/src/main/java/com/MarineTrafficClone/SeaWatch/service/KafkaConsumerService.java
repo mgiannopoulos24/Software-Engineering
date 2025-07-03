@@ -1,5 +1,6 @@
 package com.MarineTrafficClone.SeaWatch.service;
 
+import com.MarineTrafficClone.SeaWatch.dto.CollisionNotificationDTO;
 import com.MarineTrafficClone.SeaWatch.dto.NotificationDTO;
 import com.MarineTrafficClone.SeaWatch.dto.RealTimeShipUpdateDTO;
 import com.MarineTrafficClone.SeaWatch.enumeration.ShipType;
@@ -18,8 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class KafkaConsumerService {
@@ -32,6 +32,12 @@ public class KafkaConsumerService {
     private final SimpMessagingTemplate messagingTemplate;
     private final ShipRepository shipRepository;
     private final ZoneOfInterestCacheService zoneCache;
+    private final CollisionZoneCacheService collisionZoneCache;
+    private final ShipPositionCacheService positionCache;
+
+    // Ένα Set για να παρακολουθούμε ποια ζευγάρια πλοίων έχουν ήδη ειδοποιηθεί για σύγκρουση
+    // Αυτό αποτρέπει την αποστολή εκατοντάδων ειδοποιήσεων για το ίδιο επικείμενο γεγονός.
+    private final Set<String> notifiedCollisionPairs = new HashSet<>();
 
     @Autowired
     public KafkaConsumerService(AisDataRepository aisDataRepository,
@@ -39,13 +45,17 @@ public class KafkaConsumerService {
                                 ObjectMapper objectMapper,
                                 UserEntityRepository userEntityRepository,
                                 SimpMessagingTemplate messagingTemplate,
-                                ZoneOfInterestCacheService zoneCache) {
+                                ZoneOfInterestCacheService zoneCache,
+                                CollisionZoneCacheService collisionZoneCache,
+                                ShipPositionCacheService positionCache) {
         this.aisDataRepository = aisDataRepository;
         this.userEntityRepository = userEntityRepository;
         this.shipRepository = shipRepository;
         this.objectMapper = objectMapper;
         this.messagingTemplate = messagingTemplate;
         this.zoneCache = zoneCache;
+        this.collisionZoneCache = collisionZoneCache;
+        this.positionCache = positionCache;
     }
 
     @KafkaListener(topics = KafkaProducerService.AIS_TOPIC_NAME, groupId = "${spring.kafka.consumer.group-id}")
@@ -62,6 +72,8 @@ public class KafkaConsumerService {
             Optional<AisData> previousAisDataOpt = aisDataRepository.findTopByMmsiOrderByTimestampEpochDesc(aisData.getMmsi());
             aisDataRepository.save(aisData);
 
+            positionCache.updatePosition(aisData);
+
             Long mmsiLong = Long.parseLong(aisData.getMmsi());
 
             // Βρες το αντίστοιχο 'Ship' από τη βάση για να πάρεις τα στατικά του στοιχεία.
@@ -76,6 +88,9 @@ public class KafkaConsumerService {
 
             // --- 2. Έλεγχος παραβιάσεων ζωνών ενδιαφέροντος ---
             checkAllZoneViolations(aisData, previousAisDataOpt, shipType);
+
+            // --- 3. Έλεγχος παραβιάσεων ζωνών συγκρούσεων ---
+            checkCollisions(aisData);
 
         } catch (NumberFormatException e) {
             log.warn("KAFKA CONSUMER: Could not parse MMSI to Long. Message: {}", messageJson, e);
@@ -155,7 +170,7 @@ public class KafkaConsumerService {
                                     sendNotification(msg, zone, currentPosition, constraint);
                                 }
                             } catch (NumberFormatException e) {
-                                log.warn("ZONE CHECK: Invalid speed limit value '{}' for zone '{}'", constraint.getValue(), zone.getName());
+                                log.warn("ZONE CHECK: Invalid speed limit above value '{}' for zone '{}'", constraint.getValue(), zone.getName());
                             }
                         }
                         break;
@@ -170,7 +185,7 @@ public class KafkaConsumerService {
                                     sendNotification(msg, zone, currentPosition, constraint);
                                 }
                             } catch (NumberFormatException e) {
-                                log.warn("ZONE CHECK: Invalid speed limit value '{}' for zone '{}'", constraint.getValue(), zone.getName());
+                                log.warn("ZONE CHECK: Invalid speed limit below value '{}' for zone '{}'", constraint.getValue(), zone.getName());
                             }
                         }
                         break;
@@ -240,6 +255,159 @@ public class KafkaConsumerService {
                     .longitude(shipData.getLongitude())
                     .build();
             messagingTemplate.convertAndSendToUser(user.getEmail(), "/queue/notifications", notification);
+        }
+    }
+
+    // ------------------ Μέθοδοι για τη Λογική των Συγκρούσεων ---------------------------------
+
+    private void checkCollisions(AisData currentShipData) {
+        // Βρες όλες τις ενεργές ζώνες σύγκρουσης
+        List<CollisionZone> zones = collisionZoneCache.getAllActiveZones();
+        if (zones.isEmpty() || currentShipData.getLatitude() == null) {
+            return;
+        }
+
+        // Βρες την τελευταία θέση ΟΛΩΝ των πλοίων από την cache
+        Collection<AisData> allOtherShips = positionCache.getAllLatestPositions();
+
+        for (CollisionZone zone : zones) {
+            // Έλεγξε αν το τρέχον πλοίο είναι μέσα στη ζώνη
+            if (isInsideCollisionZone(currentShipData, zone)) {
+                // Αν είναι μέσα, σύγκρινέ το με ΟΛΑ τα άλλα πλοία
+                for (AisData otherShipData : allOtherShips) {
+                    // Αγνοούμε τον εαυτό του και πλοία χωρίς ταχύτητα/πορεία
+                    if (!shouldCompareShips(currentShipData, otherShipData)) {
+                        continue;
+                    }
+
+                    // Έλεγξε αν και το άλλο πλοίο είναι μέσα στην ΙΔΙΑ ζώνη
+                    if (isInsideCollisionZone(otherShipData, zone)) {
+                        // Αν είναι και τα δύο μέσα, έλεγξε για πιθανή σύγκρουση
+                        if (predictCollision(currentShipData, otherShipData)) {
+                            // Δημιουργούμε ένα μοναδικό κλειδί για το ζευγάρι για να μην στέλνουμε διπλές ειδοποιήσεις
+                            String pairKey = createCollisionPairKey(currentShipData.getMmsi(), otherShipData.getMmsi());
+                            if (!notifiedCollisionPairs.contains(pairKey)) {
+                                String msg = String.format("Collision Alert in zone '%s'! Ship %s and Ship %s are on a collision course.",
+                                        zone.getName(), currentShipData.getMmsi(), otherShipData.getMmsi());
+                                sendCollisionNotification(msg, zone, currentShipData, otherShipData);
+                                notifiedCollisionPairs.add(pairKey); // Σημειώνουμε ότι έχουμε ειδοποιήσει γι' αυτό το ζευγάρι
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Απλός αλγόριθμος πρόβλεψης. Σε πραγματικές συνθήκες, θα ήταν πολύ πιο σύνθετος.
+    private boolean predictCollision(AisData shipA, AisData shipB) {
+        // Ορίζουμε τα όρια μας: κίνδυνος αν θα πλησιάσουν κάτω από 500 μέτρα στα επόμενα 10 λεπτά (600 δευτ.)
+        final double DANGER_DISTANCE_METERS = 500.0;
+        final double TIME_HORIZON_SECONDS = 600.0;
+
+        // Μετατροπή ταχύτητας από κόμβους σε μέτρα/δευτερόλεπτο
+        double vA = shipA.getSpeedOverGround() * 0.514444;
+        double vB = shipB.getSpeedOverGround() * 0.514444;
+
+        // Μετατροπή πορείας από μοίρες σε radians
+        double courseA_rad = Math.toRadians(shipA.getCourseOverGround());
+        double courseB_rad = Math.toRadians(shipB.getCourseOverGround());
+
+        // Υπολογισμός συνιστωσών ταχύτητας (vx, vy) για κάθε πλοίο
+        double vAx = vA * Math.sin(courseA_rad);
+        double vAy = vA * Math.cos(courseA_rad);
+        double vBx = vB * Math.sin(courseB_rad);
+        double vBy = vB * Math.cos(courseB_rad);
+
+        // Απλοποιημένη μετατροπή συντεταγμένων σε μέτρα. Για μεγαλύτερη ακρίβεια, χρειάζεται προβολή.
+        double distanceX = (shipB.getLongitude() - shipA.getLongitude()) * 111111 * Math.cos(Math.toRadians(shipA.getLatitude()));
+        double distanceY = (shipB.getLatitude() - shipA.getLatitude()) * 111111;
+
+        // Σχετική ταχύτητα
+        double rVx = vBx - vAx;
+        double rVy = vBy - vAy;
+
+        // Υπολογισμός του χρόνου και της απόστασης στο Closest Point of Approach (CPA)
+        double dotProduct_v_d = (rVx * distanceX) + (rVy * distanceY);
+        double dotProduct_v_v = (rVx * rVx) + (rVy * rVy);
+
+        if (dotProduct_v_v == 0) return false; // Δεν έχουν σχετική ταχύτητα
+
+        double t_cpa = -dotProduct_v_d / dotProduct_v_v;
+
+        // Ελέγχουμε μόνο για μελλοντικές συγκρούσεις εντός του χρονικού μας ορίζοντα
+        if (t_cpa > 0 && t_cpa < TIME_HORIZON_SECONDS) {
+            // Απόσταση στο σημείο CPA
+            double d_cpa_squared = Math.pow(distanceX + rVx * t_cpa, 2) + Math.pow(distanceY + rVy * t_cpa, 2);
+            return Math.sqrt(d_cpa_squared) < DANGER_DISTANCE_METERS; // ΚΙΝΔΥΝΟΣ!
+        }
+
+        return false;
+    }
+
+    // --- Helper Methods for Collision Logic ---
+
+    private boolean isShipDataValidForCollisionCheck(AisData data) {
+        return data.getLatitude() != null && data.getLongitude() != null &&
+                data.getSpeedOverGround() != null && data.getCourseOverGround() != null;
+    }
+
+    private boolean shouldCompareShips(AisData shipA, AisData shipB) {
+        // Δεν συγκρίνουμε ένα πλοίο με τον εαυτό του
+        if (shipA.getMmsi().equals(shipB.getMmsi())) {
+            return false;
+        }
+        // Αγνοούμε πλοία που είναι σχεδόν σταματημένα ή δεν έχουν έγκυρα δεδομένα
+        return isShipDataValidForCollisionCheck(shipB) && shipB.getSpeedOverGround() >= 1.0;
+    }
+
+    private String createCollisionPairKey(String mmsi1, String mmsi2) {
+        // Δημιουργεί ένα σταθερό, ταξινομημένο κλειδί για ένα ζευγάρι MMSI
+        return mmsi1.compareTo(mmsi2) < 0 ? mmsi1 + "-" + mmsi2 : mmsi2 + "-" + mmsi1;
+    }
+
+    private boolean isInsideCollisionZone(AisData data, CollisionZone zone) {
+        if (data.getLatitude() == null || data.getLongitude() == null) return false;
+        final int R = 6371 * 1000;
+        double dLat = Math.toRadians(data.getLatitude() - zone.getCenterLatitude());
+        double dLon = Math.toRadians(data.getLongitude() - zone.getCenterLongitude());
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(Math.toRadians(zone.getCenterLatitude())) * Math.cos(Math.toRadians(data.getLatitude())) *
+                        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return (R * c) <= zone.getRadiusInMeters();
+    }
+
+    private void sendCollisionNotification(String message, CollisionZone zone, AisData shipA, AisData shipB) {
+        UserEntity user = zone.getUser();
+        if (user != null && user.getEmail() != null) {
+            log.info("COLLISION_ALERT -> To {}: {}", user.getEmail(), message);
+
+            // Δημιουργία των αντικειμένων ShipInfo για κάθε πλοίο
+            CollisionNotificationDTO.ShipInfo shipInfoA = CollisionNotificationDTO.ShipInfo.builder()
+                    .mmsi(shipA.getMmsi())
+                    .latitude(shipA.getLatitude())
+                    .longitude(shipA.getLongitude())
+                    .build();
+
+            CollisionNotificationDTO.ShipInfo shipInfoB = CollisionNotificationDTO.ShipInfo.builder()
+                    .mmsi(shipB.getMmsi())
+                    .latitude(shipB.getLatitude())
+                    .longitude(shipB.getLongitude())
+                    .build();
+
+            // Δημιουργία του τελικού DTO της ειδοποίησης
+            CollisionNotificationDTO notification = CollisionNotificationDTO.builder()
+                    .timestamp(Instant.now())
+                    .message(message)
+                    .zoneId(zone.getId())
+                    .zoneName(zone.getName())
+                    .shipA(shipInfoA)
+                    .shipB(shipInfoB)
+                    .build();
+
+            // Αποστολή της ειδοποίησης σε ένα νέο, εξειδικευμένο κανάλι WebSocket
+            messagingTemplate.convertAndSendToUser(user.getEmail(), "/queue/collision-alerts", notification);
         }
     }
 }

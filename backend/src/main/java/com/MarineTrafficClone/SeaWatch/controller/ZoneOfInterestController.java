@@ -16,8 +16,12 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/zone")
 public class ZoneOfInterestController {
 
+    private final ZoneOfInterestService zoneService;
+
     @Autowired
-    private ZoneOfInterestService zoneService;
+    public ZoneOfInterestController(ZoneOfInterestService zoneService) {
+        this.zoneService = zoneService;
+    }
 
     // Get the current user's single zone of interest
     @GetMapping("/mine")
