@@ -11,6 +11,7 @@ import { Slider } from '@/components/ui/slider';
 import { toast } from '@/hooks/use-toast';
 import { FilterValue, Vessel } from '@/types/types';
 import {
+  Constraint,
   CriticalSection,
   InterestZone,
   MAX_CRITICAL_SECTIONS,
@@ -19,7 +20,6 @@ import {
   drawCriticalSection,
   drawInterestZone,
   enableZoneCreation,
-  Constraint,
 } from '@/utils/mapUtils';
 import L from 'leaflet';
 import { Settings2 } from 'lucide-react';
@@ -178,7 +178,9 @@ const UserPage: React.FC = () => {
   useEffect(() => {
     const fetchUserZone = async () => {
       try {
-        const response = await fetch('http://localhost:8080/api/zone/mine', { credentials: 'include' }); // Assumes proxy is set up in vite.config.ts
+        const response = await fetch('http://localhost:8080/api/zone/mine', {
+          credentials: 'include',
+        }); // Assumes proxy is set up in vite.config.ts
         if (response.ok) {
           const zoneData = await response.json();
           const interestZone: InterestZone = {

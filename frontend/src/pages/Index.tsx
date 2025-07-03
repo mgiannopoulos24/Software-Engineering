@@ -117,37 +117,51 @@ const Index: React.FC = () => {
   }, []);
 
   // Helper function to determine vessel type from AIS data
-  const getVesselTypeFromData = (vessel: Vessel): string => {
-    // This is a placeholder - you'll need to implement actual logic based on your needs
-    // if (vessel.mmsi == '2115') {
-    //   return 'fishing'; // Example for a specific MMSI prefix
-    // }
-
-    return 'cargo'; // Default type
-  };
+  // const getVesselTypeFromData = (vessel: Vessel): string => {
+  //     'anti-pollution',
+  // 'cargo',
+  // 'cargo-hazarda(major)',
+  // 'cargo-hazardb',
+  // 'cargo-hazardc(minor)',
+  // 'cargo-hazardd(recognizable)',
+  // 'divevessel',
+  // 'dredger',
+  // 'fishing',
+  // 'high-speedcraft',
+  // 'lawenforce',
+  // 'localvessel',
+  // 'militaryops',
+  // 'other',
+  // 'passenger',
+  // 'pilotvessel',
+  // 'pleasurecraft',
+  // 'sailingvessel',
+  // 'sar',
+  // 'specialcraft',
+  // 'tanker',
+  // 'tanker-hazarda(major)',
+  // 'tanker-hazardb',
+  // 'tanker-hazardc(minor)',
+  // 'tanker-hazardd(recognizable)',
+  // 'tug',
+  // 'unknown',
+  // 'wingingrnd'
+  // };
 
   // Helper function to determine vessel status from navigationalStatus code
   const getVesselStatusFromData = (vessel: Vessel): string => {
     // Based on AIS navigational status codes
     switch (vessel.navigationalStatus) {
       case 0:
-        return 'underway';
+        return '0'; // Under way using engine
       case 1:
-        return 'at anchor';
-      case 2:
-        return 'not under command';
-      case 3:
-        return 'restricted maneuverability';
-      case 4:
-        return 'constrained by draft';
+        return '1'; // At anchor
       case 5:
-        return 'moored';
-      case 6:
-        return 'aground';
-      case 7:
-        return 'fishing';
-      case 8:
-        return 'sailing';
+        return '5'; // Moored
+      case 10:
+        return '10'; // Aground
+      case 15:
+        return '15'; // Engaged in fishing
       default:
         return 'unknown';
     }

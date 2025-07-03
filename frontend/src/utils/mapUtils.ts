@@ -20,12 +20,12 @@ export type ZoneType = 'critical' | 'interest';
  * Enum for interest zone constraints
  */
 export enum InterestZoneConstraint {
-  SPEED_LIMIT_ABOVE = 'SPEED_LIMIT_ABOVE',   // Alert if speed > value
-  SPEED_LIMIT_BELOW = 'SPEED_LIMIT_BELOW',   // Alert if speed < value
-  ZONE_ENTRY = 'ZONE_ENTRY',                 // Alert when a ship enters the zone
-  ZONE_EXIT = 'ZONE_EXIT',                   // Alert when a ship that was inside, leaves
+  SPEED_LIMIT_ABOVE = 'SPEED_LIMIT_ABOVE', // Alert if speed > value
+  SPEED_LIMIT_BELOW = 'SPEED_LIMIT_BELOW', // Alert if speed < value
+  ZONE_ENTRY = 'ZONE_ENTRY', // Alert when a ship enters the zone
+  ZONE_EXIT = 'ZONE_EXIT', // Alert when a ship that was inside, leaves
   FORBIDDEN_SHIP_TYPE = 'FORBIDDEN_SHIP_TYPE', // Alert if a specific ship type is present
-  UNWANTED_NAV_STATUS = 'UNWANTED_NAV_STATUS'  // Alert if a ship has a specific navigational status
+  UNWANTED_NAV_STATUS = 'UNWANTED_NAV_STATUS', // Alert if a ship has a specific navigational status
 }
 
 export const ALL_SHIP_TYPES = [
@@ -56,13 +56,10 @@ export const ALL_SHIP_TYPES = [
   'tanker-hazardd(recognizable)',
   'tug',
   'unknown',
-  'wingingrnd'
+  'wingingrnd',
 ];
 
-export const ALL_NAV_STATUSES = [
-  0, 1, 5, 15
-];
-
+export const ALL_NAV_STATUSES = [0, 1, 5, 15];
 
 /**
  * Interface for a single constraint with its value
@@ -156,7 +153,9 @@ export const drawCriticalSection = (
         </div>
 
         <div style="display: flex; gap: 8px; margin-top: 8px;">
-          ${onUpdate ? `
+          ${
+            onUpdate
+              ? `
             <button 
               id="edit-btn-${section.id}" 
               style="flex: 1; padding: 6px 12px; background-color: #f97316; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; display: ${isNew ? 'none' : 'flex'};"
@@ -165,8 +164,12 @@ export const drawCriticalSection = (
             >
               Edit
             </button>
-          ` : ''}
-          ${onRemove ? `
+          `
+              : ''
+          }
+          ${
+            onRemove
+              ? `
             <button 
               id="delete-cs-${section.id}" 
               style="flex: 1; padding: 6px 12px; background-color: #dc2626; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;"
@@ -175,7 +178,9 @@ export const drawCriticalSection = (
             >
               Delete
             </button>
-          ` : ''}
+          `
+              : ''
+          }
         </div>
       </div>
     </div>
@@ -204,14 +209,25 @@ export const drawCriticalSection = (
       if (onUpdate) {
         const editBtn = document.getElementById(`edit-btn-${section.id}`);
         const editControls = document.getElementById(`edit-controls-${section.id}`);
-        const radiusSlider = document.getElementById(`radius-slider-${section.id}`) as HTMLInputElement;
+        const radiusSlider = document.getElementById(
+          `radius-slider-${section.id}`
+        ) as HTMLInputElement;
         const radiusDisplay = document.getElementById(`radius-display-${section.id}`);
         const saveBtn = document.getElementById(`save-btn-${section.id}`);
         const staticRadiusDisplay = document.getElementById(`static-radius-${section.id}`);
         const nameInput = document.getElementById(`name-input-${section.id}`) as HTMLInputElement;
         const staticNameDisplay = document.getElementById(`static-name-${section.id}`);
 
-        if (editBtn && editControls && radiusSlider && radiusDisplay && saveBtn && staticRadiusDisplay && nameInput && staticNameDisplay) {
+        if (
+          editBtn &&
+          editControls &&
+          radiusSlider &&
+          radiusDisplay &&
+          saveBtn &&
+          staticRadiusDisplay &&
+          nameInput &&
+          staticNameDisplay
+        ) {
           editBtn.onclick = () => {
             const isEditing = editControls.style.display === 'block';
             editControls.style.display = isEditing ? 'none' : 'block';
@@ -228,7 +244,7 @@ export const drawCriticalSection = (
             const newRadius = parseFloat(radiusSlider.value);
             const newName = nameInput.value;
             onUpdate(section.id, newRadius, newName);
-            
+
             staticRadiusDisplay.textContent = `${newRadius}`;
             if (newName) {
               staticNameDisplay.textContent = `Name: ${newName}`;
@@ -236,7 +252,7 @@ export const drawCriticalSection = (
             } else {
               staticNameDisplay.style.display = 'none';
             }
-            
+
             editControls.style.display = 'none';
             editBtn.textContent = 'Edit';
             if (isNew) {
@@ -263,7 +279,12 @@ export const drawInterestZone = (
   map: L.Map,
   zone: InterestZone,
   onRemove?: (id: string) => void,
-  onUpdate?: (id:string, newRadius: number, newConstraints?: Constraint[], newName?: string) => void,
+  onUpdate?: (
+    id: string,
+    newRadius: number,
+    newConstraints?: Constraint[],
+    newName?: string
+  ) => void,
   isNew = false
 ): L.Circle => {
   const circle = L.circle(zone.center, {
@@ -278,55 +299,58 @@ export const drawInterestZone = (
   const getPopupContent = (currentZone: InterestZone) => {
     const displayConstraints = (constraints?: Constraint[]) => {
       if (!constraints || constraints.length === 0) return '<span>None</span>';
-      return `<ul style="margin: 0; padding-left: 18px;">${constraints.map(c => {
-        let valueText = '';
-        if (c.value) {
-          if (Array.isArray(c.value) && c.value.length > 0) {
-            valueText = `: ${c.value.join(', ')}`;
-          } else if (!Array.isArray(c.value)) {
-            valueText = `: ${c.value}`;
+      return `<ul style="margin: 0; padding-left: 18px;">${constraints
+        .map((c) => {
+          let valueText = '';
+          if (c.value) {
+            if (Array.isArray(c.value) && c.value.length > 0) {
+              valueText = `: ${c.value.join(', ')}`;
+            } else if (!Array.isArray(c.value)) {
+              valueText = `: ${c.value}`;
+            }
           }
-        }
-        return `<li style="margin-bottom: 2px;">${c.type.replace(/_/g, ' ')}${valueText}</li>`;
-      }).join('')}</ul>`;
+          return `<li style="margin-bottom: 2px;">${c.type.replace(/_/g, ' ')}${valueText}</li>`;
+        })
+        .join('')}</ul>`;
     };
 
     const getConstraintValue = (type: InterestZoneConstraint) => {
-      return (currentZone.constraints ?? []).find(c => c.type === type)?.value;
+      return (currentZone.constraints ?? []).find((c) => c.type === type)?.value;
     };
 
-    const editConstraintsHTML = Object.values(InterestZoneConstraint).map(constraint => {
-      const hasValue = [
-        InterestZoneConstraint.SPEED_LIMIT_ABOVE,
-        InterestZoneConstraint.SPEED_LIMIT_BELOW,
-        InterestZoneConstraint.FORBIDDEN_SHIP_TYPE,
-        InterestZoneConstraint.UNWANTED_NAV_STATUS
-      ].includes(constraint);
-      
-      const isChecked = (currentZone.constraints ?? []).some(c => c.type === constraint);
+    const editConstraintsHTML = Object.values(InterestZoneConstraint)
+      .map((constraint) => {
+        const hasValue = [
+          InterestZoneConstraint.SPEED_LIMIT_ABOVE,
+          InterestZoneConstraint.SPEED_LIMIT_BELOW,
+          InterestZoneConstraint.FORBIDDEN_SHIP_TYPE,
+          InterestZoneConstraint.UNWANTED_NAV_STATUS,
+        ].includes(constraint);
 
-      let valueInputHTML = '';
-      if (hasValue) {
-        const value = getConstraintValue(constraint);
-        switch(constraint) {
-          case InterestZoneConstraint.SPEED_LIMIT_ABOVE:
-          case InterestZoneConstraint.SPEED_LIMIT_BELOW:
-            valueInputHTML = `<input type="number" min="0" max="100" value="${value ?? 10}" id="value-${currentZone.id}-${constraint}" style="width: 60px; font-size: 11px; padding: 2px; margin-left: 8px; display: ${isChecked ? 'inline-block' : 'none'};"><span style="margin-left: 4px;">knots</span>`;
-            break;
-          case InterestZoneConstraint.FORBIDDEN_SHIP_TYPE:
-            valueInputHTML = `<select multiple id="value-${currentZone.id}-${constraint}" style="width: 100%; font-size: 11px; margin-top: 4px; display: ${isChecked ? 'block' : 'none'};">
-              ${ALL_SHIP_TYPES.map(st => `<option value="${st}" ${((value as string[] | undefined) ?? []).includes(st) ? 'selected' : ''}>${st}</option>`).join('')}
+        const isChecked = (currentZone.constraints ?? []).some((c) => c.type === constraint);
+
+        let valueInputHTML = '';
+        if (hasValue) {
+          const value = getConstraintValue(constraint);
+          switch (constraint) {
+            case InterestZoneConstraint.SPEED_LIMIT_ABOVE:
+            case InterestZoneConstraint.SPEED_LIMIT_BELOW:
+              valueInputHTML = `<input type="number" min="0" max="100" value="${value ?? 10}" id="value-${currentZone.id}-${constraint}" style="width: 60px; font-size: 11px; padding: 2px; margin-left: 8px; display: ${isChecked ? 'inline-block' : 'none'};"><span style="margin-left: 4px;">knots</span>`;
+              break;
+            case InterestZoneConstraint.FORBIDDEN_SHIP_TYPE:
+              valueInputHTML = `<select multiple id="value-${currentZone.id}-${constraint}" style="width: 100%; font-size: 11px; margin-top: 4px; display: ${isChecked ? 'block' : 'none'};">
+              ${ALL_SHIP_TYPES.map((st) => `<option value="${st}" ${((value as string[] | undefined) ?? []).includes(st) ? 'selected' : ''}>${st}</option>`).join('')}
             </select>`;
-            break;
-          case InterestZoneConstraint.UNWANTED_NAV_STATUS:
-            valueInputHTML = `<select multiple id="value-${currentZone.id}-${constraint}" style="width: 100%; font-size: 11px; margin-top: 4px; display: ${isChecked ? 'block' : 'none'};">
-              ${ALL_NAV_STATUSES.map(ns => `<option value="${ns}" ${((value as string[] | undefined) ?? []).includes(ns) ? 'selected' : ''}>${ns}</option>`).join('')}
+              break;
+            case InterestZoneConstraint.UNWANTED_NAV_STATUS:
+              valueInputHTML = `<select multiple id="value-${currentZone.id}-${constraint}" style="width: 100%; font-size: 11px; margin-top: 4px; display: ${isChecked ? 'block' : 'none'};">
+              ${ALL_NAV_STATUSES.map((ns) => `<option value="${ns}" ${((value as string[] | undefined) ?? []).includes(ns) ? 'selected' : ''}>${ns}</option>`).join('')}
             </select>`;
-            break;
+              break;
+          }
         }
-      }
 
-      return `
+        return `
       <div style="margin-bottom: 6px;">
         <div style="display: flex; align-items: center;">
           <input type="checkbox" id="constraint-${currentZone.id}-${constraint}" name="constraints" value="${constraint}" ${isChecked ? 'checked' : ''} style="margin-right: 6px; transform: scale(0.9);">
@@ -335,7 +359,8 @@ export const drawInterestZone = (
         </div>
         ${!valueInputHTML.includes('knots') ? valueInputHTML : ''}
       </div>`;
-    }).join('');
+      })
+      .join('');
 
     return `
     <div class="interest-zone-popup" style="min-width: 260px; max-height: 400px; overflow-y: auto; font-family: system-ui, -apple-system, sans-serif;">
@@ -374,7 +399,9 @@ export const drawInterestZone = (
         </div>
 
         <div style="display: flex; gap: 8px; margin-top: 8px;">
-          ${onUpdate ? `
+          ${
+            onUpdate
+              ? `
             <button 
               id="edit-btn-${zone.id}" 
               style="flex: 1; padding: 6px 12px; background-color: #f97316; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; display: ${isNew ? 'none' : 'flex'};"
@@ -383,8 +410,12 @@ export const drawInterestZone = (
             >
               Edit
             </button>
-          ` : ''}
-          ${onRemove ? `
+          `
+              : ''
+          }
+          ${
+            onRemove
+              ? `
             <button 
               id="delete-iz-${zone.id}" 
               style="flex: 1; padding: 6px 12px; background-color: #dc2626; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;"
@@ -393,12 +424,14 @@ export const drawInterestZone = (
             >
               Delete
             </button>
-          ` : ''}
+          `
+              : ''
+          }
         </div>
       </div>
     </div>
   `;
-  }
+  };
 
   const popup = L.popup().setContent(getPopupContent(zone));
   circle.bindPopup(popup);
@@ -423,7 +456,9 @@ export const drawInterestZone = (
       if (onUpdate) {
         const editBtn = document.getElementById(`edit-btn-${zone.id}`);
         const editControls = document.getElementById(`edit-controls-${zone.id}`);
-        const radiusSlider = document.getElementById(`radius-slider-${zone.id}`) as HTMLInputElement;
+        const radiusSlider = document.getElementById(
+          `radius-slider-${zone.id}`
+        ) as HTMLInputElement;
         const radiusDisplay = document.getElementById(`radius-display-${zone.id}`);
         const saveBtn = document.getElementById(`save-btn-${zone.id}`);
         const staticRadiusDisplay = document.getElementById(`static-radius-${zone.id}`);
@@ -432,18 +467,34 @@ export const drawInterestZone = (
         const nameInput = document.getElementById(`name-input-${zone.id}`) as HTMLInputElement;
         const staticNameDisplay = document.getElementById(`static-name-${zone.id}`);
 
-        if (editBtn && editControls && radiusSlider && radiusDisplay && saveBtn && staticRadiusDisplay && staticConstraintsDisplay && checkboxContainer && nameInput && staticNameDisplay) {
-          
+        if (
+          editBtn &&
+          editControls &&
+          radiusSlider &&
+          radiusDisplay &&
+          saveBtn &&
+          staticRadiusDisplay &&
+          staticConstraintsDisplay &&
+          checkboxContainer &&
+          nameInput &&
+          staticNameDisplay
+        ) {
           // Add event listeners to checkboxes to show/hide value inputs
-          checkboxContainer.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach(cb => {
-            cb.onchange = () => {
-              const constraintType = cb.value as InterestZoneConstraint;
-              const valueInput = document.getElementById(`value-${zone.id}-${constraintType}`);
-              if (valueInput) {
-                valueInput.style.display = cb.checked ? (valueInput.tagName === 'SELECT' ? 'block' : 'inline-block') : 'none';
-              }
-            };
-          });
+          checkboxContainer
+            .querySelectorAll<HTMLInputElement>('input[type="checkbox"]')
+            .forEach((cb) => {
+              cb.onchange = () => {
+                const constraintType = cb.value as InterestZoneConstraint;
+                const valueInput = document.getElementById(`value-${zone.id}-${constraintType}`);
+                if (valueInput) {
+                  valueInput.style.display = cb.checked
+                    ? valueInput.tagName === 'SELECT'
+                      ? 'block'
+                      : 'inline-block'
+                    : 'none';
+                }
+              };
+            });
 
           editBtn.onclick = () => {
             const isEditing = editControls.style.display === 'block';
@@ -461,24 +512,28 @@ export const drawInterestZone = (
             const newRadius = parseFloat(radiusSlider.value);
             const newName = nameInput.value;
             const newConstraints: Constraint[] = [];
-            
-            checkboxContainer.querySelectorAll<HTMLInputElement>('input[type="checkbox"]:checked').forEach(cb => {
-              const type = cb.value as InterestZoneConstraint;
-              const constraint: Constraint = { type };
-              const valueInput = document.getElementById(`value-${zone.id}-${type}`);
 
-              if (valueInput) {
-                if (valueInput.tagName === 'INPUT') {
-                  constraint.value = parseFloat((valueInput as HTMLInputElement).value);
-                } else if (valueInput.tagName === 'SELECT') {
-                  constraint.value = Array.from((valueInput as HTMLSelectElement).selectedOptions).map(opt => opt.value);
+            checkboxContainer
+              .querySelectorAll<HTMLInputElement>('input[type="checkbox"]:checked')
+              .forEach((cb) => {
+                const type = cb.value as InterestZoneConstraint;
+                const constraint: Constraint = { type };
+                const valueInput = document.getElementById(`value-${zone.id}-${type}`);
+
+                if (valueInput) {
+                  if (valueInput.tagName === 'INPUT') {
+                    constraint.value = parseFloat((valueInput as HTMLInputElement).value);
+                  } else if (valueInput.tagName === 'SELECT') {
+                    constraint.value = Array.from(
+                      (valueInput as HTMLSelectElement).selectedOptions
+                    ).map((opt) => opt.value);
+                  }
                 }
-              }
-              newConstraints.push(constraint);
-            });
-            
+                newConstraints.push(constraint);
+              });
+
             onUpdate(zone.id, newRadius, newConstraints, newName);
-            
+
             // Update the static display
             staticRadiusDisplay.textContent = `${newRadius}`;
             if (newName) {
@@ -488,8 +543,9 @@ export const drawInterestZone = (
               staticNameDisplay.style.display = 'none';
             }
             const displayConstraints = (constraints?: Constraint[]) => {
-                if (!constraints || constraints.length === 0) return '<span>None</span>';
-                return `<ul style="margin: 0; padding-left: 18px;">${constraints.map(c => {
+              if (!constraints || constraints.length === 0) return '<span>None</span>';
+              return `<ul style="margin: 0; padding-left: 18px;">${constraints
+                .map((c) => {
                   let valueText = '';
                   if (c.value) {
                     if (Array.isArray(c.value) && c.value.length > 0) {
@@ -499,7 +555,8 @@ export const drawInterestZone = (
                     }
                   }
                   return `<li style="margin-bottom: 2px;">${c.type.replace(/_/g, ' ')}${valueText}</li>`;
-                }).join('')}</ul>`;
+                })
+                .join('')}</ul>`;
             };
             staticConstraintsDisplay.innerHTML = displayConstraints(newConstraints);
 
@@ -534,7 +591,12 @@ export const enableZoneCreation = (
   onClick: (zone: CriticalSection | InterestZone, circle: L.Circle) => void,
   currentCount: number,
   onRemove?: (id: string) => void,
-  onUpdate?: (id: string, newRadius: number, newConstraints?: Constraint[], newName?: string) => void
+  onUpdate?: (
+    id: string,
+    newRadius: number,
+    newConstraints?: Constraint[],
+    newName?: string
+  ) => void
 ): (() => void) => {
   // Set max limit based on zone type
   const maxLimit = zoneType === 'critical' ? MAX_CRITICAL_SECTIONS : MAX_INTEREST_ZONES;
