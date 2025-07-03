@@ -1,7 +1,7 @@
 package com.MarineTrafficClone.SeaWatch.controller;
 
+import com.MarineTrafficClone.SeaWatch.dto.ShipDetailsDTO;
 import com.MarineTrafficClone.SeaWatch.dto.ShipTypeUpdateRequest;
-import com.MarineTrafficClone.SeaWatch.model.Ship;
 import com.MarineTrafficClone.SeaWatch.service.AdminService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -24,8 +24,8 @@ public class AdminController {
      * Πρόσβαση επιτρέπεται μόνο σε χρήστες με ρόλο ADMIN.
      */
     @PutMapping("/ships/{mmsi}/type")
-    public ResponseEntity<Ship> updateShipType(@PathVariable Long mmsi, @RequestBody ShipTypeUpdateRequest request) {
-        Ship updatedShip = adminService.updateShipType(mmsi, request.getShiptype());
-        return ResponseEntity.ok(updatedShip);
+    public ResponseEntity<ShipDetailsDTO> updateShipType(@PathVariable Long mmsi, @RequestBody ShipTypeUpdateRequest request) {
+        ShipDetailsDTO updatedShipDetails = adminService.updateShipType(mmsi, request.getShiptype());
+        return ResponseEntity.ok(updatedShipDetails);
     }
 }

@@ -1,6 +1,7 @@
-package com.MarineTrafficClone.SeaWatch.response;
+package com.MarineTrafficClone.SeaWatch.dto;
 
 import com.MarineTrafficClone.SeaWatch.enumeration.RoleType;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -8,10 +9,9 @@ import lombok.NoArgsConstructor;
 
 @Data
 @Builder
-@AllArgsConstructor
 @NoArgsConstructor
-public class AuthenticationResponse {
-
-    private String token;
+@AllArgsConstructor
+public class UserUpdateDTO {
+    @NotNull(message = "Role cannot be null")
     private RoleType role;
 }

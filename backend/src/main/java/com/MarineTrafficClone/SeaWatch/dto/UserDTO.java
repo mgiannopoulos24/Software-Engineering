@@ -1,4 +1,4 @@
-package com.MarineTrafficClone.SeaWatch.response;
+package com.MarineTrafficClone.SeaWatch.dto;
 
 import com.MarineTrafficClone.SeaWatch.enumeration.RoleType;
 import lombok.AllArgsConstructor;
@@ -8,10 +8,10 @@ import lombok.NoArgsConstructor;
 
 @Data
 @Builder
-@AllArgsConstructor
 @NoArgsConstructor
-public class AuthenticationResponse {
-
-    private String token;
+@AllArgsConstructor
+public class UserDTO {
+    private Long id;
+    private String email;
     private RoleType role;
 }

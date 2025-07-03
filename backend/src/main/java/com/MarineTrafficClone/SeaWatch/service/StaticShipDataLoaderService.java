@@ -1,8 +1,10 @@
-package com.MarineTrafficClone.SeaWatch.service; // Ensure this matches your package structure
+package com.MarineTrafficClone.SeaWatch.service;
 
 import com.MarineTrafficClone.SeaWatch.enumeration.ShipType;
 import com.MarineTrafficClone.SeaWatch.model.Ship;
 import com.MarineTrafficClone.SeaWatch.repository.ShipRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
@@ -16,10 +18,12 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 
 @Service
-@Order(1) // Ensure this runs before your dynamic data loader (which should be @Order(2))
+@Order(1)
 public class StaticShipDataLoaderService implements CommandLineRunner {
 
     private final ShipRepository shipRepository;
+
+    private static final Logger log = LoggerFactory.getLogger(StaticShipDataLoaderService.class);
 
     @Autowired
     public StaticShipDataLoaderService(ShipRepository shipRepository) {
@@ -28,7 +32,7 @@ public class StaticShipDataLoaderService implements CommandLineRunner {
 
     @Override
     @Transactional // Apply transaction to the entire data loading process
-    public void run(String... args) throws Exception {
+    public void run(String... args) {
         System.out.println("STATIC DATA LOADER (CommandLineRunner): run() method called. Attempting to load static ship data.");
         String filePath = "AIS-Data/vessel_types.csv"; // Path within src/main/resources
         // Make sure this filename matches your actual static data CSV
@@ -109,14 +113,13 @@ public class StaticShipDataLoaderService implements CommandLineRunner {
                             // }
                         }
                     } catch (NumberFormatException e) {
-                        System.err.println("STATIC DATA LOADER: Skipping line " + linesProcessed + " due to MMSI parsing error (NumberFormat): '" + values[0] + "' in line: '" + line + "'. Error: " + e.getMessage());
+                        log.error("STATIC DATA LOADER: Skipping line {} due to MMSI parsing error (NumberFormat): '{}' in line: '{}'", linesProcessed, values[0], line, e);
                         skippedLinesDueToErrorOrFormat++;
                     } catch (IllegalArgumentException e) { // Catches errors from ShipType.fromValue if it throws for unknown values
-                        System.err.println("STATIC DATA LOADER: Skipping line " + linesProcessed + " due to invalid ShipType value: '" + values[1] + "' in line: '" + line + "'. Error: " + e.getMessage());
+                        log.error("STATIC DATA LOADER: Skipping line {} due to invalid ShipType value: '{}' in line: '{}'", linesProcessed, values[1], line, e);
                         skippedLinesDueToErrorOrFormat++;
                     } catch (Exception e) { // Catch any other unexpected error for a specific line
-                        System.err.println("STATIC DATA LOADER: Error processing line " + linesProcessed + ": '" + line + "'");
-                        e.printStackTrace();
+                        log.error("STATIC DATA LOADER: Error processing line: '{}'", line, e);
                         skippedLinesDueToErrorOrFormat++;
                     }
                 } else {
@@ -132,8 +135,7 @@ public class StaticShipDataLoaderService implements CommandLineRunner {
             System.out.println("STATIC DATA LOADER: Lines skipped due to errors, empty values, or format issues: " + skippedLinesDueToErrorOrFormat);
 
         } catch (Exception e) { // Catch errors related to opening or reading the file itself
-            System.err.println("STATIC DATA LOADER: CRITICAL error loading or processing static ship data CSV file '" + filePath + "'.");
-            e.printStackTrace();
+            log.error("STATIC DATA LOADER: CRITICAL error loading or processing static ship data CSV file '{}'", filePath, e);
         }
     }
 }

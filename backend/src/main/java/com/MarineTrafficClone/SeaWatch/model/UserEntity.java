@@ -57,6 +57,12 @@ public class UserEntity implements UserDetails {
     )
     private ZoneOfInterest zoneOfInterest;
 
+    @OneToOne(
+            mappedBy = "user",          // The relationship is "owned" by the 'user' field in the ZoneOfInterest entity
+            cascade = CascadeType.ALL,  // If a User is deleted, their Zone is also deleted
+            orphanRemoval = true        // To delete from db when set to null
+    )
+    private CollisionZone collisionZone;
 
     /* ------------------------- METHODS ------------------------- */
 
