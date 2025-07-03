@@ -23,6 +23,7 @@ public class RealTimeShipUpdateDTO {
     private Double longitude;
     private Double latitude;
     private Long timestampEpoch;
+    private Integer navigationalStatus;
     // Πρόσθεσα και το trueHeading γιατί μπορεί να φανεί χρήσιμο για τον προσανατολισμό του εικονιδίου
     private Integer trueHeading;
 
