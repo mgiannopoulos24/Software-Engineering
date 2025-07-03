@@ -8,8 +8,8 @@ const Navbar = () => {
   const location = useLocation();
 
   // Check if we're on a user page
-  const isUserPage = location.pathname === '/user' || location.pathname.startsWith('/user/');
-  const isAdminPage = location.pathname === '/admin' || location.pathname.startsWith('/admin/');
+  const isUserPage = location.pathname === '/user' || location.pathname.startsWith('/user');
+  const isAdminPage = location.pathname === '/admin' || location.pathname.startsWith('/admin');
 
   const toggleSheet = () => {
     setIsSheetOpen(!isSheetOpen);
@@ -307,12 +307,11 @@ const Footer = () => {
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex h-screen flex-col">
       <Navbar />
-      <main className="flex-grow">{children}</main>
+      <main className="flex flex-1 flex-col">{children}</main>
       <Footer />
     </div>
   );
 };
-
 export default Layout;
