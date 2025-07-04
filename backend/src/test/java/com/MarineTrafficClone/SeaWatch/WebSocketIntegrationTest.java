@@ -8,24 +8,34 @@ import com.MarineTrafficClone.SeaWatch.repository.UserEntityRepository;
 import com.MarineTrafficClone.SeaWatch.security.JwtService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.io.HttpClientConnectionManager;
+import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
+import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
+import org.apache.hc.core5.ssl.SSLContexts;
+import org.apache.hc.core5.ssl.TrustStrategy;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.socket.WebSocketHttpHeaders;
-import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
+import org.springframework.web.socket.sockjs.client.RestTemplateXhrTransport;
 import org.springframework.web.socket.sockjs.client.SockJsClient;
 import org.springframework.web.socket.sockjs.client.Transport;
-import org.springframework.web.socket.sockjs.client.WebSocketTransport;
 
+import javax.net.ssl.SSLContext;
 import java.lang.reflect.Type;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -50,16 +60,37 @@ class WebSocketIntegrationTest extends AbstractTest {
     private WebSocketStompClient stompClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private String URL;
-    private UserEntity testUser; // Για εύκολο cleanup
+    private UserEntity testUser;
 
     @BeforeEach
-    public void setup() {
-        URL = "ws://localhost:" + port + "/ws-ais";
-        List<Transport> transports = List.of(new WebSocketTransport(new StandardWebSocketClient()));
+    public void setup() throws Exception {
+        URL = "wss://localhost:" + port + "/ws-ais";
+
+        // ΒΗΜΑ 1: Δημιουργία ενός SSLContext που εμπιστεύεται το self-signed certificate του server.
+        TrustStrategy acceptingTrustStrategy = (chain, authType) -> true;
+        SSLContext sslContext = SSLContexts.custom()
+                .loadTrustMaterial(null, acceptingTrustStrategy)
+                .build();
+
+        // ΒΗΜΑ 2: Δημιουργία του RestTemplateXhrTransport (fallback μέθοδος σύνδεσης του SockJS)
+        // Αυτό απαιτεί ένα custom RestTemplate που επίσης εμπιστεύεται το self-signed cert.
+        SSLConnectionSocketFactory socketFactory = new SSLConnectionSocketFactory(sslContext, NoopHostnameVerifier.INSTANCE);
+        HttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
+                .setSSLSocketFactory(socketFactory)
+                .build();
+        var httpClient = HttpClients.custom().setConnectionManager(connectionManager).build();
+        var requestFactory = new HttpComponentsClientHttpRequestFactory(httpClient);
+        var restTemplate = new RestTemplate(requestFactory);
+        RestTemplateXhrTransport xhrTransport = new RestTemplateXhrTransport(restTemplate);
+
+        // ΒΗΜΑ 3: Δημιουργία του SockJsClient με το transport (το XHR).
+        List<Transport> transports = new ArrayList<>();
+        transports.add(xhrTransport);
         SockJsClient sockJsClient = new SockJsClient(transports);
+
+        // ΒΗΜΑ 4: Δημιουργία του τελικού StompClient.
         stompClient = new WebSocketStompClient(sockJsClient);
         MappingJackson2MessageConverter messageConverter = new MappingJackson2MessageConverter();
-        // Χρειάζεται το JavaTimeModule για σωστή (de)serialization του Instant
         objectMapper.registerModule(new JavaTimeModule());
         messageConverter.setObjectMapper(objectMapper);
         stompClient.setMessageConverter(messageConverter);
@@ -67,55 +98,49 @@ class WebSocketIntegrationTest extends AbstractTest {
 
     @AfterEach
     public void cleanup() {
-        // Καθαρίζουμε τον χρήστη μετά από κάθε test για να είναι τα tests ανεξάρτητα
         if (testUser != null && testUser.getEmail() != null) {
             userRepository.findByEmail(testUser.getEmail()).ifPresent(userRepository::delete);
         }
     }
 
-
     @Test
-    public void testPublicTopicReceivesMessage() throws Exception {
-        // 1. Ρύθμιση (Arrange)
+    void testPublicTopicReceivesMessage() throws Exception {
         CompletableFuture<RealTimeShipUpdateDTO> resultFuture = new CompletableFuture<>();
 
-        // Δημιουργούμε τον handler και συνδεόμαστε.
-        // Η μέθοδος connectAsync επιστρέφει ένα Future που ολοκληρώνεται όταν η session είναι έτοιμη.
-        // ΚΑΝΟΥΜΕ GET ΣΤΟ FUTURE ΓΙΑ ΝΑ ΠΕΡΙΜΕΝΟΥΜΕ.
-        StompSession stompSession = stompClient.connectAsync(URL, new StompSessionHandlerAdapter() {
+        StompSessionHandler sessionHandler = new StompSessionHandlerAdapter() {
+            @Override
+            public void afterConnected(StompSession session, StompHeaders connectedHeaders) {
+                session.subscribe("/topic/ais-updates", new StompFrameHandler() {
+                    @Override
+                    public Type getPayloadType(StompHeaders headers) {
+                        return RealTimeShipUpdateDTO.class;
+                    }
+                    @Override
+                    public void handleFrame(StompHeaders headers, Object payload) {
+                        resultFuture.complete((RealTimeShipUpdateDTO) payload);
+                    }
+                });
+
+                // Στέλνουμε το μήνυμα ΜΟΝΟ ΑΦΟΥ συνδεθούμε και κάνουμε subscribe
+                RealTimeShipUpdateDTO testDto = RealTimeShipUpdateDTO.builder().mmsi("12345").speedOverGround(10.0).build();
+                messagingTemplate.convertAndSend("/topic/ais-updates", testDto);
+            }
+
             @Override
             public void handleException(StompSession session, StompCommand command, StompHeaders headers, byte[] payload, Throwable exception) {
                 resultFuture.completeExceptionally(exception);
             }
-
             @Override
             public void handleTransportError(StompSession session, Throwable exception) {
                 resultFuture.completeExceptionally(exception);
             }
-        }).get(3, TimeUnit.SECONDS); // <-- ΔΙΟΡΘΩΣΗ: Περιμένουμε μέχρι 3 δευτερόλεπτα για να συνδεθεί.
+        };
 
-        // 2. Δράση (Act)
-        // Αφού είμαστε σίγουροι ότι έχουμε συνδεθεί, κάνουμε subscribe.
-        stompSession.subscribe("/topic/ais-updates", new StompFrameHandler() {
-            @Override
-            public Type getPayloadType(StompHeaders headers) {
-                return RealTimeShipUpdateDTO.class;
-            }
-            @Override
-            public void handleFrame(StompHeaders headers, Object payload) {
-                resultFuture.complete((RealTimeShipUpdateDTO) payload);
-            }
-        });
+        // Συνδεόμαστε και περιμένουμε να ολοκληρωθεί η σύνδεση
+        StompSession stompSession = stompClient.connectAsync(URL, sessionHandler).get(10, TimeUnit.SECONDS);
 
-        // Δίνουμε μια μικρή ανάσα και εδώ για σιγουριά, αν και συνήθως δεν χρειάζεται για public topics
-        Thread.sleep(200);
-
-        // Στέλνουμε το μήνυμα από τον server.
-        RealTimeShipUpdateDTO testDto = RealTimeShipUpdateDTO.builder().mmsi("12345").speedOverGround(10.0).build();
-        messagingTemplate.convertAndSend("/topic/ais-updates", testDto);
-
-        // 3. Επιβεβαίωση (Assert)
-        RealTimeShipUpdateDTO receivedMessage = resultFuture.get(5, TimeUnit.SECONDS);
+        // Περιμένουμε το αποτέλεσμα από το CompletableFuture
+        RealTimeShipUpdateDTO receivedMessage = resultFuture.get(10, TimeUnit.SECONDS);
 
         assertThat(receivedMessage).isNotNull();
         assertThat(receivedMessage.getMmsi()).isEqualTo("12345");
@@ -125,8 +150,7 @@ class WebSocketIntegrationTest extends AbstractTest {
     }
 
     @Test
-    public void testPrivateUserQueueReceivesAuthenticatedMessage() throws Exception {
-        // 1. Ρύθμιση (Arrange)
+    void testPrivateUserQueueReceivesAuthenticatedMessage() throws Exception {
         testUser = UserEntity.builder()
                 .email("private-user@test.com")
                 .password(passwordEncoder.encode("password"))
@@ -140,46 +164,41 @@ class WebSocketIntegrationTest extends AbstractTest {
         StompHeaders connectHeaders = new StompHeaders();
         connectHeaders.add("Authorization", "Bearer " + jwtToken);
 
+        StompSessionHandler sessionHandler = new StompSessionHandlerAdapter() {
+            @Override
+            public void afterConnected(StompSession session, StompHeaders connectedHeaders) {
+                session.subscribe("/user/queue/notifications", new StompFrameHandler() {
+                    @Override
+                    public Type getPayloadType(StompHeaders headers) {
+                        return NotificationDTO.class;
+                    }
+                    @Override
+                    public void handleFrame(StompHeaders headers, Object payload) {
+                        resultFuture.complete((NotificationDTO) payload);
+                    }
+                });
 
-        // Συνδεόμαστε και περιμένουμε να ολοκληρωθεί η σύνδεση
-        StompSession stompSession = stompClient.connectAsync(URL, new WebSocketHttpHeaders(), connectHeaders, new StompSessionHandlerAdapter() {
+                // Στέλνουμε το μήνυμα ΜΟΝΟ ΑΦΟΥ συνδεθούμε και κάνουμε subscribe
+                NotificationDTO testNotification = NotificationDTO.builder()
+                        .message("Test Violation")
+                        .timestamp(Instant.now())
+                        .mmsi("98765")
+                        .build();
+                messagingTemplate.convertAndSendToUser(testUser.getUsername(), "/queue/notifications", testNotification);
+            }
             @Override
             public void handleException(StompSession session, StompCommand command, StompHeaders headers, byte[] payload, Throwable exception) {
                 resultFuture.completeExceptionally(exception);
             }
-
             @Override
             public void handleTransportError(StompSession session, Throwable exception) {
                 resultFuture.completeExceptionally(exception);
             }
-        }).get(3, TimeUnit.SECONDS); // <-- ΔΙΟΡΘΩΣΗ: Περιμένουμε κι εδώ τη σύνδεση.
+        };
 
-        // 2. Δράση (Act)
-        // Τώρα που είμαστε συνδεδεμένοι, κάνουμε subscribe στο private κανάλι.
-        stompSession.subscribe("/user/queue/notifications", new StompFrameHandler() {
-            @Override
-            public Type getPayloadType(StompHeaders headers) {
-                return NotificationDTO.class;
-            }
-            @Override
-            public void handleFrame(StompHeaders headers, Object payload) {
-                resultFuture.complete((NotificationDTO) payload);
-            }
-        });
+        StompSession stompSession = stompClient.connectAsync(URL, new WebSocketHttpHeaders(), connectHeaders, sessionHandler)
+                .get(10, TimeUnit.SECONDS);
 
-        // Δίνουμε χρόνο στον broker να καταχωρήσει το subscription πριν στείλουμε το μήνυμα.
-        // Αυτό αποτρέπει τη race condition.
-        Thread.sleep(200);
-
-        // Στέλνουμε την ειδοποίηση ΣΥΓΚΕΚΡΙΜΕΝΑ σε αυτόν τον χρήστη.
-        NotificationDTO testNotification = NotificationDTO.builder()
-                .message("Test Violation")
-                .timestamp(Instant.now())
-                .mmsi("98765")
-                .build();
-        messagingTemplate.convertAndSendToUser(testUser.getUsername(), "/queue/notifications", testNotification);
-
-        // 3. Επιβεβαίωση (Assert)
         NotificationDTO receivedMessage = resultFuture.get(10, TimeUnit.SECONDS);
 
         assertThat(receivedMessage).isNotNull();
