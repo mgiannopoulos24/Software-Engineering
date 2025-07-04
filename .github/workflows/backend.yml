@@ -32,8 +32,9 @@ jobs:
       - name: Install dependencies (offline after cache)
         run: mvn dependency:go-offline
 
-      - name: Format code
-        run: mvn spotless:apply
+      # Temporarily disabled to avoid formatting issues
+      # - name: Format code
+      #   run: mvn spotless:apply
 
       - name: Build
         run: mvn compile
