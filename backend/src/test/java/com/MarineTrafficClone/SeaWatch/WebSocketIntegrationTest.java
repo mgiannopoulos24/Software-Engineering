@@ -27,16 +27,20 @@ import org.springframework.messaging.simp.stomp.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.socket.WebSocketHttpHeaders;
+import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
 import org.springframework.web.socket.sockjs.client.RestTemplateXhrTransport;
 import org.springframework.web.socket.sockjs.client.SockJsClient;
 import org.springframework.web.socket.sockjs.client.Transport;
+import org.springframework.web.socket.sockjs.client.WebSocketTransport;
 
 import javax.net.ssl.SSLContext;
 import java.lang.reflect.Type;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -72,7 +76,17 @@ class WebSocketIntegrationTest extends AbstractTest {
                 .loadTrustMaterial(null, acceptingTrustStrategy)
                 .build();
 
-        // ΒΗΜΑ 2: Δημιουργία του RestTemplateXhrTransport (fallback μέθοδος σύνδεσης του SockJS)
+        // ΒΗΜΑ 2: Δημιουργία του WebSocketTransport (κύρια μέθοδος σύνδεσης)
+        // Ρυθμίζουμε τον StandardWebSocketClient για να χρησιμοποιεί το custom SSLContext.
+        StandardWebSocketClient standardWebSocketClient = new StandardWebSocketClient();
+        Map<String, Object> userProperties = new HashMap<>();
+        // Αυτή είναι η κρίσιμη γραμμή για το κυρίως WebSocket transport
+        userProperties.put("javax.websocket.ssl.SSLContext", sslContext);
+        standardWebSocketClient.setUserProperties(userProperties);
+        WebSocketTransport webSocketTransport = new WebSocketTransport(standardWebSocketClient);
+
+
+        // ΒΗΜΑ 3: Δημιουργία του RestTemplateXhrTransport (fallback μέθοδος σύνδεσης του SockJS)
         // Αυτό απαιτεί ένα custom RestTemplate που επίσης εμπιστεύεται το self-signed cert.
         SSLConnectionSocketFactory socketFactory = new SSLConnectionSocketFactory(sslContext, NoopHostnameVerifier.INSTANCE);
         HttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
@@ -83,12 +97,13 @@ class WebSocketIntegrationTest extends AbstractTest {
         var restTemplate = new RestTemplate(requestFactory);
         RestTemplateXhrTransport xhrTransport = new RestTemplateXhrTransport(restTemplate);
 
-        // ΒΗΜΑ 3: Δημιουργία του SockJsClient με το transport (το XHR).
+        // ΒΗΜΑ 4: Δημιουργία του SockJsClient με τα δύο transports (πρώτα το WebSocket, μετά το XHR).
         List<Transport> transports = new ArrayList<>();
+        transports.add(webSocketTransport);
         transports.add(xhrTransport);
         SockJsClient sockJsClient = new SockJsClient(transports);
 
-        // ΒΗΜΑ 4: Δημιουργία του τελικού StompClient.
+        // ΒΗΜΑ 5: Δημιουργία του τελικού StompClient.
         stompClient = new WebSocketStompClient(sockJsClient);
         MappingJackson2MessageConverter messageConverter = new MappingJackson2MessageConverter();
         objectMapper.registerModule(new JavaTimeModule());
