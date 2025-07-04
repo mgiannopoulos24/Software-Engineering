@@ -86,8 +86,8 @@ public class ZoneOfInterestController {
         dto.setConstraints(zone.getConstraints().stream().map(c -> {
             ZoneConstraintDTO cDto = new ZoneConstraintDTO();
             cDto.setId(c.getId());
-            cDto.setType(c.getType());
-            cDto.setValue(c.getValue());
+            cDto.setConstraintType(c.getConstraintType());
+            cDto.setConstraintValue(c.getConstraintValue());
             return cDto;
         }).collect(Collectors.toList()));
         return dto;

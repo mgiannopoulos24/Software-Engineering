@@ -27,15 +27,15 @@ public class ZoneConstraint {
 
     /** Ο τύπος του περιορισμού (π.χ., SPEED_LIMIT_ABOVE). */
     @Enumerated(EnumType.STRING) // Αποθηκεύεται ως String στη βάση.
-    @Column(name = "type", nullable = false)
-    private ZoneConstraintType type;
+    @Column(name = "constraint_type", nullable = false)
+    private ZoneConstraintType constraintType;
 
     /**
      * Η τιμή του περιορισμού. Αποθηκεύεται ως String για ευελιξία,
      * π.χ., "10.5" για όριο ταχύτητας, "cargo" για τύπο πλοίου.
      */
-    @Column(name = "value", nullable = false)
-    private String value;
+    @Column(name = "constraint_value", nullable = false)
+    private String constraintValue;
 
     /**
      * Ορίζει τη σχέση Πολλά-προς-Ένα (Many-to-One) με την οντότητα ZoneOfInterest.

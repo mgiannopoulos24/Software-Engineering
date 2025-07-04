@@ -67,8 +67,8 @@ public class ZoneOfInterestService {
         List<ZoneConstraint> newConstraints = zoneDTO.getConstraints().stream()
                 .map(dto -> {
                     ZoneConstraint constraint = new ZoneConstraint();
-                    constraint.setType(dto.getType());
-                    constraint.setValue(dto.getValue());
+                    constraint.setConstraintType(dto.getConstraintType());
+                    constraint.setConstraintValue(dto.getConstraintValue());
                     // Η σύνδεση με τη ζώνη (constraint.setZoneOfInterest(zone)) θα γίνει
                     // μέσα στη βοηθητική μέθοδο zone.setConstraints().
                     return constraint;

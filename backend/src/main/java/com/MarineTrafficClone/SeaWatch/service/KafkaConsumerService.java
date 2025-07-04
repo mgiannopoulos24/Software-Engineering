@@ -171,7 +171,7 @@ public class KafkaConsumerService {
             // Έλεγχos για κάθε περιορισμό της ζώνης.
             for (ZoneConstraint constraint : zone.getConstraints()) {
                 String msg;
-                switch (constraint.getType()) {
+                switch (constraint.getConstraintType()) {
                     case ZONE_ENTRY:
                         if (isCurrentlyInZone && !wasPreviouslyInZone) {
                             msg = String.format("Ship %s entered zone '%s'", currentPosition.getMmsi(), zone.getName());
@@ -190,14 +190,14 @@ public class KafkaConsumerService {
                     case SPEED_LIMIT_ABOVE:
                         if (isCurrentlyInZone && currentPosition.getSpeedOverGround() != null) {
                             try {
-                                double speedLimit = Double.parseDouble(constraint.getValue());
+                                double speedLimit = Double.parseDouble(constraint.getConstraintValue());
                                 if (currentPosition.getSpeedOverGround() > speedLimit) {
                                     msg = String.format("Ship %s exceeded speed limit in zone '%s'. Speed: %.1f kts (Limit: %.1f kts)",
                                             currentPosition.getMmsi(), zone.getName(), currentPosition.getSpeedOverGround(), speedLimit);
                                     sendNotification(msg, zone, currentPosition, constraint);
                                 }
                             } catch (NumberFormatException e) {
-                                log.warn("ZONE CHECK: Invalid speed limit above value '{}' for zone '{}'", constraint.getValue(), zone.getName());
+                                log.warn("ZONE CHECK: Invalid speed limit above value '{}' for zone '{}'", constraint.getConstraintValue(), zone.getName());
                             }
                         }
                         break;
@@ -205,21 +205,21 @@ public class KafkaConsumerService {
                     case SPEED_LIMIT_BELOW:
                         if (isCurrentlyInZone && currentPosition.getSpeedOverGround() != null) {
                             try {
-                                double speedLimit = Double.parseDouble(constraint.getValue());
+                                double speedLimit = Double.parseDouble(constraint.getConstraintValue());
                                 if (currentPosition.getSpeedOverGround() < speedLimit) {
                                     msg = String.format("Ship %s is below minimum speed in zone '%s'. Speed: %.1f kts (Limit: %.1f kts)",
                                             currentPosition.getMmsi(), zone.getName(), currentPosition.getSpeedOverGround(), speedLimit);
                                     sendNotification(msg, zone, currentPosition, constraint);
                                 }
                             } catch (NumberFormatException e) {
-                                log.warn("ZONE CHECK: Invalid speed limit below value '{}' for zone '{}'", constraint.getValue(), zone.getName());
+                                log.warn("ZONE CHECK: Invalid speed limit below value '{}' for zone '{}'", constraint.getConstraintValue(), zone.getName());
                             }
                         }
                         break;
 
                     case FORBIDDEN_SHIP_TYPE:
                         if (isCurrentlyInZone && shipType != null) {
-                            if (shipType.getValue().equalsIgnoreCase(constraint.getValue())) {
+                            if (shipType.getValue().equalsIgnoreCase(constraint.getConstraintValue())) {
                                 msg = String.format("Forbidden ship type ('%s') detected in zone '%s'. Ship: %s",
                                         shipType.getValue(), zone.getName(), currentPosition.getMmsi());
                                 sendNotification(msg, zone, currentPosition, constraint);
@@ -230,14 +230,14 @@ public class KafkaConsumerService {
                     case UNWANTED_NAV_STATUS:
                         if (isCurrentlyInZone && currentPosition.getNavigationalStatus() != null) {
                             try {
-                                int unwantedStatus = Integer.parseInt(constraint.getValue());
+                                int unwantedStatus = Integer.parseInt(constraint.getConstraintValue());
                                 if (currentPosition.getNavigationalStatus() == unwantedStatus) {
                                     msg = String.format("Ship %s with unwanted status code (%d) detected in zone '%s'.",
                                             currentPosition.getMmsi(), unwantedStatus, zone.getName());
                                     sendNotification(msg, zone, currentPosition, constraint);
                                 }
                             } catch (NumberFormatException e) {
-                                log.warn("ZONE CHECK: Invalid NavStatus value '{}' for zone '{}'", constraint.getValue(), zone.getName());
+                                log.warn("ZONE CHECK: Invalid NavStatus value '{}' for zone '{}'", constraint.getConstraintValue(), zone.getName());
                             }
                         }
                         break;
@@ -281,7 +281,7 @@ public class KafkaConsumerService {
                     .message(message)
                     .zoneId(violatedZone.getId())
                     .zoneName(violatedZone.getName())
-                    .violationType(violatedConstraint.getType())
+                    .violationType(violatedConstraint.getConstraintType())
                     .mmsi(shipData.getMmsi())
                     .latitude(shipData.getLatitude())
                     .longitude(shipData.getLongitude())

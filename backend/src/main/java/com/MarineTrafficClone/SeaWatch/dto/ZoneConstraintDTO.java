@@ -22,12 +22,12 @@ public class ZoneConstraintDTO {
     private Long id;
 
     /** Ο τύπος του περιορισμού (π.χ., SPEED_LIMIT_ABOVE, ZONE_ENTRY). */
-    private ZoneConstraintType type;
+    private ZoneConstraintType constraintType;
 
     /**
      * Η τιμή του περιορισμού, αποθηκευμένη ως String για ευελιξία.
      * Για παράδειγμα, μπορεί να είναι "10.5" για όριο ταχύτητας,
      * ή "cargo" για απαγορευμένο τύπο πλοίου.
      */
-    private String value;
+    private String constraintValue;
 }

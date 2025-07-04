@@ -5,6 +5,7 @@ import com.MarineTrafficClone.SeaWatch.model.CollisionZone;
 import com.MarineTrafficClone.SeaWatch.repository.CollisionZoneRepository;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,6 +17,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * κατά τον έλεγχο των παραβιάσεων για κάθε νέο μήνυμα AIS, βελτιώνοντας δραματικά την απόδοση.
  */
 @Service
+@DependsOn("entityManagerFactory")
 public class CollisionZoneCacheService {
 
     private final CollisionZoneRepository collisionZoneRepository;

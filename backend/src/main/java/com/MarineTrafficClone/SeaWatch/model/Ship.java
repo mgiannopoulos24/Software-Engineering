@@ -40,5 +40,6 @@ public class Ship {
      * από τον {@link com.MarineTrafficClone.SeaWatch.converter.ShipTypeConverter}.
      */
     @Column(name = "ship_type")
+    @Enumerated(EnumType.STRING)
     private ShipType shiptype;
 }

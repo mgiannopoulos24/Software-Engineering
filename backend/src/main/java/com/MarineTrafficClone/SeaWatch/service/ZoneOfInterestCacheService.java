@@ -3,6 +3,7 @@ package com.MarineTrafficClone.SeaWatch.service;
 import com.MarineTrafficClone.SeaWatch.model.ZoneOfInterest;
 import com.MarineTrafficClone.SeaWatch.repository.ZoneOfInterestRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
@@ -15,6 +16,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * κατά τον έλεγχο των παραβιάσεων για κάθε νέο μήνυμα AIS, βελτιώνοντας την απόδοση.
  */
 @Service
+@DependsOn("entityManagerFactory")
 public class ZoneOfInterestCacheService {
 
     private final ZoneOfInterestRepository zoneRepository;
