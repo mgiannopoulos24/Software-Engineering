@@ -20,6 +20,7 @@ COPY src ./src
 # Εκτελούμε την εντολή του Maven για να χτίσουμε το project και να δημιουργήσουμε το εκτελέσιμο .jar αρχείο.
 # Το -DskipTests παρακάμπτει την εκτέλεση των tests, κάνοντας το build πιο γρήγορο.
 RUN mvn clean package -DskipTests
+#RUN mvn clean package
 
 # --- Στάδιο 2: Run ---
 # Χρησιμοποιούμε ένα πολύ μικρότερο image που περιέχει μόνο το Java Runtime Environment (JRE) για να τρέξουμε την εφαρμογή.
