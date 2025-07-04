@@ -1,13 +1,13 @@
-export interface Vessel {
-  mmsi: string;
-  speedOverGround: number;
-  courseOverGround: number;
-  longitude: number;
-  latitude: number;
-  timestampEpoch: number;
-  trueHeading: number;
-  shiptype: string;
-  navigationalStatus?: number; // Add this if you need it for status determination
+export interface RealTimeShipUpdateDTO {
+    mmsi: string;
+    speedOverGround: number;
+    courseOverGround: number;
+    longitude: number;
+    latitude: number;
+    timestampEpoch: number; 
+    navigationalStatus?: number;
+    trueHeading: number;
+    shiptype: string;
 }
 
 export type FilterValue = string | number[];

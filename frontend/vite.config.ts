@@ -16,12 +16,25 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src')
     }
   },
-  // server: {
-  //   proxy: {
-  //     '/ws-ais': {
-  //       target: 'https://localhost:8080',
-  //       ws: true,
-  //     }
-  //   }
-  // }
+  server: {
+    proxy: {
+      '/ws-ais': {
+        target: 'https://localhost:8443',
+        ws: true,
+        changeOrigin: true,
+      },
+      '/api/zone/mine': {
+        target: 'https://localhost:8443',
+        changeOrigin: true,
+      },
+      '/api/auth/login': {
+        target: 'https://localhost:8443',
+        changeOrigin: true,
+      },
+      '/api/auth/register': {
+        target: 'https://localhost:8443',
+        changeOrigin: true,
+      },
+    },
+  },
 })

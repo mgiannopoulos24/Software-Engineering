@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { toast } from '@/hooks/use-toast';
-import { FilterValue, Vessel } from '@/types/types';
+import { FilterValue, RealTimeShipUpdateDTO } from '@/types/types';
 import {
   Constraint,
   CriticalSection,
@@ -23,128 +23,18 @@ import {
 import L from 'leaflet';
 import { Settings2 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-
-// Mock vessel data
-const mockVessels = [
-  {
-    id: 1,
-    name: 'Mediterranean Star',
-    type: 'cargo',
-    status: 'underway',
-    lat: 37.9755,
-    lng: 23.7348,
-    speed: 14.2,
-    heading: 45,
-    destination: 'Piraeus Port',
-  },
-  {
-    id: 2,
-    name: 'Aegean Explorer',
-    type: 'passenger',
-    status: 'anchored',
-    lat: 37.942,
-    lng: 23.658,
-    speed: 0.0,
-    heading: 180,
-    destination: 'Mykonos',
-  },
-  {
-    id: 3,
-    name: 'Blue Horizon',
-    type: 'tanker',
-    status: 'moored',
-    lat: 37.9838,
-    lng: 23.7275,
-    speed: 0.0,
-    heading: 270,
-    destination: 'Rafina Port',
-  },
-  {
-    id: 4,
-    name: 'Ocean Navigator',
-    type: 'cargo',
-    status: 'underway',
-    lat: 38.015,
-    lng: 23.795,
-    speed: 16.8,
-    heading: 90,
-    destination: 'Thessaloniki',
-  },
-  {
-    id: 5,
-    name: 'Sea Breeze',
-    type: 'fishing',
-    status: 'underway',
-    lat: 37.89,
-    lng: 23.62,
-    speed: 8.5,
-    heading: 315,
-    destination: 'Fishing Grounds',
-  },
-  {
-    id: 6,
-    name: 'Golden Wave',
-    type: 'passenger',
-    status: 'underway',
-    lat: 38.05,
-    lng: 23.68,
-    speed: 22.3,
-    heading: 225,
-    destination: 'Santorini',
-  },
-  {
-    id: 7,
-    name: 'Atlantic Express',
-    type: 'cargo',
-    status: 'anchored',
-    lat: 37.92,
-    lng: 23.81,
-    speed: 0.0,
-    heading: 0,
-    destination: 'Waiting Area',
-  },
-  {
-    id: 8,
-    name: 'Coastal Guardian',
-    type: 'other',
-    status: 'unknown',
-    lat: 38.08,
-    lng: 23.72,
-    speed: 5.2,
-    heading: 135,
-    destination: 'Unknown',
-  },
-  {
-    id: 9,
-    name: 'Sunset Voyager',
-    type: 'tanker',
-    status: 'underway',
-    lat: 37.85,
-    lng: 23.78,
-    speed: 12.1,
-    heading: 60,
-    destination: 'Elefsina',
-  },
-  {
-    id: 10,
-    name: 'Island Hopper',
-    type: 'passenger',
-    status: 'moored',
-    lat: 37.96,
-    lng: 23.6,
-    speed: 0.0,
-    heading: 90,
-    destination: 'Aegina Port',
-  },
-];
+import { getVesselIcon } from '@/utils/vesselIcon';
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
 
 const UserPage: React.FC = () => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
-  const markersRef = useRef<L.Marker[]>([]);
+  const vesselMarkersRef = useRef<Map<string, L.Marker>>(new Map());
+  const stompClientRef = useRef<Client | null>(null);
   const [coordinates, setCoordinates] = useState('Hover over the map to display coordinates');
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-  const [selectedVessel, setSelectedVessel] = useState<Vessel | null>(null);
+  const [selectedVessel, setSelectedVessel] = useState<RealTimeShipUpdateDTO | null>(null);
   const [filters, setFilters] = useState({
     vesselType: 'all',
     capacity: [50],
@@ -173,11 +63,97 @@ const UserPage: React.FC = () => {
     interestZonesCountRef.current = interestZones.length;
   }, [interestZones]);
 
+  // #region Helper Functions
+  const getVesselTypeFromData = (vessel: RealTimeShipUpdateDTO): string => {
+    return vessel.shiptype ? vessel.shiptype.toLowerCase() : 'unknown';
+  };
+
+  const getVesselStatusCode = (vessel: RealTimeShipUpdateDTO): string => {
+    return vessel.navigationalStatus?.toString() ?? 'unknown';
+  };
+
+  const getVesselStatusDescription = (vessel: RealTimeShipUpdateDTO): string => {
+    switch (vessel.navigationalStatus) {
+      case 0:
+        return 'Under way using engine';
+      case 1:
+        return 'At anchor';
+      case 2:
+        return 'Not under command';
+      case 3:
+        return 'Restricted manoeuverability';
+      case 4:
+        return 'Constrained by her draught';
+      case 5:
+        return 'Moored';
+      case 6:
+        return 'Aground';
+      case 7:
+        return 'Engaged in Fishing';
+      case 8:
+        return 'Under way sailing';
+      case 15:
+        return 'Not defined';
+      default:
+        return `Unknown (${vessel.navigationalStatus ?? 'N/A'})`;
+    }
+  };
+
+  const addOrUpdateVesselMarker = (vessel: RealTimeShipUpdateDTO) => {
+    if (!mapInstanceRef.current || vessel.latitude == null || vessel.longitude == null) {
+      return;
+    }
+
+    const vesselType = getVesselTypeFromData(vessel);
+    const vesselStatusCode = getVesselStatusCode(vessel);
+    const vesselStatusDescription = getVesselStatusDescription(vessel);
+    const icon = getVesselIcon(vesselType, vesselStatusCode, vessel.trueHeading);
+
+    const lastUpdated = new Date(vessel.timestampEpoch * 1000).toLocaleString();
+
+    const popupContent = `
+      <div style="font-family: system-ui, -apple-system, sans-serif; min-width: 200px;">
+        <h4 style="margin: 0 0 8px 0; color: #1f2937; display: flex; align-items: center; gap: 8px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="3,11 22,2 13,21 11,13 3,11"></polygon>
+          </svg>
+          ${`Vessel ${vessel.mmsi}`}
+        </h4>
+        <div style="font-size: 12px; line-height: 1.4; color: #374151;">
+          <div style="margin-bottom: 4px;"><strong>MMSI:</strong> ${vessel.mmsi}</div>
+          <div style="margin-bottom: 4px;"><strong>Status:</strong> ${vesselStatusDescription}</div>
+          <div style="margin-bottom: 4px;"><strong>Speed:</strong> ${vessel.speedOverGround.toFixed(1)} knots</div>
+          <div style="margin-bottom: 4px;"><strong>Heading:</strong> ${vessel.trueHeading !== 511 ? vessel.trueHeading + '°' : 'N/A'}</div>
+          <div style="margin-bottom: 4px;"><strong>Course:</strong> ${vessel.courseOverGround.toFixed(1)}°</div>
+          <div><strong>Last Updated:</strong> ${lastUpdated}</div>
+        </div>
+      </div>
+    `;
+
+    let marker = vesselMarkersRef.current.get(vessel.mmsi);
+
+    if (marker) {
+      marker.setLatLng([vessel.latitude, vessel.longitude]);
+      marker.setIcon(icon);
+      marker.setPopupContent(popupContent);
+    } else {
+      marker = L.marker([vessel.latitude, vessel.longitude], { icon })
+        .addTo(mapInstanceRef.current)
+        .bindPopup(popupContent);
+      vesselMarkersRef.current.set(vessel.mmsi, marker);
+    }
+
+    marker.off('click').on('click', () => {
+      setSelectedVessel(vessel);
+    });
+  };
+  // #endregion
+
   // Fetch user's existing zone of interest on component mount
   useEffect(() => {
     const fetchUserZone = async () => {
       try {
-        const response = await fetch('http://localhost:8080/api/zone/mine', {
+        const response = await fetch('https://localhost:8443/api/zone/mine', {
           credentials: 'include',
         }); // Assumes proxy is set up in vite.config.ts
         if (response.ok) {
@@ -233,90 +209,6 @@ const UserPage: React.FC = () => {
     checkMapAndFetch();
   }, []);
 
-  // Create vessel icon using Navigation2 from Lucide
-  const getVesselIcon = (type: string, status: string, heading: number) => {
-    const colors = {
-      cargo: '#FF6B35',
-      passenger: '#4ECDC4',
-      tanker: '#45B7D1',
-      fishing: '#96CEB4',
-      other: '#FFEAA7',
-    };
-
-    const color = colors[type as keyof typeof colors] || colors.other;
-    const pulseAnimation = status === 'underway' ? 'animation: pulse 2s infinite;' : '';
-
-    return L.divIcon({
-      html: `
-        <div style="
-          color: ${color};
-          transform: rotate(${heading}deg);
-          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-          ${pulseAnimation}
-        ">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="white" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="3,11 22,2 13,21 11,13 3,11"></polygon>
-          </svg>
-        </div>
-        <style>
-          @keyframes pulse {
-            0% { transform: rotate(${heading}deg) scale(1); opacity: 1; }
-            50% { transform: rotate(${heading}deg) scale(1.2); opacity: 0.8; }
-            100% { transform: rotate(${heading}deg) scale(1); opacity: 1; }
-          }
-        </style>
-      `,
-      className: 'vessel-marker',
-      iconSize: [20, 20],
-      iconAnchor: [10, 10],
-    });
-  };
-
-  const addVesselMarkers = (vessels: typeof mockVessels) => {
-    vessels.forEach((vessel) => {
-      const marker = L.marker([vessel.lat, vessel.lng], {
-        icon: getVesselIcon(vessel.type, vessel.status, vessel.heading),
-      }).addTo(mapInstanceRef.current!);
-
-      // Add click event to select vessel
-      marker.on('click', () => {
-        setSelectedVessel(vessel);
-      });
-
-      // Add popup with vessel information
-      marker.bindPopup(`
-        <div class="min-w-[240px] rounded-lg border bg-card text-card-foreground font-sans shadow-md">
-          <div class="flex flex-col space-y-1.5 p-4">
-            <div class="flex items-center space-x-2">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 text-muted-foreground">
-                <polygon points="3,11 22,2 13,21 11,13 3,11"></polygon>
-              </svg>
-              <h3 class="text-lg font-semibold leading-none tracking-tight">${vessel.name}</h3>
-            </div>
-            <p class="text-sm text-muted-foreground">${vessel.type.charAt(0).toUpperCase() + vessel.type.slice(1)} Ship</p>
-          </div>
-          <div class="p-4 pt-0">
-            <div class="grid grid-cols-[auto,1fr] gap-x-4 gap-y-2 text-sm">
-              <strong class="font-medium text-muted-foreground">Status</strong>
-              <span class="text-muted-foreground">${vessel.status.charAt(0).toUpperCase() + vessel.status.slice(1)}</span>
-
-              <strong class="font-medium text-muted-foreground">Speed</strong>
-              <span class="text-muted-foreground">${vessel.speed} knots</span>
-
-              <strong class="font-medium text-muted-foreground">Heading</strong>
-              <span class="text-muted-foreground">${vessel.heading}°</span>
-
-              <strong class="font-medium text-muted-foreground">Destination</strong>
-              <span class="text-muted-foreground">${vessel.destination}</span>
-            </div>
-          </div>
-        </div>
-      `);
-
-      markersRef.current.push(marker);
-    });
-  };
-
   useEffect(() => {
     if (mapRef.current && !mapInstanceRef.current) {
       // Initialize the map with bounds
@@ -346,23 +238,74 @@ const UserPage: React.FC = () => {
         setCoordinates('Hover over the map to display coordinates');
       });
 
-      // Add vessel markers
-      addVesselMarkers(mockVessels);
-
       // Ensure map takes up full container size
       map.invalidateSize();
     }
 
-    return () => {
+    // --- Initial Data Fetch ---
+    const fetchInitialVessels = async () => {
+      try {
+        const response = await fetch('https://localhost:8443/api/ship-data/active-ships');
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const vessels: RealTimeShipUpdateDTO[] = await response.json();
+        vessels.forEach(addOrUpdateVesselMarker);
+      } catch (error) {
+        console.error('Error fetching initial vessel data:', error);
+        toast({
+          title: 'Error',
+          description: 'Could not fetch initial vessel data.',
+          variant: 'destructive',
+        });
+      }
+    };
+
+    // We need the map to be initialized before we can draw the vessels
+    const checkMapAndFetchVessels = () => {
       if (mapInstanceRef.current) {
-        // Clear markers
-        markersRef.current.forEach((marker) => {
-          if (mapInstanceRef.current) {
-            mapInstanceRef.current.removeLayer(marker);
+        fetchInitialVessels();
+      } else {
+        setTimeout(checkMapAndFetchVessels, 100); // Retry after a short delay
+      }
+    };
+
+    checkMapAndFetchVessels();
+
+    // --- WebSocket Connection ---
+    if (!stompClientRef.current) {
+      const client = new Client({
+        webSocketFactory: () => new SockJS('https://localhost:8443/ws-ais'),
+        reconnectDelay: 5000,
+        debug: () => {}, // Disable console logging for STOMP
+      });
+
+      client.onConnect = () => {
+        client.subscribe('/topic/ais-updates', (message) => {
+          try {
+            const vessel: RealTimeShipUpdateDTO = JSON.parse(message.body);
+            addOrUpdateVesselMarker(vessel);
+          } catch (e) {
+            console.error('Failed to parse vessel update from WebSocket:', e);
           }
         });
-        markersRef.current = [];
+      };
 
+      client.activate();
+      stompClientRef.current = client;
+    }
+
+    return () => {
+      if (stompClientRef.current?.active) {
+        stompClientRef.current.deactivate();
+        stompClientRef.current = null;
+      }
+      // The map instance is cleaned up in a separate useEffect to avoid conflicts
+    };
+  }, []);
+
+  useEffect(() => {
+    // This separate useEffect handles the map instance cleanup.
+    return () => {
+      if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
@@ -392,25 +335,12 @@ const UserPage: React.FC = () => {
   const applyFilters = () => {
     console.log('Applying filters:', filters);
 
-    // Filter vessels based on current filter settings
-    const filteredVessels = mockVessels.filter((vessel) => {
-      const typeMatch = filters.vesselType === 'all' || vessel.type === filters.vesselType;
-      const statusMatch = filters.vesselStatus === 'all' || vessel.status === filters.vesselStatus;
-      return typeMatch && statusMatch;
+    // This function will need to be adapted to work with the live data
+    // For now, it will not do anything as mockVessels is removed.
+    toast({
+      title: 'Filter Not Implemented',
+      description: 'Filtering live data is not yet implemented.',
     });
-
-    // Clear existing markers
-    markersRef.current.forEach((marker) => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.removeLayer(marker);
-      }
-    });
-    markersRef.current = [];
-
-    // Add filtered markers
-    if (mapInstanceRef.current) {
-      addVesselMarkers(filteredVessels);
-    }
 
     setIsFiltersOpen(false);
   };
@@ -506,7 +436,7 @@ const UserPage: React.FC = () => {
       console.log('Sending PUT request to /api/zone/mine with payload:', payload);
 
       try {
-        const response = await fetch('http://localhost:8080/api/zone/mine', {
+        const response = await fetch('https://localhost:8443/api/zone/mine', {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -581,7 +511,7 @@ const UserPage: React.FC = () => {
       // Remove interest zone via API
       console.log(`Sending DELETE request to /api/zone/mine for zone ID: ${id}`);
       try {
-        const response = await fetch('http://localhost:8080/api/zone/mine', {
+        const response = await fetch('https://localhost:8443/api/zone/mine', {
           method: 'DELETE',
           credentials: 'include',
         });
@@ -863,13 +793,13 @@ const UserPage: React.FC = () => {
               {selectedVessel ? (
                 <div className="rounded-md bg-muted p-3">
                   <div className="mb-2 text-xs font-medium text-foreground">
-                    {selectedVessel.name}
+                    {`Vessel ${selectedVessel.mmsi}`}
                   </div>
                   <pre className="text-xs">
                     {`{
-  "latitude": ${selectedVessel.lat},
-  "longitude": ${selectedVessel.lng},
-  "timestamp": "2025-05-27T${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}:${new Date().getSeconds().toString().padStart(2, '0')}Z"
+  "latitude": ${selectedVessel.latitude?.toFixed(6)},
+  "longitude": ${selectedVessel.longitude?.toFixed(6)},
+  "timestamp": "${new Date(selectedVessel.timestampEpoch * 1000).toISOString()}"
 }`}
                   </pre>
                 </div>

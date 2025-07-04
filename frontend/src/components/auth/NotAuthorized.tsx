@@ -5,8 +5,8 @@ import { Link } from 'react-router-dom';
 
 const NotAuthorized: React.FC = () => {
   return (
-    <div className="flex h-screen w-screen flex-col items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-md rounded-lg border bg-white p-8 shadow-md">
+    <div className="flex h-screen w-screen items-center justify-center bg-gray-50 p-4">
+      <div className="w-full rounded-lg border bg-white p-8 shadow-md">
         <div className="flex flex-col items-center justify-center">
           <ShieldAlert className="h-16 w-16 text-red-600" />
           <h1 className="mt-4 text-2xl font-bold text-gray-900">Access Denied</h1>

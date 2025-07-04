@@ -2,6 +2,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Bookmark, Map, Menu, Search, User, Users, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
 
 const Navbar = () => {
   const { currentUser, isAdmin, logout } = useAuth();
@@ -300,6 +301,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     <div className="flex h-screen flex-col">
       <Navbar />
       <main className="flex flex-1 flex-col">{children}</main>
+      <Toaster position='top-right' />
       <Footer />
     </div>
   );
