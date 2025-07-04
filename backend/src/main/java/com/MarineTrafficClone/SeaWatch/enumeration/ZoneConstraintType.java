@@ -1,11 +1,25 @@
 package com.MarineTrafficClone.SeaWatch.enumeration;
 
+/**
+ * Enumeration που ορίζει τους διαθέσιμους τύπους περιορισμών (constraints)
+ * που μπορούν να εφαρμοστούν σε μια ζώνη ενδιαφέροντος (Zone of Interest).
+ */
 public enum ZoneConstraintType {
-    SPEED_LIMIT_ABOVE,   // Alert if speed > value
-    SPEED_LIMIT_BELOW,   // Alert if speed < value
-    ZONE_ENTRY,          // Alert when a ship enters the zone
-    ZONE_EXIT,           // Alert when a ship that was inside, leaves
+    /** Ειδοποίηση αν η ταχύτητα του πλοίου υπερβεί μια τιμή. */
+    SPEED_LIMIT_ABOVE,
 
-    FORBIDDEN_SHIP_TYPE, // Alert if a specific ship type is present
-    UNWANTED_NAV_STATUS  // Alert if a ship has a specific navigational status
+    /** Ειδοποίηση αν η ταχύτητα του πλοίου πέσει κάτω από μια τιμή. */
+    SPEED_LIMIT_BELOW,
+
+    /** Ειδοποίηση όταν ένα πλοίο εισέρχεται στη ζώνη. */
+    ZONE_ENTRY,
+
+    /** Ειδοποίηση όταν ένα πλοίο που ήταν μέσα στη ζώνη, εξέρχεται από αυτήν. */
+    ZONE_EXIT,
+
+    /** Ειδοποίηση αν ένας συγκεκριμένος (απαγορευμένος) τύπος πλοίου βρίσκεται μέσα στη ζώνη. */
+    FORBIDDEN_SHIP_TYPE,
+
+    /** Ειδοποίηση αν ένα πλοίο έχει μια συγκεκριμένη (ανεπιθύμητη) ναυτιλιακή κατάσταση (navigational status). */
+    UNWANTED_NAV_STATUS
 }

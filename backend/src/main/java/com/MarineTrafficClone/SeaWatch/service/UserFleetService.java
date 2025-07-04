@@ -18,6 +18,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Service που περιέχει την επιχειρησιακή λογική για τη διαχείριση του προσωπικού
+ * στόλου (fleet) των χρηστών.
+ */
 @Service
 public class UserFleetService {
 
@@ -32,9 +36,15 @@ public class UserFleetService {
         this.aisDataRepository = aisDataRepository;
     }
 
+    /**
+     * Ανακτά τις πλήρεις λεπτομέρειες για όλα τα πλοία που ένας χρήστης έχει στον στόλο του.
+     * Η μέθοδος είναι βελτιστοποιημένη για να κάνει όσο το δυνατόν λιγότερα queries στη βάση.
+     * @param userId Το ID του χρήστη.
+     * @return Ένα Set από ShipDetailsDTO με τα στοιχεία των πλοίων του στόλου.
+     */
     @Transactional(readOnly = true)
     public Set<ShipDetailsDTO> getWatchedShipsDetails(Long userId) {
-        // 1. Βρες τον χρήστη και τον στόλο του (Set<Ship>)
+        // 1. Βρες τον χρήστη και φόρτωσε τον στόλο του (Set<Ship>).
         UserEntity userEntity = userEntityRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
@@ -43,26 +53,25 @@ public class UserFleetService {
             return Collections.emptySet();
         }
 
-        // 2. Μάζεψε όλα τα MMSI από τα πλοία του στόλου
+        // 2. Μάζεψε όλα τα MMSI από τα πλοία του στόλου.
         List<String> mmsiList = fleetShips.stream()
                 .map(ship -> ship.getMmsi().toString())
                 .collect(Collectors.toList());
 
-        // 3. Κάνε ΕΝΑ query για να πάρεις τα τελευταία AIS data για ΟΛΑ τα πλοία
+        // 3. Κάνε ΕΝΑ query για να πάρεις τα τελευταία AIS data για ΟΛΑ τα πλοία του στόλου.
         List<AisData> latestAisDataList = aisDataRepository.findLatestAisDataForMmsiList(mmsiList);
 
-        // 4. Μετέτρεψε τη λίστα σε Map για γρήγορη πρόσβαση (MMSI -> AisData)
+        // 4. Μετέτρεψε τη λίστα σε Map για γρήγορη πρόσβαση (MMSI -> AisData).
         Map<String, AisData> latestAisDataMap = latestAisDataList.stream()
                 .collect(Collectors.toMap(AisData::getMmsi, data -> data));
 
-        // 5. Συνδύασε τα δεδομένα για να φτιάξεις το τελικό Set από DTOs
+        // 5. Συνδύασε τα στατικά δεδομένα (από το fleetShips) με τα δυναμικά (από το Map)
+        //    για να φτιάξεις το τελικό Set από DTOs.
         return fleetShips.stream().map(ship -> {
             ShipDetailsDTO dto = new ShipDetailsDTO();
-            // Γέμισε τα στατικά δεδομένα
             dto.setMmsi(ship.getMmsi());
             dto.setShiptype(ship.getShiptype());
 
-            // Βρες τα τελευταία δυναμικά δεδομένα από το Map
             AisData latestData = latestAisDataMap.get(ship.getMmsi().toString());
             if (latestData != null) {
                 dto.setNavigationalStatus(latestData.getNavigationalStatus());
@@ -78,6 +87,11 @@ public class UserFleetService {
         }).collect(Collectors.toSet());
     }
 
+    /**
+     * Προσθέτει ένα πλοίο στον στόλο ενός χρήστη.
+     * @param userId Το ID του χρήστη.
+     * @param shipMmsi Το MMSI του πλοίου προς προσθήκη.
+     */
     @Transactional
     public void addShipToUserFleet(Long userId, Long shipMmsi) {
         UserEntity userEntity = userEntityRepository.findById(userId)
@@ -86,9 +100,15 @@ public class UserFleetService {
                 .orElseThrow(() -> new ResourceNotFoundException("Ship not found with MMSI: " + shipMmsi));
 
         userEntity.addShipToFleet(ship);
+        // Το save() θα ενημερώσει τον ενδιάμεσο πίνακα 'fleet' λόγω της σχέσης ManyToMany.
         userEntityRepository.save(userEntity);
     }
 
+    /**
+     * Αφαιρεί ένα πλοίο από τον στόλο ενός χρήστη.
+     * @param userId Το ID του χρήστη.
+     * @param shipMmsi Το MMSI του πλοίου προς αφαίρεση.
+     */
     @Transactional
     public void removeShipFromUserFleet(Long userId, Long shipMmsi) {
         UserEntity userEntity = userEntityRepository.findById(userId)

@@ -12,6 +12,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Service που περιέχει την επιχειρησιακή λογική για τη διαχείριση των χρηστών
+ * (εκτός από την αυθεντικοποίηση, η οποία βρίσκεται στο AuthenticationService).
+ * Περιλαμβάνει λειτουργίες όπως η ανάκτηση, η ενημέρωση και η διαγραφή χρηστών.
+ */
 @Service
 public class UserService {
 
@@ -22,6 +27,10 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
+    /**
+     * Ανακτά όλους τους χρήστες από τη βάση δεδομένων και τους μετατρέπει σε UserDTO.
+     * @return Μια λίστα από UserDTO.
+     */
     @Transactional(readOnly = true)
     public List<UserDTO> findAllUsers() {
         return userRepository.findAll().stream()
@@ -29,6 +38,12 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Βρίσκει έναν χρήστη με βάση το ID του.
+     * @param userId Το ID του χρήστη.
+     * @return Το UserDTO του χρήστη.
+     * @throws ResourceNotFoundException αν ο χρήστης δεν βρεθεί.
+     */
     @Transactional(readOnly = true)
     public UserDTO findUserById(Long userId) {
         return userRepository.findById(userId)
@@ -36,6 +51,12 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
     }
 
+    /**
+     * Ενημερώνει τον ρόλο ενός χρήστη.
+     * @param userId Το ID του χρήστη προς ενημέρωση.
+     * @param userUpdateDTO Το DTO που περιέχει τον νέο ρόλο.
+     * @return Το ενημερωμένο UserDTO.
+     */
     @Transactional
     public UserDTO updateUser(Long userId, UserUpdateDTO userUpdateDTO) {
         UserEntity user = userRepository.findById(userId)
@@ -47,6 +68,10 @@ public class UserService {
         return convertToDto(updatedUser);
     }
 
+    /**
+     * Διαγράφει έναν χρήστη από τη βάση δεδομένων.
+     * @param userId Το ID του χρήστη προς διαγραφή.
+     */
     @Transactional
     public void deleteUser(Long userId) {
         if (!userRepository.existsById(userId)) {
@@ -55,12 +80,18 @@ public class UserService {
         userRepository.deleteById(userId);
     }
 
-    // Helper method για τη μετατροπή Entity σε DTO
+    /**
+     * Βοηθητική (helper) μέθοδος για τη μετατροπή μιας οντότητας UserEntity σε UserDTO.
+     * Αυτό εξασφαλίζει ότι ευαίσθητες πληροφορίες (όπως ο κωδικός) δεν αποστέλλονται ποτέ στον client.
+     * @param user Η οντότητα UserEntity.
+     * @return Το αντίστοιχο UserDTO.
+     */
     public UserDTO convertToDto(UserEntity user) {
         UserDTO userDTO = new UserDTO();
         userDTO.setId(user.getId());
         userDTO.setEmail(user.getEmail());
         userDTO.setRole(user.getRole());
+        // Ελέγχουμε αν οι συσχετισμένες ζώνες είναι null για να θέσουμε τα boolean flags.
         userDTO.setHasActiveInterestZone(user.getZoneOfInterest() != null);
         userDTO.setHasActiveCollisionZone(user.getCollisionZone() != null);
         return userDTO;

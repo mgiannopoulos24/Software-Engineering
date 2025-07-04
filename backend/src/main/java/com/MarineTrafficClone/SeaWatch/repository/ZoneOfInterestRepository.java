@@ -4,14 +4,20 @@ import com.MarineTrafficClone.SeaWatch.model.ZoneOfInterest;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional; // Use Optional for safety
+import java.util.Optional;
 
+/**
+ * Repository interface για την πρόσβαση στα δεδομένα της οντότητας {@link ZoneOfInterest}.
+ */
 @Repository
 public interface ZoneOfInterestRepository extends JpaRepository<ZoneOfInterest, Long> {
-    // Find the single zone belonging to a specific user
+
+    /**
+     * Βρίσκει τη μοναδική ζώνη ενδιαφέροντος που ανήκει σε έναν συγκεκριμένο χρήστη,
+     * βάσει του ID του χρήστη.
+     *
+     * @param userId Το ID του χρήστη.
+     * @return Ένα Optional που περιέχει την ZoneOfInterest αν βρεθεί.
+     */
     Optional<ZoneOfInterest> findByUserId(Long userId);
-
-    // This allows for easy deletion without fetching the entity first
-    void deleteByUserId(Long userId);
 }
-

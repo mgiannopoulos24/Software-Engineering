@@ -1,86 +1,96 @@
 # version: '3.8'
 
 services:
+  # === Υπηρεσία της Spring Boot εφαρμογής ===
   app:
     build:
-      context: .
-    container_name: springboot-app
-    restart: unless-stopped
+      context: . # Κατασκευάζει το image από το Dockerfile που βρίσκεται στον ίδιο φάκελο.
+    container_name: springboot-app # Προσαρμοσμένο όνομα για το container.
+    restart: unless-stopped # Το container θα επανεκκινεί αυτόματα εκτός αν το σταματήσουμε εμείς.
     ports:
-      - "8443:8443"
-      - "8080:8080"
+      # Αντιστοίχιση των ports. host:container
+      - "8443:8443" # Για HTTPS (αν ενεργοποιηθεί)
+      - "8080:8080" # Για HTTP
     depends_on:
-      db: # Changed to map style for condition
-        condition: service_healthy
-      zookeeper: # Changed to map style for condition
-        condition: service_started
-      kafka: # Changed to map style for condition
-        condition: service_started
+      # Η υπηρεσία 'app' θα ξεκινήσει μόνο ΑΦΟΥ οι παρακάτω υπηρεσίες είναι έτοιμες.
+      db:
+        condition: service_healthy # Περιμένει μέχρι το healthcheck της 'db' να είναι επιτυχές.
+      zookeeper:
+        condition: service_started # Περιμένει απλώς να ξεκινήσει ο Zookeeper.
+      kafka:
+        condition: service_started # Περιμένει απλώς να ξεκινήσει ο Kafka.
     networks:
-      - db
+      - db # Συνδέει το container στο δίκτυο 'db'.
     environment:
+      # Μεταβλητές περιβάλλοντος που περνούν στο Spring Boot container.
+      # Κάνουν override τις αντίστοιχες τιμές στο application.properties.
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/postgres
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_JPA_HIBERNATE_DDL_AUTO=create-drop
-      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092 # Το 'kafka:9092' αναφέρεται στο service 'kafka'.
 
+  # === Υπηρεσία της Βάσης Δεδομένων PostgreSQL ===
   db:
     image: postgres:15
     container_name: postgres-db
     restart: unless-stopped
     environment:
+      # Διαμόρφωση της βάσης δεδομένων.
       POSTGRES_PASSWORD: postgres
       POSTGRES_USER: postgres
       POSTGRES_DB: postgres
-      PGDATA: /data/postgres
+      PGDATA: /data/postgres # Φάκελος μέσα στο container όπου αποθηκεύονται τα δεδομένα.
     volumes:
-      - db:/data/postgres
+      - db:/data/postgres # Δημιουργεί ένα named volume 'db' και το συνδέει με τον φάκελο δεδομένων.
+      # Αυτό εξασφαλίζει ότι τα δεδομένα της βάσης παραμένουν ακόμα και αν το container διαγραφεί.
     ports:
-      - "5432:5432"
+      - "5432:5432" # Επιτρέπει την πρόσβαση στη βάση από τον host υπολογιστή.
     networks:
       - db
     healthcheck:
+      # Έλεγχος για να δούμε αν η βάση είναι έτοιμη να δεχτεί συνδέσεις.
       test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s # Optional
+      interval: 10s # Έλεγχος κάθε 10 δευτερόλεπτα.
+      timeout: 5s   # Ο έλεγχος πρέπει να ολοκληρωθεί σε 5 δευτερόλεπτα.
+      retries: 5    # 5 προσπάθειες πριν μαρκαριστεί ως 'unhealthy'.
+      start_period: 30s # Περίοδος χάριτος στην αρχή.
 
+  # === Υπηρεσία Zookeeper (απαιτείται από τον Kafka) ===
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.1
-    container_name: zookeeper # Added for consistency
-    restart: unless-stopped   # Added for consistency
+    container_name: zookeeper
+    restart: unless-stopped
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     networks:
       - db
-    ports: # Exposing port for potential external tools or debugging
-      - "2181:2181"
-    # You could look up if confluentinc/cp-zookeeper images have a healthcheck command
+    ports:
+      - "2181:2181" # Expose του port για πιθανό debugging.
 
+  # === Υπηρεσία Kafka ===
   kafka:
     image: confluentinc/cp-kafka:7.5.1
-    container_name: kafka # Added for consistency
-    restart: unless-stopped # Added for consistency
-    depends_on: # Ensure Zookeeper is at least started
+    container_name: kafka
+    restart: unless-stopped
+    depends_on:
       zookeeper:
-        condition: service_started # Or add a specific healthcheck for zookeeper
+        condition: service_started # Πρέπει να ξεκινήσει μετά τον Zookeeper.
     ports:
-      - "9092:9092"
-      - "29092:29092"
+      - "9092:9092"   # Για εσωτερική επικοινωνία στο Docker network.
+      - "29092:29092" # Για εξωτερική επικοινωνία από τον host (π.χ. από το Spring Boot app αν τρέχει τοπικά).
     networks:
       - db
     environment:
       KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181 # This refers to the zookeeper service name
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181 # Σύνδεση με τον Zookeeper service.
+      # Ορισμός των listeners για να είναι προσβάσιμος ο Kafka και από μέσα και από έξω από το Docker.
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1 # Suitable for single-node Kafka dev setup
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1 # Απαραίτητο για setup με έναν μόνο Kafka broker.
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
-    # You could look up if confluentinc/cp-kafka images have a healthcheck command
 
   # frontend:
   #   build:
@@ -88,7 +98,7 @@ services:
   #   image: node:22
   #   container_name: frontend-app
   #   restart: unless-stopped
-    
+
   #   working_dir: /app
   #   ports:
   #     - "5173:5173"
@@ -99,12 +109,11 @@ services:
   #     - frontend
   #   command: sh -c "npm install && npm run dev"
 
+# Ορισμός του κοινού δικτύου για την επικοινωνία των services.
 networks:
   db:
     driver: bridge
-  # frontend:
-  #   driver: bridge
 
+# Ορισμός του named volume για την persistent αποθήκευση των δεδομένων της βάσης.
 volumes:
   db:
-#  postgres-data:

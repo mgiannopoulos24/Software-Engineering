@@ -17,12 +17,20 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * Service που υλοποιεί την {@link CommandLineRunner} για να εκτελεστεί αυτόματα
+ * κατά την εκκίνηση της εφαρμογής. Ο σκοπός του είναι να διαβάσει το αρχείο CSV
+ * με τα στατικά δεδομένα των πλοίων (MMSI και τύπος) και να τα φορτώσει στον πίνακα
+ * `ships` της βάσης δεδομένων.
+ * Το `@Order(1)` εξασφαλίζει ότι αυτό το service θα εκτελεστεί ΠΡΙΝ από οποιοδήποτε
+ * άλλο CommandLineRunner με μεγαλύτερο αριθμό (π.χ., το CsvDataLoaderService που έχει @Order(2)).
+ * Αυτό είναι σημαντικό ώστε να υπάρχουν τα στατικά δεδομένα στη βάση πριν αρχίσει η ροή των δυναμικών.
+ */
 @Service
 @Order(1)
 public class StaticShipDataLoaderService implements CommandLineRunner {
 
     private final ShipRepository shipRepository;
-
     private static final Logger log = LoggerFactory.getLogger(StaticShipDataLoaderService.class);
 
     @Autowired
@@ -30,13 +38,18 @@ public class StaticShipDataLoaderService implements CommandLineRunner {
         this.shipRepository = shipRepository;
     }
 
+    /**
+     * Η μέθοδος run() καλείται αυτόματα από το Spring Boot.
+     * Η εκτέλεση γίνεται μέσα σε μια συναλλαγή (transaction) για να διασφαλιστεί
+     * ότι είτε θα φορτωθούν όλα τα δεδομένα επιτυχώς, είτε κανένα.
+     */
     @Override
-    @Transactional // Apply transaction to the entire data loading process
+    @Transactional
     public void run(String... args) {
-        System.out.println("STATIC DATA LOADER (CommandLineRunner): run() method called. Attempting to load static ship data.");
-        String filePath = "AIS-Data/vessel_types.csv"; // Path within src/main/resources
-        // Make sure this filename matches your actual static data CSV
+        log.info("STATIC DATA LOADER: Starting to load static ship data...");
+        String filePath = "AIS-Data/vessel_types.csv";
 
+        // Μετρητές για στατιστικά.
         int linesProcessed = 0;
         int newShipsCreated = 0;
         int shipsUpdated = 0;
@@ -46,53 +59,49 @@ public class StaticShipDataLoaderService implements CommandLineRunner {
              BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
 
             String line;
-            boolean headerSkipped = false;
 
             while ((line = reader.readLine()) != null) {
+
                 linesProcessed++;
-                if (!headerSkipped) {
-                    // Assuming the first line is a header like "mmsi,shiptype_value"
-                    // If your CSV has NO header, remove this block or set headerSkipped = true before the loop.
-                    headerSkipped = true;
-                    System.out.println("STATIC DATA LOADER: Skipped header row: '" + line + "'");
-                    continue;
-                }
 
                 if (line.trim().isEmpty()) {
-                    System.out.println("STATIC DATA LOADER: Skipped empty line at line number: " + linesProcessed);
+                    log.info("STATIC DATA LOADER: Skipped empty line at line number: {}", linesProcessed);
                     skippedLinesDueToErrorOrFormat++;
                     continue;
                 }
 
-                String[] values = line.split(",", -1); // Use -1 limit to include trailing empty strings if any
+                String[] values = line.split(",", -1);
                 if (values.length == 2) {
                     try {
                         String mmsiString = values[0].trim();
                         String shipTypeValueString = values[1].trim();
 
                         if (mmsiString.isEmpty()) {
-                            System.err.println("STATIC DATA LOADER: Skipping line " + linesProcessed + " due to empty MMSI in line: '" + line + "'");
+                            log.warn("STATIC DATA LOADER: Skipping line {} due to empty MMSI in line: '{}'", linesProcessed, line);
                             skippedLinesDueToErrorOrFormat++;
                             continue;
                         }
                         if (shipTypeValueString.isEmpty()) {
-                            System.err.println("STATIC DATA LOADER: Skipping line " + linesProcessed + " due to empty ShipType value for MMSI " + mmsiString + " in line: '" + line + "'");
+                            log.warn("STATIC DATA LOADER: Skipping line {} due to empty ShipType value for MMSI {} in line: '{}'",  linesProcessed, mmsiString, line);
                             skippedLinesDueToErrorOrFormat++;
                             continue;
                         }
 
                         Long mmsi = Long.parseLong(mmsiString);
-                        ShipType shipTypeEnum = ShipType.fromValue(shipTypeValueString); // Uses the static method from your Enum
+                        // Χρήση της βοηθητικής μεθόδου fromValue για να μετατρέψουμε το string σε enum.
+                        ShipType shipTypeEnum = ShipType.fromValue(shipTypeValueString);
 
                         if (shipTypeEnum == null) {
-                            System.err.println("STATIC DATA LOADER: Unknown or unmappable ship type value '" + shipTypeValueString + "' for MMSI " + mmsi + " on line " + linesProcessed + ". Skipping record.");
+                            log.warn("STATIC DATA LOADER: Unknown or unmappable ship type value '{}' for MMSI {} on line {}. Skipping record.", shipTypeValueString, mmsi, linesProcessed);
                             skippedLinesDueToErrorOrFormat++;
                             continue;
                         }
 
+                        // Έλεγχος αν το πλοίο υπάρχει ήδη στη βάση.
                         Ship existingShip = shipRepository.findByMmsi(mmsi).orElse(null);
 
                         if (existingShip == null) {
+                            // Αν δεν υπάρχει, δημιουργούμε ένα νέο.
                             Ship newShip = Ship.builder()
                                     .mmsi(mmsi)
                                     .shiptype(shipTypeEnum)
@@ -100,41 +109,36 @@ public class StaticShipDataLoaderService implements CommandLineRunner {
                             shipRepository.save(newShip);
                             newShipsCreated++;
                         } else {
-                            // Ship already exists, update its type only if it's different
+                            // Αν υπάρχει, ελέγχουμε αν ο τύπος έχει αλλάξει και το ενημερώνουμε μόνο αν χρειάζεται.
                             if (existingShip.getShiptype() != shipTypeEnum) {
-                                System.out.println("STATIC DATA LOADER: Updating ship type for MMSI " + mmsi + " from '" + existingShip.getShiptype() + "' to '" + shipTypeEnum + "'.");
+                                log.info("STATIC DATA LOADER: Updating ship type for MMSI {} from '{}' to '{}'.", mmsi, existingShip.getShiptype(), shipTypeEnum);
                                 existingShip.setShiptype(shipTypeEnum);
-                                shipRepository.save(existingShip); // This will perform an UPDATE
+                                shipRepository.save(existingShip);
                                 shipsUpdated++;
                             }
-                            // Optionally, log if ship exists and type is the same:
-                            // else {
-                            //    System.out.println("STATIC DATA LOADER: Ship with MMSI " + mmsi + " already exists with type " + shipTypeEnum + ". No update needed.");
-                            // }
                         }
                     } catch (NumberFormatException e) {
                         log.error("STATIC DATA LOADER: Skipping line {} due to MMSI parsing error (NumberFormat): '{}' in line: '{}'", linesProcessed, values[0], line, e);
                         skippedLinesDueToErrorOrFormat++;
-                    } catch (IllegalArgumentException e) { // Catches errors from ShipType.fromValue if it throws for unknown values
+                    } catch (IllegalArgumentException e) {
                         log.error("STATIC DATA LOADER: Skipping line {} due to invalid ShipType value: '{}' in line: '{}'", linesProcessed, values[1], line, e);
                         skippedLinesDueToErrorOrFormat++;
-                    } catch (Exception e) { // Catch any other unexpected error for a specific line
+                    } catch (Exception e) {
                         log.error("STATIC DATA LOADER: Error processing line: '{}'", line, e);
                         skippedLinesDueToErrorOrFormat++;
                     }
                 } else {
-                    System.err.println("STATIC DATA LOADER: Malformed CSV line " + linesProcessed + " (expected 2 columns, found " + values.length + "): '" + line + "'");
-                    skippedLinesDueToErrorOrFormat++;
+                    log.error("STATIC DATA LOADER: Malformed CSV line {} (expected 2 columns). Found: '{}'", linesProcessed, values.length);
                 }
-            } // End while loop
+            }
+            log.info("STATIC DATA LOADER: Finished processing static ship data CSV.");
+            log.info("STATIC DATA LOADER: Total lines read : {}", (linesProcessed - skippedLinesDueToErrorOrFormat));
+            log.info("STATIC DATA LOADER: New ships created: {}", newShipsCreated);
+            log.info("STATIC DATA LOADER: Existing ships updated: {}", shipsUpdated);
+            log.info("STATIC DATA LOADER: Lines skipped due to errors, empty values, or format issues: {}", skippedLinesDueToErrorOrFormat);
 
-            System.out.println("STATIC DATA LOADER: Finished processing static ship data CSV.");
-            System.out.println("STATIC DATA LOADER: Total lines read (actual data lines after header): " + (linesProcessed - (headerSkipped ? 1 : 0) - skippedLinesDueToErrorOrFormat));
-            System.out.println("STATIC DATA LOADER: New ships created: " + newShipsCreated);
-            System.out.println("STATIC DATA LOADER: Existing ships updated: " + shipsUpdated);
-            System.out.println("STATIC DATA LOADER: Lines skipped due to errors, empty values, or format issues: " + skippedLinesDueToErrorOrFormat);
 
-        } catch (Exception e) { // Catch errors related to opening or reading the file itself
+        } catch (Exception e) {
             log.error("STATIC DATA LOADER: CRITICAL error loading or processing static ship data CSV file '{}'", filePath, e);
         }
     }

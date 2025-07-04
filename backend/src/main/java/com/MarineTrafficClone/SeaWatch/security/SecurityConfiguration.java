@@ -18,51 +18,78 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
+/**
+ * Κεντρική κλάση διαμόρφωσης για το Spring Security.
+ * Ορίζει τους κανόνες ασφαλείας για τα HTTP requests, τη διαχείριση των sessions,
+ * και την ενσωμάτωση του custom JWT filter.
+ */
 @Configuration
-@EnableWebSecurity
+@EnableWebSecurity // Ενεργοποιεί την υποστήριξη ασφάλειας web του Spring.
 @RequiredArgsConstructor
-@EnableMethodSecurity
+@EnableMethodSecurity // Επιτρέπει τη χρήση annotations όπως @PreAuthorize στους controllers.
 public class SecurityConfiguration {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final AuthenticationProvider authenticationProvider;
 
+    /**
+     * Διαμορφώνει την αλυσίδα φίλτρων ασφαλείας (SecurityFilterChain).
+     * Εδώ ορίζονται οι κανόνες για το ποια endpoints είναι δημόσια και ποια απαιτούν αυθεντικοποίηση.
+     *
+     * @param http Το αντικείμενο HttpSecurity για τη διαμόρφωση.
+     * @return Το διαμορφωμένο SecurityFilterChain.
+     * throws Exception
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(AbstractHttpConfigurer::disable)
+                .csrf(AbstractHttpConfigurer::disable) // Απενεργοποίηση του CSRF, καθώς χρησιμοποιούμε JWTs.
                 .authorizeHttpRequests(authorize -> authorize
+                        // Ορίζουμε τα endpoints που είναι δημόσια προσβάσιμα.
                         .requestMatchers(
-                                "/api/auth/**",
-                                "/ws-ais/**"
+                                "/api/auth/**", // Endpoints για login/register.
+                                "/ws-ais/**"    // Το endpoint για τη σύνδεση WebSocket.
                         ).permitAll()
+                        // Ορίζουμε ότι τα admin endpoints απαιτούν τον ρόλο 'ADMIN'.
                         .requestMatchers("/api/admin/**").hasAuthority(RoleType.ADMIN.name())
+                        // Οποιοδήποτε άλλο request απαιτεί αυθεντικοποίηση.
                         .anyRequest().authenticated()
                 )
+                // Διαχείριση των sessions.
                 .sessionManagement(session -> session
+                        // Ορίζουμε την πολιτική ως STATELESS, καθώς με τα JWTs δεν χρειαζόμαστε server-side sessions.
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-                .authenticationProvider(authenticationProvider)
+                .authenticationProvider(authenticationProvider) // Ορίζουμε τον custom authentication provider μας.
+                // Προσθέτουμε το JWT filter μας πριν από το standard filter του Spring.
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .cors(cors -> cors
-                        .configurationSource(corsConfigurationSource())
+                        .configurationSource(corsConfigurationSource()) // Ενεργοποίηση της διαμόρφωσης CORS.
                 );
 
 
         return http.build();
     }
 
+    /**
+     * Διαμορφώνει τους κανόνες για το Cross-Origin Resource Sharing (CORS).
+     * Επιτρέπει στο frontend (που τρέχει σε διαφορετικό origin, π.χ., localhost:5173)
+     * να κάνει αιτήματα στο backend (π.χ., localhost:8080).
+     *
+     * @return Η πηγή διαμόρφωσης CORS.
+     */
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         final UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("*"));
-//        config.setAllowedOriginPatterns(List.of("http://localhost:5173", "https://localhost:5173"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-        config.setExposedHeaders(List.of("Authorization"));
-        config.setAllowCredentials(true);
-        source.registerCorsConfiguration("/**", config);
+        config.setAllowedOriginPatterns(List.of("*")); // Επιτρέπει όλα τα origins (για development).
+        // Σε production, θα ήταν καλύτερα να ορίσουμε συγκεκριμένα origins:
+        // config.setAllowedOriginPatterns(List.of("http://localhost:5173", "https://localhost:5173"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS")); // Επιτρεπόμενες μέθοδοι HTTP.
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type")); // Επιτρεπόμενα headers.
+        config.setExposedHeaders(List.of("Authorization")); // Headers που ο client μπορεί να διαβάσει.
+        config.setAllowCredentials(true); // Επιτρέπει την αποστολή cookies (αν και δεν τα χρησιμοποιούμε εδώ).
+        source.registerCorsConfiguration("/**", config); // Εφαρμογή των κανόνων για όλα τα paths.
         return source;
     }
 }

@@ -1,9 +1,14 @@
 package com.MarineTrafficClone.SeaWatch.enumeration;
 
 import com.fasterxml.jackson.annotation.JsonValue;
-import java.util.stream.Stream; // Import Stream
+import java.util.stream.Stream;
 
+/**
+ * Enumeration που ορίζει τους διάφορους τύπους πλοίων που υποστηρίζει το σύστημα.
+ * Οι τιμές αντιστοιχούν σε αυτές που παρέχονται στο στατικό αρχείο δεδομένων.
+ */
 public enum ShipType {
+    // Ορισμός όλων των πιθανών τύπων πλοίων με την αντίστοιχη string τιμή τους.
     ANTI_POLLUTION("anti-pollution"),
     CARGO("cargo"),
     CARGO_HAZARDAMAJOR("cargo-hazarda(major)"),
@@ -39,20 +44,31 @@ public enum ShipType {
         this.value = value;
     }
 
-    @JsonValue // This is for Jackson serialization/deserialization
+    /**
+     * Το @JsonValue λέει στον Jackson να χρησιμοποιεί αυτή την τιμή κατά τη μετατροπή σε JSON.
+     * @return Η string τιμή του τύπου πλοίου.
+     */
+    @JsonValue
     public String getValue() {
         return value;
     }
 
-    // Static method to find Enum by its string value
+    /**
+     * Στατική μέθοδος (static method) που βρίσκει το αντίστοιχο enum ShipType από τη string τιμή του.
+     * Είναι πολύ χρήσιμη κατά την ανάγνωση δεδομένων από αρχεία CSV ή από JSON αιτήματα,
+     * όπου ο τύπος του πλοίου δίνεται ως string.
+     *
+     * @param value Η string τιμή προς αναζήτηση (π.χ., "cargo").
+     * @return Το αντίστοιχο enum ShipType, ή null αν δεν βρεθεί.
+     */
     public static ShipType fromValue(String value) {
         if (value == null) {
-            return null; // Or throw IllegalArgumentException, or return UNKNOWN
+            return null;
         }
+        // Ψάχνει σε όλα τα enums, αγνοώντας την πεζότητα (case-insensitive) και τα κενά στην αρχή/τέλος.
         return Stream.of(ShipType.values())
-                .filter(st -> st.getValue().equalsIgnoreCase(value.trim())) // Case-insensitive match
+                .filter(st -> st.getValue().equalsIgnoreCase(value.trim()))
                 .findFirst()
-                .orElse(null); // Return null if not found, or throw new IllegalArgumentException("Unknown ShipType value: " + value)
-        // Returning UNKNOWN might be a good default if you prefer: .orElse(ShipType.UNKNOWN);
+                .orElse(ShipType.UNKNOWN); // Επιστρέφει ShipType.UNKNOWN αν δεν βρεθεί.
     }
 }

@@ -1,17 +1,22 @@
-package com.MarineTrafficClone.SeaWatch.repository; // Adjust to your package
+package com.MarineTrafficClone.SeaWatch.repository;
 
 import com.MarineTrafficClone.SeaWatch.model.Ship;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-//import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repository interface για την πρόσβαση στα στατικά δεδομένα της οντότητας {@link Ship}.
+ */
 @Repository
 public interface ShipRepository extends JpaRepository<Ship, Long> {
 
-    Optional<Ship> findByMmsi(Long mmsi);      // To check if a ship exists (for adding or removing from fleet)
-
-    // Το βάζω σε comments για να μην πετάει warnings
-//    List<Ship> findByMmsiIn(List<Long> mmsis); // Useful for getting multiple ships
+    /**
+     * Βρίσκει ένα πλοίο βάσει του μοναδικού του MMSI.
+     *
+     * @param mmsi Το MMSI του πλοίου προς αναζήτηση.
+     * @return Ένα Optional που περιέχει την οντότητα Ship αν βρεθεί, αλλιώς είναι κενό.
+     */
+    Optional<Ship> findByMmsi(Long mmsi);
 }

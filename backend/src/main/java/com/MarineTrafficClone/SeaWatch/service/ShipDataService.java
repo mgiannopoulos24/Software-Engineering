@@ -18,17 +18,22 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * Service που περιέχει την επιχειρησιακή λογική για την ανάκτηση και επεξεργασία
+ * δεδομένων πλοίων (τόσο δυναμικών AIS όσο και στατικών).
+ */
 @Service
-public class AisDataService {
+public class ShipDataService {
     private final AisDataRepository aisDataRepository;
     private final ShipRepository shipRepository;
 
     @Autowired
-    public AisDataService(AisDataRepository aisDataRepository, ShipRepository shipRepository) {
+    public ShipDataService(AisDataRepository aisDataRepository, ShipRepository shipRepository) {
         this.aisDataRepository = aisDataRepository;
         this.shipRepository = shipRepository;
     }
 
+    // Οι παρακάτω μέθοδοι getAisData, getAisDataById, addAisData είναι για debugging και testing
     public List<AisData> getAisData() {
         return aisDataRepository.findAll();
     }
@@ -44,14 +49,15 @@ public class AisDataService {
     }
 
     /**
-     * Ανακτά την πορεία (track) ενός πλοίου για τις τελευταίες 12 ώρες
-     * με βάση την "ώρα προσομοίωσης" (δηλαδή, το πιο πρόσφατο στίγμα του πλοίου).
+     * Ανακτά την πορεία (track) ενός πλοίου για τις τελευταίες 12 ώρες.
+     * Ο υπολογισμός των 12 ωρών γίνεται προς τα πίσω από την "ώρα προσομοίωσης",
+     * η οποία ορίζεται ως η χρονοσφραγίδα του πιο πρόσφατου στίγματος του πλοίου.
      *
      * @param mmsi Το MMSI του πλοίου.
-     * @return Μια λίστα από TrackPointDTO που αναπαριστούν την πορεία.
+     * @return Μια λίστα από TrackPointDTO που αναπαριστούν την πορεία, ή κενή λίστα αν δεν υπάρχουν δεδομένα.
      */
     public List<TrackPointDTO> getShipTrack(String mmsi) {
-        // 1. Βρες την πιο πρόσφατη εγγραφή AIS για το συγκεκριμένο πλοίο.
+        // 1. Βρες την πιο πρόσφατη εγγραφή AIS για το συγκεκριμένο πλοίο για να ορίσεις την "τώρα" ώρα.
         Optional<AisData> latestAisDataOptional = aisDataRepository.findTopByMmsiOrderByTimestampEpochDesc(mmsi);
 
         if (latestAisDataOptional.isEmpty()) {
@@ -68,19 +74,25 @@ public class AisDataService {
         // 4. Κάνε το query στη βάση για να πάρεις όλα τα δεδομένα μέσα σε αυτό το χρονικό παράθυρο.
         List<AisData> aisDataList = aisDataRepository.findByMmsiAndTimestampEpochAfterOrderByTimestampEpochAsc(mmsi, twelveHoursAgoSimulationTime);
 
-        // 5. Μετατροπή της λίστας από AisData σε TrackPointDTO για να επιστραφεί στο frontend.
+        // 5. Μετατροπή της λίστας από AisData σε μια πιο "ελαφριά" λίστα από TrackPointDTO για να επιστραφεί στο frontend.
         return aisDataList.stream()
                 .map(ais -> new TrackPointDTO(ais.getLatitude(), ais.getLongitude(), ais.getTimestampEpoch()))
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Ανακτά τις πλήρεις λεπτομέρειες ενός πλοίου, συνδυάζοντας τα στατικά του στοιχεία
+     * με την τελευταία γνωστή δυναμική του κατάσταση από τα AIS δεδομένα.
+     * @param mmsi Το MMSI του πλοίου.
+     * @return Ένα ShipDetailsDTO με τα συνδυασμένα δεδομένα.
+     */
     @Transactional(readOnly = true)
     public ShipDetailsDTO getShipDetails(Long mmsi) {
-        // 1. Βρες το πλοίο. Αν δεν υπάρχει, θα επιστρέψει 404.
+        // 1. Βρες το πλοίο (στατικά στοιχεία). Αν δεν υπάρχει, θα προκληθεί εξαίρεση ResourceNotFoundException.
         Ship ship = shipRepository.findByMmsi(mmsi)
                 .orElseThrow(() -> new ResourceNotFoundException("Ship not found with MMSI: " + mmsi));
 
-        // 2. Δημιούργησε το DTO και γέμισε τα στατικά δεδομένα από το πλοίο.
+        // 2. Δημιούργησε το DTO και γέμισε τα στατικά δεδομένα.
         ShipDetailsDTO detailsDTO = new ShipDetailsDTO();
         detailsDTO.setMmsi(ship.getMmsi());
         detailsDTO.setShiptype(ship.getShiptype());
@@ -100,58 +112,59 @@ public class AisDataService {
             detailsDTO.setLastUpdateTimestampEpoch(latestAis.getTimestampEpoch());
         });
 
-        // 5. Επίστρεψε το DTO. Θα είναι πλήρες αν βρέθηκαν AIS data, ή μερικώς γεμάτο αν δεν βρέθηκαν.
+        // 5. Επίστρεψε το DTO.
         return detailsDTO;
     }
 
     /**
      * Ανακτά την τελευταία γνωστή, πλήρη κατάσταση για όλα τα πλοία στο σύστημα.
-     * Ιδανικό για την αρχική φόρτωση του χάρτη.
+     * Είναι μια βελτιστοποιημένη μέθοδος ιδανική για την αρχική φόρτωση του χάρτη στο frontend.
      *
      * @return Μια λίστα από ShipDetailsDTO, ένα για κάθε πλοίο.
      */
     @Transactional(readOnly = true)
     public List<ShipDetailsDTO> getAllActiveShipsDetails() {
-        // 1. Βρες όλα τα πλοία που είναι καταχωρημένα στο σύστημα.
+        // 1. Βρες όλα τα πλοία που είναι καταχωρημένα στο σύστημα (στατικά δεδομένα).
         List<Ship> allShips = shipRepository.findAll();
 
         if (allShips.isEmpty()) {
             return Collections.emptyList();
         }
 
-        // 2. Μάζεψε όλα τα MMSI από αυτά τα πλοία.
+        // 2. Μάζεψε όλα τα MMSI από αυτά τα πλοία σε μια λίστα.
         List<String> allMmsiList = allShips.stream()
                 .map(ship -> ship.getMmsi().toString())
                 .collect(Collectors.toList());
 
-        // 3. Κάνε ΕΝΑ αποδοτικό query για να πάρεις τα τελευταία AIS data για ΟΛΑ τα πλοία.
+        // 3. Κάνε ΕΝΑ αποδοτικό query για να πάρεις τα τελευταία AIS data για ΟΛΑ τα πλοία ταυτόχρονα.
         List<AisData> latestAisDataList = aisDataRepository.findLatestAisDataForMmsiList(allMmsiList);
 
-        // 4. Μετέτρεψε τη λίστα σε Map για γρήγορη πρόσβαση (MMSI -> AisData) για O(1) lookup.
+        // 4. Μετέτρεψε τη λίστα των AIS data σε ένα Map για γρήγορη πρόσβαση (MMSI -> AisData) με O(1) πολυπλοκότητα.
         Map<String, AisData> latestAisDataMap = latestAisDataList.stream()
                 .collect(Collectors.toMap(AisData::getMmsi, data -> data));
 
-        // 5. Συνδύασε τα στατικά δεδομένα των πλοίων με τα τελευταία δυναμικά τους δεδομένα.
+        // 5. Πέρνα πάνω από όλα τα πλοία και συνδύασε τα στατικά τους δεδομένα με τα τελευταία δυναμικά τους δεδομένα από το Map.
         return allShips.stream().map(ship -> {
-            ShipDetailsDTO dto = new ShipDetailsDTO();
-            // Γέμισε τα στατικά δεδομένα
-            dto.setMmsi(ship.getMmsi());
-            dto.setShiptype(ship.getShiptype());
+                    ShipDetailsDTO dto = new ShipDetailsDTO();
+                    // Γέμισε τα στατικά δεδομένα
+                    dto.setMmsi(ship.getMmsi());
+                    dto.setShiptype(ship.getShiptype());
 
-            // Βρες τα τελευταία δυναμικά δεδομένα από το Map
-            AisData latestData = latestAisDataMap.get(ship.getMmsi().toString());
-            if (latestData != null) {
-                dto.setNavigationalStatus(latestData.getNavigationalStatus());
-                dto.setRateOfTurn(latestData.getRateOfTurn());
-                dto.setSpeedOverGround(latestData.getSpeedOverGround());
-                dto.setCourseOverGround(latestData.getCourseOverGround());
-                dto.setTrueHeading(latestData.getTrueHeading());
-                dto.setLongitude(latestData.getLongitude());
-                dto.setLatitude(latestData.getLatitude());
-                dto.setLastUpdateTimestampEpoch(latestData.getTimestampEpoch());
-            }
-            return dto;
-        }).filter(dto -> dto.getLongitude() != null && dto.getLatitude() != null)
-        .collect(Collectors.toList());
+                    // Βρες τα τελευταία δυναμικά δεδομένα από το Map
+                    AisData latestData = latestAisDataMap.get(ship.getMmsi().toString());
+                    if (latestData != null) {
+                        // Αν βρέθηκαν, γέμισε τα υπόλοιπα πεδία του DTO.
+                        dto.setNavigationalStatus(latestData.getNavigationalStatus());
+                        dto.setRateOfTurn(latestData.getRateOfTurn());
+                        dto.setSpeedOverGround(latestData.getSpeedOverGround());
+                        dto.setCourseOverGround(latestData.getCourseOverGround());
+                        dto.setTrueHeading(latestData.getTrueHeading());
+                        dto.setLongitude(latestData.getLongitude());
+                        dto.setLatitude(latestData.getLatitude());
+                        dto.setLastUpdateTimestampEpoch(latestData.getTimestampEpoch());
+                    }
+                    return dto;
+                }).filter(dto -> dto.getLongitude() != null && dto.getLatitude() != null) // Φιλτράρισμα για να μην στείλουμε πλοία χωρίς θέση
+                .collect(Collectors.toList());
     }
 }

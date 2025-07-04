@@ -16,6 +16,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * Ένα φίλτρο (Filter) που εκτελείται μία φορά για κάθε εισερχόμενο HTTP request.
+ * Ο σκοπός του είναι να ελέγχει την ύπαρξη ενός JWT (JSON Web Token) στο `Authorization` header,
+ * να το επικυρώνει και, αν είναι έγκυρο, να αυθεντικοποιεί τον χρήστη για το συγκεκριμένο request.
+ */
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -24,26 +29,49 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final UserDetailsService userDetailsService;
 
     @Override
-    protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(
+            @NonNull HttpServletRequest request,
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain) throws ServletException, IOException {
+
+        // 1. Παίρνουμε το "Authorization" header από το request.
         final String authorizationHeader = request.getHeader(SecurityConstants.HEADER_STRING);
         final String jwt;
         final String userEmail;
+
+        // 2. Αν το header δεν υπάρχει ή δεν ξεκινάει με "Bearer ",
+        // τότε δεν είναι αίτημα με token, οπότε το αφήνουμε να συνεχίσει στην επόμενη φάση (filter chain).
         if (authorizationHeader == null || !authorizationHeader.startsWith(SecurityConstants.TOKEN_PREFIX)) {
             filterChain.doFilter(request, response);
             return;
         }
+
+        // 3. Αφαιρούμε το "Bearer " για να πάρουμε το καθαρό token.
         jwt = authorizationHeader.substring(SecurityConstants.TOKEN_PREFIX.length());
-        userEmail = jwtService.extractUsername(jwt);
+        userEmail = jwtService.extractUsername(jwt); // Εξαγωγή του email (username) από το token.
+
+        // 4. Ελέγχουμε αν έχουμε email και αν ο χρήστης δεν είναι ήδη αυθεντικοποιημένος στο SecurityContext.
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            // Φορτώνουμε τα στοιχεία του χρήστη από τη βάση.
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
+
+            // 5. Επικυρώνουμε το token.
             if (jwtService.isTokenValid(jwt, userDetails)) {
-                UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                // Αν το token είναι έγκυρο, δημιουργούμε ένα αντικείμενο αυθεντικοποίησης.
+                UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
+                        userDetails,
+                        null, // Δεν χρειαζόμαστε credentials (password) εδώ.
+                        userDetails.getAuthorities()
+                );
                 authenticationToken.setDetails(
                         new WebAuthenticationDetailsSource().buildDetails(request)
                 );
+                // 6. Τοποθετούμε το αντικείμενο αυθεντικοποίησης στο SecurityContextHolder.
+                // Από αυτό το σημείο και μετά, για το υπόλοιπο του request, ο χρήστης θεωρείται αυθεντικοποιημένος.
                 SecurityContextHolder.getContext().setAuthentication(authenticationToken);
             }
         }
+        // Συνεχίζουμε την εκτέλεση της αλυσίδας των φίλτρων.
         filterChain.doFilter(request, response);
     }
 }

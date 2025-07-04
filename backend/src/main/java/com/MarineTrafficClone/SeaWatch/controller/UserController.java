@@ -12,6 +12,11 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * REST Controller για τη διαχείριση των χρηστών του συστήματος.
+ * Περιλαμβάνει λειτουργίες για admin (π.χ. λίστα όλων των χρηστών, αλλαγή ρόλου)
+ * και λειτουργίες για τον ίδιο τον χρήστη (π.χ. προβολή του προφίλ του).
+ */
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
@@ -24,32 +29,37 @@ public class UserController {
     }
 
     /**
-     * GET /api/users
-     * Επιστρέφει μια λίστα με όλους τους χρήστες.
-     * Πρόσβαση επιτρέπεται μόνο σε χρήστες με ρόλο ADMIN.
+     * Endpoint που επιστρέφει μια λίστα με όλους τους χρήστες του συστήματος.
+     * Η πρόσβαση επιτρέπεται μόνο σε χρήστες με ρόλο 'ADMIN'.
+     *
+     * @return Ένα ResponseEntity που περιέχει τη λίστα των χρηστών (ως UserDTO) και status 200 OK.
      */
     @GetMapping
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN')") // Annotation που επιβάλλει έλεγχο δικαιωμάτων.
     public ResponseEntity<List<UserDTO>> getAllUsers() {
         return ResponseEntity.ok(userService.findAllUsers());
     }
 
     /**
-     * GET /api/users/me
-     * Επιστρέφει τις λεπτομέρειες του συνδεδεμένου χρήστη.
-     * Πρόσβαση επιτρέπεται σε οποιονδήποτε αυθεντικοποιημένο χρήστη.
+     * Endpoint που επιστρέφει τις λεπτομέρειες του τρέχοντος συνδεδεμένου χρήστη.
+     * Η πρόσβαση επιτρέπεται σε οποιονδήποτε αυθεντικοποιημένο χρήστη (ADMIN ή REGISTERED).
+     *
+     * @param currentUser Το αντικείμενο του συνδεδεμένου χρήστη, παρέχεται από το Spring Security.
+     * @return Ένα ResponseEntity που περιέχει τα στοιχεία του χρήστη (ως UserDTO) και status 200 OK.
      */
     @GetMapping("/me")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated()") // Απαιτεί ο χρήστης να είναι απλώς αυθεντικοποιημένος.
     public ResponseEntity<UserDTO> getCurrentUser(@AuthenticationPrincipal UserEntity currentUser) {
-        // Χρησιμοποιούμε τον converter του service για να μετατρέψουμε τον τρέχοντα χρήστη σε DTO
+        // Χρησιμοποιούμε τη βοηθητική μέθοδο του service για να μετατρέψουμε την οντότητα UserEntity σε UserDTO.
         return ResponseEntity.ok(userService.convertToDto(currentUser));
     }
 
     /**
-     * GET /api/users/{id}
-     * Επιστρέφει τις λεπτομέρειες ενός συγκεκριμένου χρήστη.
-     * Πρόσβαση επιτρέπεται μόνο σε χρήστες με ρόλο ADMIN.
+     * Endpoint που επιστρέφει τις λεπτομέρειες ενός συγκεκριμένου χρήστη μέσω του ID του.
+     * Η πρόσβαση επιτρέπεται μόνο σε χρήστες με ρόλο 'ADMIN'.
+     *
+     * @param id Το ID του χρήστη που αναζητούμε.
+     * @return Ένα ResponseEntity που περιέχει τα στοιχεία του χρήστη (ως UserDTO) και status 200 OK.
      */
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('ADMIN')")
@@ -58,9 +68,12 @@ public class UserController {
     }
 
     /**
-     * PUT /api/users/{id}
-     * Ενημερώνει τον ρόλο ενός χρήστη.
-     * Πρόσβαση επιτρέπεται μόνο σε χρήστες με ρόλο ADMIN.
+     * Endpoint για την ενημέρωση του ρόλου ενός χρήστη.
+     * Η πρόσβαση επιτρέπεται μόνο σε χρήστες με ρόλο 'ADMIN'.
+     *
+     * @param id Το ID του χρήστη προς τροποποίηση.
+     * @param userUpdateDTO Ένα DTO που περιέχει τον νέο ρόλο.
+     * @return Ένα ResponseEntity με τα ενημερωμένα στοιχεία του χρήστη και status 200 OK.
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('ADMIN')")
@@ -69,9 +82,11 @@ public class UserController {
     }
 
     /**
-     * DELETE /api/users/{id}
-     * Διαγράφει έναν χρήστη.
-     * Πρόσβαση επιτρέπεται μόνο σε χρήστες με ρόλο ADMIN.
+     * Endpoint για τη διαγραφή ενός χρήστη.
+     * Η πρόσβαση επιτρέπεται μόνο σε χρήστες με ρόλο 'ADMIN'.
+     *
+     * @param id Το ID του χρήστη προς διαγραφή.
+     * @return Ένα ResponseEntity χωρίς περιεχόμενο και status 204 No Content.
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('ADMIN')")

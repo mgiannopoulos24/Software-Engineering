@@ -9,6 +9,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
+/**
+ * REST Controller για την παροχή στατιστικών στοιχείων σχετικά με την κατάσταση του συστήματος.
+ * Τα στατιστικά υπολογίζονται γρήγορα, καθώς βασίζονται σε δεδομένα από τις caches.
+ */
 @RestController
 @RequestMapping("/api/statistics")
 public class StatisticsController {
@@ -21,8 +25,10 @@ public class StatisticsController {
     }
 
     /**
-     * GET /api/statistics/active-ships
-     * Επιστρέφει τον αριθμό των πλοίων που είναι "ενεργά" στον χάρτη.
+     * Επιστρέφει τον συνολικό αριθμό των πλοίων που είναι "ενεργά" στο σύστημα,
+     * δηλαδή τα πλοία για τα οποία έχουμε λάβει τουλάχιστον ένα στίγμα AIS.
+     *
+     * @return Ένα ResponseEntity με ένα JSON αντικείμενο της μορφής {"count": X} και status 200 OK.
      */
     @GetMapping("/active-ships")
     public ResponseEntity<Map<String, Long>> getActiveShipCount() {
@@ -31,8 +37,10 @@ public class StatisticsController {
     }
 
     /**
-     * GET /api/statistics/stopped-ships
-     * Επιστρέφει τον αριθμό των πλοίων που θεωρούνται σταματημένα (ταχύτητα <= 1 κόμβος).
+     * Επιστρέφει τον αριθμό των πλοίων που θεωρούνται σταματημένα.
+     * Ένα πλοίο θεωρείται σταματημένο αν η ταχύτητά του είναι μικρότερη ή ίση από 1 κόμβο.
+     *
+     * @return Ένα ResponseEntity με ένα JSON αντικείμενο της μορφής {"count": X} και status 200 OK.
      */
     @GetMapping("/stopped-ships")
     public ResponseEntity<Map<String, Long>> getStoppedShipCount() {
@@ -41,8 +49,10 @@ public class StatisticsController {
     }
 
     /**
-     * GET /api/statistics/interest-zones
-     * Επιστρέφει τον αριθμό των ενεργών ζωνών ενδιαφέροντος.
+     * Επιστρέφει τον αριθμό των ενεργών ζωνών ενδιαφέροντος (zones of interest)
+     * που έχουν οριστεί από τους χρήστες.
+     *
+     * @return Ένα ResponseEntity με ένα JSON αντικείμενο της μορφής {"count": X} και status 200 OK.
      */
     @GetMapping("/interest-zones")
     public ResponseEntity<Map<String, Integer>> getInterestZoneCount() {
@@ -51,8 +61,10 @@ public class StatisticsController {
     }
 
     /**
-     * GET /api/statistics/collision-zones
-     * Επιστρέφει τον αριθμό των ενεργών ζωνών σύγκρουσης.
+     * Επιστρέφει τον αριθμό των ενεργών ζωνών παρακολούθησης σύγκρουσης (collision zones)
+     * που έχουν οριστεί από τους χρήστες.
+     *
+     * @return Ένα ResponseEntity με ένα JSON αντικείμενο της μορφής {"count": X} και status 200 OK.
      */
     @GetMapping("/collision-zones")
     public ResponseEntity<Map<String, Integer>> getCollisionZoneCount() {

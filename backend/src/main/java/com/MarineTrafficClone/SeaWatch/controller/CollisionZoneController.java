@@ -9,8 +9,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * REST Controller για τη διαχείριση της μοναδικής ζώνης παρακολούθησης συγκρούσεων (Collision Zone)
+ * που μπορεί να ορίσει ένας εγγεγραμμένος χρήστης.
+ */
 @RestController
-@RequestMapping("/api/collision-zone")
+@RequestMapping("/api/collision-zone") // Βασικό URL path για τις ζώνες σύγκρουσης.
 public class CollisionZoneController {
 
     private final CollisionZoneService collisionZoneService;
@@ -20,31 +24,56 @@ public class CollisionZoneController {
         this.collisionZoneService = collisionZoneService;
     }
 
-    // Get the current user's single collision zone
+    /**
+     * Endpoint για την ανάκτηση της ζώνης σύγκρουσης του τρέχοντος συνδεδεμένου χρήστη.
+     *
+     * @param currentUser Ο τρέχων αυθεντικοποιημένος χρήστης, παρέχεται αυτόματα από το Spring Security.
+     * @return Ένα ResponseEntity που περιέχει τα δεδομένα της ζώνης (CollisionZoneDTO) και status 200 OK,
+     *         ή status 404 Not Found αν ο χρήστης δεν έχει ορίσει ζώνη.
+     */
     @GetMapping("/mine")
     public ResponseEntity<CollisionZoneDTO> getMyZone(@AuthenticationPrincipal UserEntity currentUser) {
         return collisionZoneService.getZoneForUser(currentUser.getId())
-                .map(this::convertToDto) // Μετατροπή της οντότητας σε DTO
+                .map(this::convertToDto) // Μετατροπή της οντότητας (Entity) σε DTO.
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    // Create or Update the user's single collision zone.
-    // PUT is used because this operation is idempotent (setting the same zone data multiple times has the same outcome).
+    /**
+     * Endpoint για τη δημιουργία ή ενημέρωση της ζώνης σύγκρουσης του τρέχοντος χρήστη.
+     * Η μέθοδος PUT χρησιμοποιείται εδώ επειδή η λειτουργία είναι idempotent:
+     * το να στέλνεις τα ίδια δεδομένα πολλές φορές έχει το ίδιο τελικό αποτέλεσμα.
+     *
+     * @param zoneDetailsDTO Τα δεδομένα της ζώνης που αποστέλλονται από τον client.
+     * @param currentUser Ο τρέχων αυθεντικοποιημένος χρήστης.
+     * @return Ένα ResponseEntity που περιέχει τα δεδομένα της αποθηκευμένης/ενημερωμένης ζώνης και status 200 OK.
+     */
     @PutMapping("/mine")
     public ResponseEntity<CollisionZoneDTO> createOrUpdateMyZone(@RequestBody CollisionZoneDTO zoneDetailsDTO, @AuthenticationPrincipal UserEntity currentUser) {
         CollisionZone updatedZone = collisionZoneService.createOrUpdateZone(zoneDetailsDTO, currentUser);
         return ResponseEntity.ok(convertToDto(updatedZone));
     }
 
-    // Delete the current user's single collision zone
+    /**
+     * Endpoint για τη διαγραφή της ζώνης σύγκρουσης του τρέχοντος χρήστη.
+     *
+     * @param currentUser Ο τρέχων αυθεντικοποιημένος χρήστης.
+     * @return Ένα ResponseEntity χωρίς περιεχόμενο (noContent) και status 204.
+     */
     @DeleteMapping("/mine")
     public ResponseEntity<Void> deleteMyZone(@AuthenticationPrincipal UserEntity currentUser) {
         collisionZoneService.deleteZoneForUser(currentUser.getId());
         return ResponseEntity.noContent().build();
     }
 
-    // Helper method για τη μετατροπή Entity -> DTO
+    /**
+     * Βοηθητική (helper) μέθοδος για τη μετατροπή ενός αντικειμένου CollisionZone (Entity)
+     * σε ένα αντικείμενο CollisionZoneDTO. Αυτό γίνεται για να αποστέλλονται στον client
+     * μόνο τα απαραίτητα δεδομένα και όχι ολόκληρη η οντότητα της βάσης.
+     *
+     * @param zone Η οντότητα CollisionZone από τη βάση δεδομένων.
+     * @return Το αντίστοιχο Data Transfer Object (DTO).
+     */
     private CollisionZoneDTO convertToDto(CollisionZone zone) {
         CollisionZoneDTO dto = new CollisionZoneDTO();
         dto.setId(zone.getId());

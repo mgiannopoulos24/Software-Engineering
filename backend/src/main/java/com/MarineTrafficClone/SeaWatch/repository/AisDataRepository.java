@@ -12,13 +12,19 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repository interface για την πρόσβαση στα δεδομένα της οντότητας {@link AisData}.
+ * Το Spring Data JPA θα υλοποιήσει αυτόματα αυτό το interface, παρέχοντας
+ * τις βασικές CRUD λειτουργίες και τις προσαρμοσμένες μεθόδους που ορίζουμε εδώ.
+ */
 @Repository
 public interface AisDataRepository extends JpaRepository<AisData, Long> {
 
     /**
      * Βρίσκει όλα τα δεδομένα AIS για ένα συγκεκριμένο MMSI που έχουν καταγραφεί
      * μετά από μια δεδομένη χρονική στιγμή (epoch seconds).
-     * Τα αποτελέσματα επιστρέφονται ταξινομημένα κατά αύξουσα χρονική σειρά.
+     * Τα αποτελέσματα επιστρέφονται ταξινομημένα κατά αύξουσα χρονική σειρά,
+     * το οποίο είναι ιδανικό για την αναπαράσταση μιας πορείας (track).
      *
      * @param mmsi Το MMSI του πλοίου.
      * @param timestampEpoch Ο χρόνος (σε epoch seconds) μετά τον οποίο θα αναζητηθούν δεδομένα.
@@ -37,13 +43,21 @@ public interface AisDataRepository extends JpaRepository<AisData, Long> {
 
     /**
      * Βρίσκει την πιο πρόσφατη εγγραφή AisData για κάθε MMSI σε μια δεδομένη λίστα.
-     * Χρησιμοποιεί ένα πιο σύνθετο JPQL query για βέλτιστη απόδοση, αποφεύγοντας το πρόβλημα N+1.
+     * Χρησιμοποιεί ένα πιο σύνθετο JPQL query για βέλτιστη απόδοση, αποφεύγοντας το πρόβλημα N+1
+     * που θα προέκυπτε αν καλούσαμε την findTopByMmsiOrderByTimestampEpochDesc σε ένα loop.
+     * Το subquery `(SELECT MAX(a2.timestampEpoch) ...)` βρίσκει τη μέγιστη χρονοσφραγίδα για κάθε πλοίο,
+     * και το εξωτερικό query επιστρέφει την πλήρη εγγραφή που αντιστοιχεί σε αυτή τη χρονοσφραγίδα.
+     *
+     * @param mmsis Μια λίστα από MMSI (ως String).
+     * @return Μια λίστα που περιέχει την τελευταία εγγραφή για κάθε πλοίο της λίστας εισόδου.
      */
     @Query("SELECT a FROM AisData a WHERE a.mmsi IN :mmsis AND a.timestampEpoch = (SELECT MAX(a2.timestampEpoch) FROM AisData a2 WHERE a2.mmsi = a.mmsi)")
     List<AisData> findLatestAisDataForMmsiList(@Param("mmsis") List<String> mmsis);
 
     /**
      * Επιστρέφει τη μέγιστη (πιο πρόσφατη) χρονοσφραγίδα που υπάρχει στον πίνακα ais_data.
+     * Χρήσιμο για να γνωρίζουμε την "τρέχουσα ώρα" της προσομοίωσης.
+     *
      * @return Ένα Optional<Long> που περιέχει τη χρονοσφραγίδα, ή κενό αν ο πίνακας είναι άδειος.
      */
     @Query("SELECT MAX(a.timestampEpoch) FROM AisData a")
@@ -51,9 +65,9 @@ public interface AisDataRepository extends JpaRepository<AisData, Long> {
 
     /**
      * Διαγράφει όλες τις εγγραφές AisData που έχουν χρονοσφραγίδα παλαιότερη
-     * από τη δεδομένη τιμή (cutoff).
-     * Modifying: Ενημερώνει το Spring ότι αυτό το query δεν είναι ένα απλό SELECT, αλλά ένα query που τροποποιεί δεδομένα (DELETE ή UPDATE).
-     * Transactional: Εξασφαλίζει ότι η διαγραφή θα γίνει μέσα σε μια συναλλαγή.
+     * από τη δεδομένη τιμή (cutoff). Χρησιμοποιείται για τον περιοδικό καθαρισμό της βάσης.
+     * `@Modifying`: Ενημερώνει το Spring ότι αυτό το query δεν είναι ένα απλό SELECT, αλλά ένα query που τροποποιεί δεδομένα (DELETE ή UPDATE).
+     * `@Transactional`: Εξασφαλίζει ότι η διαγραφή θα γίνει μέσα σε μια συναλλαγή (transaction).
      *
      * @param cutoffTimestampEpoch Το όριο χρονοσφραγίδας. Ό,τι είναι παλαιότερο θα διαγραφεί.
      */

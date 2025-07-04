@@ -8,6 +8,11 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Οντότητα (Entity) που αναπαριστά έναν μεμονωμένο περιορισμό (constraint)
+ * ο οποίος εφαρμόζεται σε μια ζώνη ενδιαφέροντος.
+ * Κάθε αντικείμενο αντιστοιχεί σε μια γραμμή στον πίνακα `zone_constraints`.
+ */
 @Entity
 @Data
 @Builder
@@ -20,15 +25,29 @@ public class ZoneConstraint {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Enumerated(EnumType.STRING)
+    /** Ο τύπος του περιορισμού (π.χ., SPEED_LIMIT_ABOVE). */
+    @Enumerated(EnumType.STRING) // Αποθηκεύεται ως String στη βάση.
     @Column(name = "type", nullable = false)
     private ZoneConstraintType type;
 
+    /**
+     * Η τιμή του περιορισμού. Αποθηκεύεται ως String για ευελιξία,
+     * π.χ., "10.5" για όριο ταχύτητας, "cargo" για τύπο πλοίου.
+     */
     @Column(name = "value", nullable = false)
     private String value;
 
+    /**
+     * Ορίζει τη σχέση Πολλά-προς-Ένα (Many-to-One) με την οντότητα ZoneOfInterest.
+     * Πολλοί περιορισμοί μπορούν να ανήκουν σε μία ζώνη.
+     * `fetch = FetchType.LAZY`: Η ζώνη δεν φορτώνεται αυτόματα μαζί με τον περιορισμό.
+     * `JoinColumn`: Ορίζει τη στήλη `zone_of_interest_id` ως το ξένο κλειδί.
+     * `@JsonIgnore`: Αποτρέπει το άπειρο loop (infinite loop) κατά τη μετατροπή σε JSON,
+     *              καθώς η ZoneOfInterest έχει μια λίστα από ZoneConstraint, και κάθε ZoneConstraint
+     *              θα είχε αναφορά πίσω στη ZoneOfInterest, δημιουργώντας κυκλική αναφορά.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "zone_of_interest_id", nullable = false)
-    @JsonIgnore // Αποτρέπει το άπειρο loop κατά τη μετατροπή σε JSON
+    @JsonIgnore
     private ZoneOfInterest zoneOfInterest;
 }

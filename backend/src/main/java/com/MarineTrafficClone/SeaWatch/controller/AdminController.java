@@ -7,8 +7,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * REST Controller για λειτουργίες που αφορούν αποκλειστικά τους διαχειριστές (Admins).
+ * Η πρόσβαση σε αυτόν τον controller προστατεύεται από το Spring Security
+ * ώστε να επιτρέπεται μόνο σε χρήστες με ρόλο 'ADMIN'.
+ */
 @RestController
-@RequestMapping("/api/admin")
+@RequestMapping("/api/admin") // Βασικό URL path για όλες τις λειτουργίες του admin.
 public class AdminController {
 
     private final AdminService adminService;
@@ -19,9 +24,13 @@ public class AdminController {
     }
 
     /**
-     * PUT /api/admin/ships/{mmsi}/type
-     * Ενημερώνει τον τύπο ενός συγκεκριμένου πλοίου.
-     * Πρόσβαση επιτρέπεται μόνο σε χρήστες με ρόλο ADMIN.
+     * Endpoint για την ενημέρωση του τύπου ενός συγκεκριμένου πλοίου.
+     * Δέχεται ένα αίτημα PUT στο /api/admin/ships/{mmsi}/type.
+     * Η πρόσβαση επιτρέπεται μόνο σε χρήστες με ρόλο ADMIN, όπως ορίζεται στο SecurityConfiguration.
+     *
+     * @param mmsi Το MMSI του πλοίου που θα ενημερωθεί, λαμβάνεται από το URL path.
+     * @param request Το σώμα του αιτήματος που περιέχει τον νέο τύπο πλοίου.
+     * @return Ένα ResponseEntity που περιέχει τις πλήρεις, ενημερωμένες λεπτομέρειες του πλοίου (ShipDetailsDTO) και status 200 OK.
      */
     @PutMapping("/ships/{mmsi}/type")
     public ResponseEntity<ShipDetailsDTO> updateShipType(@PathVariable Long mmsi, @RequestBody ShipTypeUpdateRequest request) {

@@ -21,6 +21,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.*;
 
+/**
+ * Κεντρικό service που "ακούει" (consumes) μηνύματα από το Kafka topic.
+ * Αυτή είναι η καρδιά του backend, καθώς κάθε νέο δεδομένο AIS που φτάνει
+ * πυροδοτεί μια σειρά από ενέργειες: αποθήκευση στη βάση, ενημέρωση των clients μέσω WebSocket,
+ * έλεγχο για παραβιάσεις ζωνών ενδιαφέροντος και έλεγχο για πιθανές συγκρούσεις.
+ */
 @Service
 public class KafkaConsumerService {
 
@@ -31,12 +37,13 @@ public class KafkaConsumerService {
     private final ObjectMapper objectMapper;
     private final SimpMessagingTemplate messagingTemplate;
     private final ShipRepository shipRepository;
-    private final ZoneOfInterestCacheService zoneCache;
-    private final CollisionZoneCacheService collisionZoneCache;
-    private final ShipPositionCacheService positionCache;
+    private final ZoneOfInterestCacheService zoneCache; // Cache για τις ζώνες ενδιαφέροντος.
+    private final CollisionZoneCacheService collisionZoneCache; // Cache για τις ζώνες σύγκρουσης.
+    private final ShipPositionCacheService positionCache; // Cache για τις τελευταίες θέσεις όλων των πλοίων.
 
-    // Ένα Set για να παρακολουθούμε ποια ζευγάρια πλοίων έχουν ήδη ειδοποιηθεί για σύγκρουση
+    // Ένα Set για να παρακολουθούμε ποια ζευγάρια πλοίων έχουν ήδη ειδοποιηθεί για σύγκρουση.
     // Αυτό αποτρέπει την αποστολή εκατοντάδων ειδοποιήσεων για το ίδιο επικείμενο γεγονός.
+    // Το κλειδί είναι ένα string της μορφής "mmsi1-mmsi2" (ταξινομημένα).
     private final Set<String> notifiedCollisionPairs = new HashSet<>();
 
     @Autowired
@@ -58,10 +65,16 @@ public class KafkaConsumerService {
         this.positionCache = positionCache;
     }
 
+    /**
+     * Η κύρια μέθοδος που καταναλώνει μηνύματα από το Kafka.
+     * Το @KafkaListener την ορίζει ως τον παραλήπτη για το συγκεκριμένο topic και group ID.
+     * @param messageJson Το μήνυμα από το Kafka, σε μορφή JSON string.
+     */
     @KafkaListener(topics = KafkaProducerService.AIS_TOPIC_NAME, groupId = "${spring.kafka.consumer.group-id}")
-    @Transactional
+    @Transactional // Η επεξεργασία γίνεται μέσα σε transaction για ακεραιότητα.
     public void consumeAisData(String messageJson) {
         try {
+            // 1. Μετατροπή του JSON σε αντικείμενο AisData.
             AisData aisData = objectMapper.readValue(messageJson, AisData.class);
 
             if (aisData.getMmsi() == null || aisData.getMmsi().isBlank()) {
@@ -69,27 +82,31 @@ public class KafkaConsumerService {
                 return;
             }
 
+            // 2. Βρίσκουμε την προηγούμενη θέση του πλοίου. Χρήσιμο για τον έλεγχο εισόδου/εξόδου από ζώνες.
             Optional<AisData> previousAisDataOpt = aisDataRepository.findTopByMmsiOrderByTimestampEpochDesc(aisData.getMmsi());
+
+            // 3. Αποθήκευση της νέας εγγραφής στη βάση δεδομένων.
             aisDataRepository.save(aisData);
 
+            // 4. Ενημέρωση της cache με την τελευταία θέση του πλοίου.
             positionCache.updatePosition(aisData);
 
             Long mmsiLong = Long.parseLong(aisData.getMmsi());
 
-            // Βρες το αντίστοιχο 'Ship' από τη βάση για να πάρεις τα στατικά του στοιχεία.
-            // Αν δεν βρεθεί το πλοίο (π.χ. είναι η πρώτη φορά που το βλέπουμε),
+            // 5. Βρίσκουμε τα στατικά στοιχεία του πλοίου (τον τύπο του) από το repository.
+            // Αν δεν βρεθεί (π.χ., είναι η πρώτη φορά που βλέπουμε αυτό το MMSI),
             // χρησιμοποιούμε τον τύπο UNKNOWN ως προεπιλογή.
             ShipType shipType = shipRepository.findByMmsi(mmsiLong)
                     .map(Ship::getShiptype)
                     .orElse(ShipType.UNKNOWN);
 
-            // --- 1. Αποστολή ενημερώσεων θέσης μέσω WebSocket ---
+            // 6. Αποστολή ενημερώσεων θέσης μέσω WebSocket στους clients.
             sendRealTimeUpdates(aisData, shipType, mmsiLong);
 
-            // --- 2. Έλεγχος παραβιάσεων ζωνών ενδιαφέροντος ---
+            // 7. Έλεγχος για παραβιάσεις των ζωνών ενδιαφέροντος.
             checkAllZoneViolations(aisData, previousAisDataOpt, shipType);
 
-            // --- 3. Έλεγχος παραβιάσεων ζωνών συγκρούσεων ---
+            // 8. Έλεγχος για πιθανές συγκρούσεις.
             checkCollisions(aisData);
 
         } catch (NumberFormatException e) {
@@ -101,7 +118,11 @@ public class KafkaConsumerService {
         }
     }
 
+    /**
+     * Στέλνει ενημερώσεις σε πραγματικό χρόνο μέσω WebSocket.
+     */
     private void sendRealTimeUpdates(AisData aisData, ShipType shipType, Long mmsiLong) {
+        // Δημιουργία του DTO που θα σταλεί.
         RealTimeShipUpdateDTO updateDTO = new RealTimeShipUpdateDTO();
         updateDTO.setMmsi(aisData.getMmsi());
         updateDTO.setSpeedOverGround(aisData.getSpeedOverGround());
@@ -113,39 +134,44 @@ public class KafkaConsumerService {
         updateDTO.setTimestampEpoch(aisData.getTimestampEpoch());
         updateDTO.setShiptype(shipType);
 
-        // Public broadcast
+        // Αποστολή 1: Public broadcast στο κανάλι /topic/ais-updates για όλους τους clients.
         messagingTemplate.convertAndSend("/topic/ais-updates", updateDTO);
 
-        // Private fleet updates
+        // Αποστολή 2: Private updates στους χρήστες που παρακολουθούν αυτό το πλοίο στον στόλο τους.
         List<UserEntity> usersWatchingThisShip = userEntityRepository.findUsersWatchingMmsi(mmsiLong);
         for (UserEntity userEntity : usersWatchingThisShip) {
             if (userEntity.getEmail() != null) {
+                // Η SimpMessagingTemplate χειρίζεται τη δρομολόγηση στο σωστό session του χρήστη.
                 messagingTemplate.convertAndSendToUser(userEntity.getEmail(), "/queue/fleet-updates", updateDTO);
             }
         }
     }
 
-    // ------------------ Μέθοδοι για τη Λογική των Ζωνών Ενδιαφέροντος ---------------------------------
+    // ----- Λογική για τις Ζώνες Ενδιαφέροντος -----
 
+    /**
+     * Ελέγχει την τρέχουσα θέση ενός πλοίου σε σχέση με όλες τις ενεργές ζώνες ενδιαφέροντος
+     * και τους περιορισμούς τους.
+     */
     private void checkAllZoneViolations(AisData currentPosition, Optional<AisData> previousAisData, ShipType shipType) {
         List<ZoneOfInterest> zones = zoneCache.getAllActiveZones();
-        if (zones.isEmpty() || currentPosition.getLatitude() == null || currentPosition.getLongitude() == null) {
+        if (zones.isEmpty() || currentPosition.getLatitude() == null) {
             return;
         }
 
         for (ZoneOfInterest zone : zones) {
-            boolean isCurrentlyInZone = isInsideZone(currentPosition.getLatitude(), currentPosition.getLongitude(), zone);
-
+            // Έλεγχος αν το πλοίο είναι τώρα μέσα στη ζώνη.
+            boolean isCurrentlyInZone = isInsideZone(currentPosition, zone);
+            // Έλεγχος αν το πλοίο ήταν πριν μέσα στη ζώνη.
             boolean wasPreviouslyInZone = previousAisData
-                    .filter(prev -> prev.getLatitude() != null && prev.getLongitude() != null)
-                    .map(prev -> isInsideZone(prev.getLatitude(), prev.getLongitude(), zone))
+                    .filter(prev -> prev.getLatitude() != null)
+                    .map(prev -> isInsideZone(prev, zone))
                     .orElse(false);
 
-            // Τώρα, κάνουμε iterate στους περιορισμούς της ζώνης
+            // Έλεγχos για κάθε περιορισμό της ζώνης.
             for (ZoneConstraint constraint : zone.getConstraints()) {
                 String msg;
                 switch (constraint.getType()) {
-                    // --- Κανόνες Κίνησης (Entry/Exit) ---
                     case ZONE_ENTRY:
                         if (isCurrentlyInZone && !wasPreviouslyInZone) {
                             msg = String.format("Ship %s entered zone '%s'", currentPosition.getMmsi(), zone.getName());
@@ -220,27 +246,32 @@ public class KafkaConsumerService {
         }
     }
 
-    /* Haversine formula for distance calculation between two points on a sphere */
-    private boolean isInsideZone(Double lat, Double lon, ZoneOfInterest zone) {
-        final int R = 6371 * 1000; // Earth radius in meters
+    /**
+     * Υπολογίζει αν ένα σημείο βρίσκεται μέσα σε μια κυκλική ζώνη χρησιμοποιώντας τον τύπο Haversine.
+     */
+    private boolean isInsideZone(AisData position, ZoneOfInterest zone) {
+        final int R = 6371 * 1000; // Ακτίνα της Γης σε μέτρα
 
-        // Calculate difference in longitude and latitude between the two points (zone center and ship position)
-        double dlat = Math.toRadians(lat - zone.getCenterLatitude());
-        double dlon = Math.toRadians(lon - zone.getCenterLongitude());
+        // Υπολόγισε την διαφρορά σε longitude και latitude ανάμεσα σε 2 σημεία (κέντρο ζόνης και θέση πλοίου)
+        double dLat = Math.toRadians(position.getLatitude() - zone.getCenterLatitude());
+        double dLon = Math.toRadians(position.getLongitude() - zone.getCenterLongitude());
 
-        // Calculate the square of half the chord length between the points.
-        double a = Math.sin(dlat / 2) * Math.sin(dlat / 2)
-                + Math.cos(Math.toRadians(zone.getCenterLatitude())) * Math.cos(Math.toRadians(lat))
-                * Math.sin(dlon / 2) * Math.sin(dlon / 2);
+        // Υπολόγισε το τετράγωνο του μισού μήκους της χορδής μεταξύ των σημείων.
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(zone.getCenterLatitude())) * Math.cos(Math.toRadians(position.getLatitude()))
+                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
 
-        // Calculate the angular distance in radians.
-        // atan2 more numerically stable than asin(√a) when the points are very close to each other.
+        // Υπολόγισε τη γωνιακή απόσταση σε ακτίνια.
+        // Το atan2 είναι αριθμητικά πιο σταθερό από το asin(√a) όταν τα σημεία είναι πολύ κοντά το ένα στο άλλο.
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-        // Calculate the final distance and compare with the radius of the zone
+        // Υπολόγισε την τελική απόσταση και σύγκρινε την με την ακτίνα της ζώνης
         return (R * c) <= zone.getRadiusInMeters();
     }
 
+    /**
+     * Στέλνει μια ειδοποίηση παραβίασης ζώνης στον ιδιοκτήτη της ζώνης.
+     */
     private void sendNotification(String message, ZoneOfInterest violatedZone, AisData shipData, ZoneConstraint violatedConstraint) {
         UserEntity user = violatedZone.getUser();
         if (user != null && user.getEmail() != null) {
@@ -259,39 +290,39 @@ public class KafkaConsumerService {
         }
     }
 
-    // ------------------ Μέθοδοι για τη Λογική των Συγκρούσεων ---------------------------------
+    // ----- Λογική για τις Συγκρούσεις -----
 
+    /**
+     * Ελέγχει το τρέχον πλοίο για πιθανές συγκρούσεις με όλα τα άλλα ενεργά πλοία.
+     */
     private void checkCollisions(AisData currentShipData) {
-        // Βρες όλες τις ενεργές ζώνες σύγκρουσης
         List<CollisionZone> zones = collisionZoneCache.getAllActiveZones();
         if (zones.isEmpty() || currentShipData.getLatitude() == null) {
             return;
         }
 
-        // Βρες την τελευταία θέση ΟΛΩΝ των πλοίων από την cache
+        // Παίρνουμε την τελευταία θέση ΟΛΩΝ των πλοίων από την cache για σύγκριση.
         Collection<AisData> allOtherShips = positionCache.getAllLatestPositions();
 
         for (CollisionZone zone : zones) {
-            // Έλεγξε αν το τρέχον πλοίο είναι μέσα στη ζώνη
+            // Έλεγχος αν το τρέχον πλοίο είναι μέσα στη ζώνη σύγκρουσης.
             if (isInsideCollisionZone(currentShipData, zone)) {
-                // Αν είναι μέσα, σύγκρινέ το με ΟΛΑ τα άλλα πλοία
+                // Αν είναι, το συγκρίνουμε με όλα τα άλλα πλοία.
                 for (AisData otherShipData : allOtherShips) {
-                    // Αγνοούμε τον εαυτό του και πλοία χωρίς ταχύτητα/πορεία
                     if (!shouldCompareShips(currentShipData, otherShipData)) {
-                        continue;
+                        continue; // Αγνοούμε τη σύγκριση με τον εαυτό του ή με σταματημένα πλοία.
                     }
 
-                    // Έλεγξε αν και το άλλο πλοίο είναι μέσα στην ΙΔΙΑ ζώνη
+                    // Έλεγχος αν και το άλλο πλοίο είναι μέσα στην ΙΔΙΑ ζώνη.
                     if (isInsideCollisionZone(otherShipData, zone)) {
-                        // Αν είναι και τα δύο μέσα, έλεγξε για πιθανή σύγκρουση
+                        // Αν είναι και τα δύο μέσα, ελέγχουμε για πιθανή σύγκρουση.
                         if (predictCollision(currentShipData, otherShipData)) {
-                            // Δημιουργούμε ένα μοναδικό κλειδί για το ζευγάρι για να μην στέλνουμε διπλές ειδοποιήσεις
                             String pairKey = createCollisionPairKey(currentShipData.getMmsi(), otherShipData.getMmsi());
                             if (!notifiedCollisionPairs.contains(pairKey)) {
                                 String msg = String.format("Collision Alert in zone '%s'! Ship %s and Ship %s are on a collision course.",
                                         zone.getName(), currentShipData.getMmsi(), otherShipData.getMmsi());
                                 sendCollisionNotification(msg, zone, currentShipData, otherShipData);
-                                notifiedCollisionPairs.add(pairKey); // Σημειώνουμε ότι έχουμε ειδοποιήσει γι' αυτό το ζευγάρι
+                                notifiedCollisionPairs.add(pairKey); // Σημειώνουμε ότι έχουμε ειδοποιήσει γι' αυτό το ζευγάρι.
                             }
                         }
                     }
@@ -300,15 +331,18 @@ public class KafkaConsumerService {
         }
     }
 
-    // Απλός αλγόριθμος πρόβλεψης. Σε πραγματικές συνθήκες, θα ήταν πολύ πιο σύνθετος.
+    /**
+     * Απλός αλγόριθμος πρόβλεψης σύγκρουσης βασισμένος στον υπολογισμό του
+     * Closest Point of Approach (CPA).
+     */
     private boolean predictCollision(AisData shipA, AisData shipB) {
         // Ορίζουμε τα όρια μας: κίνδυνος αν θα πλησιάσουν κάτω από 500 μέτρα στα επόμενα 10 λεπτά (600 δευτ.)
-        final double DANGER_DISTANCE_METERS = 500.0;
-        final double TIME_HORIZON_SECONDS = 600.0;
+        final double DANGER_DISTANCE_METERS = 500.0; // Επικίνδυνη απόσταση < 500μ.
+        final double TIME_HORIZON_SECONDS = 600.0;   // Χρονικός ορίζοντας πρόβλεψης: 10 λεπτά.
 
         // Μετατροπή ταχύτητας από κόμβους σε μέτρα/δευτερόλεπτο
-        double vA = shipA.getSpeedOverGround() * 0.514444;
-        double vB = shipB.getSpeedOverGround() * 0.514444;
+        double vA = shipA.getSpeedOverGround() * 0.514444; // κόμβοι σε m/s
+        double vB = shipB.getSpeedOverGround() * 0.514444; // κόμβοι σε m/s
 
         // Μετατροπή πορείας από μοίρες σε radians
         double courseA_rad = Math.toRadians(shipA.getCourseOverGround());
@@ -346,36 +380,39 @@ public class KafkaConsumerService {
         return false;
     }
 
-    // --- Helper Methods for Collision Logic ---
-
-    private boolean isShipDataValidForCollisionCheck(AisData data) {
-        return data.getLatitude() != null && data.getLongitude() != null &&
-                data.getSpeedOverGround() != null && data.getCourseOverGround() != null;
-    }
+    // --- Βοηθητικές Μέθοδοι για τη Λογική Συγκρούσεων ---
 
     private boolean shouldCompareShips(AisData shipA, AisData shipB) {
-        // Δεν συγκρίνουμε ένα πλοίο με τον εαυτό του
         if (shipA.getMmsi().equals(shipB.getMmsi())) {
             return false;
         }
         // Αγνοούμε πλοία που είναι σχεδόν σταματημένα ή δεν έχουν έγκυρα δεδομένα
-        return isShipDataValidForCollisionCheck(shipB) && shipB.getSpeedOverGround() >= 1.0;
+        return shipB.getSpeedOverGround() != null && shipB.getSpeedOverGround() >= 1.0;
     }
 
     private String createCollisionPairKey(String mmsi1, String mmsi2) {
-        // Δημιουργεί ένα σταθερό, ταξινομημένο κλειδί για ένα ζευγάρι MMSI
+        // Δημιουργεί ένα σταθερό, ταξινομημένο κλειδί για ένα ζευγάρι MMSI.
         return mmsi1.compareTo(mmsi2) < 0 ? mmsi1 + "-" + mmsi2 : mmsi2 + "-" + mmsi1;
     }
 
     private boolean isInsideCollisionZone(AisData data, CollisionZone zone) {
         if (data.getLatitude() == null || data.getLongitude() == null) return false;
-        final int R = 6371 * 1000;
+        final int R = 6371 * 1000;  // Ακτίνα της Γης σε μέτρα
+
+        // Υπολόγισε την διαφρορά σε longitude και latitude ανάμεσα σε 2 σημεία (κέντρο ζόνης και θέση πλοίου)
         double dLat = Math.toRadians(data.getLatitude() - zone.getCenterLatitude());
         double dLon = Math.toRadians(data.getLongitude() - zone.getCenterLongitude());
+
+        // Υπολόγισε το τετράγωνο του μισού μήκους της χορδής μεταξύ των σημείων.
         double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
                 Math.cos(Math.toRadians(zone.getCenterLatitude())) * Math.cos(Math.toRadians(data.getLatitude())) *
                         Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+        // Υπολόγισε τη γωνιακή απόσταση σε ακτίνια.
+        // Το atan2 είναι αριθμητικά πιο σταθερό από το asin(√a) όταν τα σημεία είναι πολύ κοντά το ένα στο άλλο.
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        // Υπολόγισε την τελική απόσταση και σύγκρινε την με την ακτίνα της ζώνης
         return (R * c) <= zone.getRadiusInMeters();
     }
 
@@ -407,7 +444,7 @@ public class KafkaConsumerService {
                     .shipB(shipInfoB)
                     .build();
 
-            // Αποστολή της ειδοποίησης σε ένα νέο, εξειδικευμένο κανάλι WebSocket
+            // Αποστολή σε ένα νέο, εξειδικευμένο κανάλι WebSocket για τις ειδοποιήσεις σύγκρουσης.
             messagingTemplate.convertAndSendToUser(user.getEmail(), "/queue/collision-alerts", notification);
         }
     }
