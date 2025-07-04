@@ -58,6 +58,7 @@ public class UserEntity implements UserDetails {
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "ship_id")
     )
+    @Builder.Default
     private Set<Ship> fleet = new HashSet<>();
 
     /**
