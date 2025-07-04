@@ -1,20 +1,21 @@
 package com.MarineTrafficClone.SeaWatch.controller;
 
-import com.MarineTrafficClone.SeaWatch.AbstractTest; // Κράτα το αυτό
 import com.MarineTrafficClone.SeaWatch.dto.ShipDetailsDTO;
 import com.MarineTrafficClone.SeaWatch.dto.ShipTypeUpdateRequest;
 import com.MarineTrafficClone.SeaWatch.enumeration.ShipType;
 import com.MarineTrafficClone.SeaWatch.security.JwtService;
 import com.MarineTrafficClone.SeaWatch.security.SecurityConfiguration;
 import com.MarineTrafficClone.SeaWatch.service.AdminService;
+import com.MarineTrafficClone.SeaWatch.service.CsvDataLoaderService;
+import com.MarineTrafficClone.SeaWatch.service.StaticShipDataLoaderService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Import; // <-- Import
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.authentication.AuthenticationProvider; // <-- Import
+import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -27,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(controllers = AdminController.class)
 @Import(SecurityConfiguration.class)
-class AdminControllerTest extends AbstractTest {
+class AdminControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -44,6 +45,12 @@ class AdminControllerTest extends AbstractTest {
 
     @MockBean
     private AuthenticationProvider authenticationProvider;
+
+    // Πρέπει να κάνουμε mock και τα CommandLineRunners γιατί το @WebMvcTest τα ψάχνει
+    @MockBean
+    private StaticShipDataLoaderService staticShipDataLoaderService;
+    @MockBean
+    private CsvDataLoaderService csvDataLoaderService;
 
     @Test
     @WithMockUser(authorities = "ADMIN")

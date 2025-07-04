@@ -1,6 +1,5 @@
 package com.MarineTrafficClone.SeaWatch.service;
 
-import com.MarineTrafficClone.SeaWatch.AbstractTest;
 import com.MarineTrafficClone.SeaWatch.dto.AuthDTO;
 import com.MarineTrafficClone.SeaWatch.enumeration.RoleType;
 import com.MarineTrafficClone.SeaWatch.model.UserEntity;
@@ -19,14 +18,13 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 /**
  * Unit tests για την κλάση AuthenticationService.
  */
 @ExtendWith(MockitoExtension.class)
-class AuthenticationServiceTest extends AbstractTest {
+class AuthenticationServiceTest {
 
     @Mock
     private UserEntityRepository userEntityRepository;

@@ -1,6 +1,5 @@
 package com.MarineTrafficClone.SeaWatch.service;
 
-import com.MarineTrafficClone.SeaWatch.AbstractTest;
 import com.MarineTrafficClone.SeaWatch.dto.RealTimeShipUpdateDTO;
 import com.MarineTrafficClone.SeaWatch.enumeration.ShipType;
 import com.MarineTrafficClone.SeaWatch.model.AisData;
@@ -28,7 +27,7 @@ import static org.mockito.Mockito.*;
  * Ελέγχει τη λογική επεξεργασίας ενός μηνύματος AIS, χωρίς να χρειάζεται πραγματικό Kafka.
  */
 @ExtendWith(MockitoExtension.class)
-class KafkaConsumerServiceTest extends AbstractTest {
+class KafkaConsumerServiceTest {
 
     @Mock
     private AisDataRepository aisDataRepository;

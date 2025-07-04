@@ -5,6 +5,7 @@ import com.MarineTrafficClone.SeaWatch.model.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.List;
@@ -45,4 +46,12 @@ public interface UserEntityRepository extends JpaRepository<UserEntity, Long> {
      */
     @Query("SELECT u FROM UserEntity u JOIN u.fleet s WHERE s.mmsi = :mmsi")
     List<UserEntity> findUsersWatchingMmsi(Long mmsi);
+
+    /**
+     * Διαγράφει έναν user με βάση το email του (το χρειαζόμαστε για τα tests)
+     *
+     * @param email To email ενός user.
+     */
+    @Transactional
+    void deleteByEmail(String email);
 }

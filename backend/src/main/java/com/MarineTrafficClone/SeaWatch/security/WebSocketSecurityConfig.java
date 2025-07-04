@@ -1,6 +1,8 @@
 package com.MarineTrafficClone.SeaWatch.security;
 
+import com.MarineTrafficClone.SeaWatch.enumeration.RoleType;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.simp.SimpMessageType;
 import org.springframework.security.config.annotation.web.messaging.MessageSecurityMetadataSourceRegistry;
 import org.springframework.security.config.annotation.web.socket.AbstractSecurityWebSocketMessageBrokerConfigurer;
 
@@ -18,17 +20,15 @@ public class WebSocketSecurityConfig extends AbstractSecurityWebSocketMessageBro
     @Override
     protected void configureInbound(MessageSecurityMetadataSourceRegistry messages) {
         messages
-                // Κανόνας 1:
-                // Οποιοσδήποτε (ακόμα και ανώνυμοι χρήστες) μπορεί να κάνει subscribe σε κανάλια που αρχίζουν από /topic.
-                // Αυτό επιτρέπει σε όλους τους επισκέπτες της σελίδας να βλέπουν την "παγκόσμια εικόνα" των πλοίων.
+                // Οποιοσδήποτε μπορεί να στείλει CONNECT και DISCONNECT μηνύματα
+                .simpTypeMatchers(SimpMessageType.CONNECT, SimpMessageType.DISCONNECT, SimpMessageType.OTHER).permitAll()
+                // Οποιοσδήποτε μπορεί να κάνει subscribe σε public topics
                 .simpSubscribeDestMatchers("/topic/**").permitAll()
-
-                // Κανόνας 2:
-                // Οποιοδήποτε άλλο μήνυμα (π.χ. subscribe σε /user/queue, αποστολή μηνύματος στο /app)
-                // απαιτεί ο χρήστης να είναι αυθεντικοποιημένος.
-                // Αυτό προστατεύει τα ιδιωτικά κανάλια (όπως οι ειδοποιήσεις και οι ενημερώσεις στόλου)
-                // και την αποστολή μηνυμάτων προς την εφαρμογή.
-                .anyMessage().authenticated();
+                // Για να κάνεις subscribe σε private κανάλια ή να στείλεις μήνυμα στο /app,
+                // πρέπει να έχεις τουλάχιστον ρόλο REGISTERED.
+                .simpDestMatchers("/app/**", "/user/**").hasAnyAuthority(RoleType.REGISTERED.name(), RoleType.ADMIN.name())
+                // Οποιοδήποτε άλλο μήνυμα (π.χ. ένα άγνωστο subscription) απορρίπτεται.
+                .anyMessage().denyAll();
     }
 
     /**

@@ -1,12 +1,12 @@
 package com.MarineTrafficClone.SeaWatch.repository;
 
+import com.MarineTrafficClone.SeaWatch.AbstractTest;
 import com.MarineTrafficClone.SeaWatch.enumeration.ShipType;
 import com.MarineTrafficClone.SeaWatch.model.Ship;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -14,22 +14,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Integration test για το ShipRepository.
- * Χρησιμοποιεί H2 in-memory database.
+ * Κληρονομεί από το AbstractTest για να τρέξει με πλήρες Spring context.
+ * Το @Transactional εξασφαλίζει ότι κάθε test τρέχει σε "καθαρή" βάση.
  */
-@DataJpaTest
-class ShipRepositoryTest {
-
-    @Autowired
-    private TestEntityManager entityManager;
+@Transactional
+class ShipRepositoryTest extends AbstractTest {
 
     @Autowired
     private ShipRepository shipRepository;
 
     @BeforeEach
     void setUp() {
+        shipRepository.deleteAll();
         Ship ship1 = Ship.builder().mmsi(123456789L).shiptype(ShipType.CARGO).build();
-        entityManager.persist(ship1);
-        entityManager.flush();
+        shipRepository.save(ship1);
     }
 
     @Test

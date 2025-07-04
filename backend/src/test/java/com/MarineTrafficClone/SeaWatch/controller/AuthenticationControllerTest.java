@@ -1,12 +1,13 @@
 package com.MarineTrafficClone.SeaWatch.controller;
 
-import com.MarineTrafficClone.SeaWatch.AbstractTest;
 import com.MarineTrafficClone.SeaWatch.dto.AuthDTO;
 import com.MarineTrafficClone.SeaWatch.enumeration.RoleType;
 import com.MarineTrafficClone.SeaWatch.response.AuthenticationResponse;
 import com.MarineTrafficClone.SeaWatch.security.JwtService;
 import com.MarineTrafficClone.SeaWatch.security.SecurityConfiguration;
 import com.MarineTrafficClone.SeaWatch.service.AuthenticationService;
+import com.MarineTrafficClone.SeaWatch.service.CsvDataLoaderService;
+import com.MarineTrafficClone.SeaWatch.service.StaticShipDataLoaderService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,8 +30,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Ελέγχει τα public endpoints για register και login.
  */
 @WebMvcTest(controllers = AuthenticationController.class)
-@Import(SecurityConfiguration.class) // Εισάγουμε το SecurityConfiguration για να έχουμε το context ασφαλείας.
-class AuthenticationControllerTest extends AbstractTest {
+@Import(SecurityConfiguration.class)
+class AuthenticationControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -41,12 +42,18 @@ class AuthenticationControllerTest extends AbstractTest {
     @MockBean
     private AuthenticationService authenticationService;
 
-    // Κάνουμε mock τις εξαρτήσεις που χρειάζεται το SecurityConfiguration
+    // Τα @MockBean για τις εξαρτήσεις του SecurityConfiguration είναι απαραίτητα εδώ
     @MockBean
     private JwtService jwtService;
 
     @MockBean
     private AuthenticationProvider authenticationProvider;
+
+    // Πρέπει να κάνουμε mock και τα CommandLineRunners γιατί το @WebMvcTest τα ψάχνει
+    @MockBean
+    private StaticShipDataLoaderService staticShipDataLoaderService;
+    @MockBean
+    private CsvDataLoaderService csvDataLoaderService;
 
     @Test
     void registerUser_shouldReturnTokenOnSuccess() throws Exception {

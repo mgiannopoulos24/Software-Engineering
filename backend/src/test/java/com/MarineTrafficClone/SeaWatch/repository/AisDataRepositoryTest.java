@@ -1,11 +1,11 @@
 package com.MarineTrafficClone.SeaWatch.repository;
 
+import com.MarineTrafficClone.SeaWatch.AbstractTest;
 import com.MarineTrafficClone.SeaWatch.model.AisData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -14,31 +14,26 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Integration test για το AisDataRepository.
- * Το @DataJpaTest ρυθμίζει μια in-memory βάση και φορτώνει ΜΟΝΟ τα JPA components.
- * ΔΕΝ φορτώνει services, controllers, ή άλλες διαμορφώσεις.
- * Δεν χρειάζεται να κληρονομεί από AbstractTest γιατί δεν φορτώνει CommandLineRunners.
+ * Κληρονομεί από το AbstractTest για να τρέξει με πλήρες Spring context.
+ * Το @Transactional εξασφαλίζει ότι κάθε test τρέχει σε "καθαρή" βάση, κάνοντας rollback στο τέλος.
  */
-@DataJpaTest
-class AisDataRepositoryTest {
-
-    @Autowired
-    private TestEntityManager entityManager;
+@Transactional
+class AisDataRepositoryTest extends AbstractTest {
 
     @Autowired
     private AisDataRepository aisDataRepository;
 
-    private AisData ship1_t1, ship1_t2, ship2_t1;
-
     @BeforeEach
     void setUp() {
-        ship1_t1 = AisData.builder().mmsi("111").timestampEpoch(100L).latitude(10.0).longitude(10.0).build();
-        ship1_t2 = AisData.builder().mmsi("111").timestampEpoch(200L).latitude(11.0).longitude(11.0).build();
-        ship2_t1 = AisData.builder().mmsi("222").timestampEpoch(150L).latitude(20.0).longitude(20.0).build();
+        // Καθαρίζουμε τον πίνακα πριν από κάθε test για πλήρη απομόνωση.
+        aisDataRepository.deleteAll();
 
-        entityManager.persist(ship1_t1);
-        entityManager.persist(ship1_t2);
-        entityManager.persist(ship2_t1);
-        entityManager.flush();
+        AisData ship1_t1 = AisData.builder().mmsi("111").timestampEpoch(100L).latitude(10.0).longitude(10.0).build();
+        AisData ship1_t2 = AisData.builder().mmsi("111").timestampEpoch(200L).latitude(11.0).longitude(11.0).build();
+        AisData ship2_t1 = AisData.builder().mmsi("222").timestampEpoch(150L).latitude(20.0).longitude(20.0).build();
+
+        // Χρησιμοποιούμε το repository για την προετοιμασία των δεδομένων.
+        aisDataRepository.saveAll(List.of(ship1_t1, ship1_t2, ship2_t1));
     }
 
     @Test

@@ -1,13 +1,14 @@
 package com.MarineTrafficClone.SeaWatch.repository;
 
+import com.MarineTrafficClone.SeaWatch.AbstractTest;
 import com.MarineTrafficClone.SeaWatch.enumeration.RoleType;
+import com.MarineTrafficClone.SeaWatch.enumeration.ShipType;
 import com.MarineTrafficClone.SeaWatch.model.Ship;
 import com.MarineTrafficClone.SeaWatch.model.UserEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -16,39 +17,40 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Integration test για το UserEntityRepository.
+ * Κληρονομεί από το AbstractTest για να τρέξει με πλήρες Spring context.
+ * Το @Transactional εξασφαλίζει ότι κάθε test τρέχει σε "καθαρή" βάση.
  */
-@DataJpaTest
-class UserEntityRepositoryTest {
-
-    @Autowired
-    private TestEntityManager entityManager;
+@Transactional
+class UserEntityRepositoryTest extends AbstractTest {
 
     @Autowired
     private UserEntityRepository userEntityRepository;
 
-    private UserEntity testUser;
-    private Ship watchedShip;
+    @Autowired
+    private ShipRepository shipRepository;
 
     @BeforeEach
     void setUp() {
-        // Δημιουργία και αποθήκευση ενός πλοίου
-        watchedShip = Ship.builder().mmsi(111L).build();
-        entityManager.persist(watchedShip);
+        // Καθαρίζουμε τους πίνακες με τη σωστή σειρά για να αποφύγουμε foreign key constraint violations.
+        userEntityRepository.deleteAll();
+        shipRepository.deleteAll();
+
+        // Δημιουργία και αποθήκευση ενός πλοίου πρώτα
+        Ship watchedShip = shipRepository.save(Ship.builder().mmsi(111L).shiptype(ShipType.TUG).build());
 
         // Δημιουργία ενός χρήστη που παρακολουθεί το πλοίο
-        testUser = UserEntity.builder()
+        UserEntity testUser = UserEntity.builder()
                 .email("test@example.com")
                 .password("pass")
                 .role(RoleType.REGISTERED)
                 .build();
         testUser.addShipToFleet(watchedShip);
-        entityManager.persist(testUser);
 
         // Δημιουργία ενός admin χρήστη
         UserEntity adminUser = UserEntity.builder().email("admin@example.com").password("admin").role(RoleType.ADMIN).build();
-        entityManager.persist(adminUser);
 
-        entityManager.flush();
+        // Αποθήκευση των χρηστών
+        userEntityRepository.saveAll(List.of(testUser, adminUser));
     }
 
     @Test

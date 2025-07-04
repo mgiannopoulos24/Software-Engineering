@@ -1,8 +1,9 @@
 package com.MarineTrafficClone.SeaWatch.controller;
 
-import com.MarineTrafficClone.SeaWatch.AbstractTest;
 import com.MarineTrafficClone.SeaWatch.security.JwtService;
 import com.MarineTrafficClone.SeaWatch.security.SecurityConfiguration;
+import com.MarineTrafficClone.SeaWatch.service.CsvDataLoaderService;
+import com.MarineTrafficClone.SeaWatch.service.StaticShipDataLoaderService;
 import com.MarineTrafficClone.SeaWatch.service.StatisticsService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(controllers = StatisticsController.class)
 @Import(SecurityConfiguration.class)
 @WithMockUser // Απαιτείται ένας αυθεντικοποιημένος χρήστης για την πρόσβαση.
-class StatisticsControllerTest extends AbstractTest {
+class StatisticsControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -38,6 +39,12 @@ class StatisticsControllerTest extends AbstractTest {
 
     @MockBean
     private AuthenticationProvider authenticationProvider;
+
+    // Πρέπει να κάνουμε mock και τα CommandLineRunners γιατί το @WebMvcTest τα ψάχνει
+    @MockBean
+    private StaticShipDataLoaderService staticShipDataLoaderService;
+    @MockBean
+    private CsvDataLoaderService csvDataLoaderService;
 
     @Test
     void getActiveShipCount_shouldReturnCount() throws Exception {

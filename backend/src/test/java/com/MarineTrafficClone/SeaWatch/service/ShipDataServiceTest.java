@@ -1,6 +1,5 @@
 package com.MarineTrafficClone.SeaWatch.service;
 
-import com.MarineTrafficClone.SeaWatch.AbstractTest;
 import com.MarineTrafficClone.SeaWatch.dto.ShipDetailsDTO;
 import com.MarineTrafficClone.SeaWatch.dto.TrackPointDTO;
 import com.MarineTrafficClone.SeaWatch.enumeration.ShipType;
@@ -31,7 +30,7 @@ import static org.mockito.Mockito.when;
  * Ελέγχει τη λογική συνδυασμού στατικών και δυναμικών δεδομένων.
  */
 @ExtendWith(MockitoExtension.class)
-class ShipDataServiceTest extends AbstractTest {
+class ShipDataServiceTest {
 
     @Mock
     private AisDataRepository aisDataRepository;

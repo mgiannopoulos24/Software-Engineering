@@ -1,6 +1,5 @@
 package com.MarineTrafficClone.SeaWatch.service;
 
-import com.MarineTrafficClone.SeaWatch.AbstractTest;
 import com.MarineTrafficClone.SeaWatch.dto.ShipDetailsDTO;
 import com.MarineTrafficClone.SeaWatch.enumeration.ShipType;
 import com.MarineTrafficClone.SeaWatch.exception.ResourceNotFoundException;
@@ -27,7 +26,7 @@ import static org.mockito.Mockito.*;
  * Χρησιμοποιεί το Mockito για την απομόνωση των εξαρτήσεων (repositories).
  */
 @ExtendWith(MockitoExtension.class)
-class AdminServiceTest extends AbstractTest {
+class AdminServiceTest {
 
     // Κάνουμε mock τα repositories που χρησιμοποιεί το service.
     // Το Spring θα τα "εισάγει" αυτόματα στο service μας.

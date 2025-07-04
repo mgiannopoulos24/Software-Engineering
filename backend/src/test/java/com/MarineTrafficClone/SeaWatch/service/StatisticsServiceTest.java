@@ -1,6 +1,5 @@
 package com.MarineTrafficClone.SeaWatch.service;
 
-import com.MarineTrafficClone.SeaWatch.AbstractTest;
 import com.MarineTrafficClone.SeaWatch.model.AisData;
 import com.MarineTrafficClone.SeaWatch.model.CollisionZone;
 import com.MarineTrafficClone.SeaWatch.model.ZoneOfInterest;
@@ -20,7 +19,7 @@ import static org.mockito.Mockito.when;
  * Ελέγχει ότι τα στατιστικά υπολογίζονται σωστά βάσει των δεδομένων από τις caches.
  */
 @ExtendWith(MockitoExtension.class)
-class StatisticsServiceTest extends AbstractTest {
+class StatisticsServiceTest {
 
     @Mock
     private ShipPositionCacheService positionCache;
