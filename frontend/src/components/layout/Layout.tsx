@@ -1,5 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { Bookmark, Map, MapPin, Menu, Search, User, Users, X } from 'lucide-react';
+import { Bookmark, Map, Menu, Search, User, Users, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 

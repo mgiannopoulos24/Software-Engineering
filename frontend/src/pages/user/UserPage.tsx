@@ -17,7 +17,6 @@ import {
   MAX_CRITICAL_SECTIONS,
   MAX_INTEREST_ZONES,
   ZoneType,
-  drawCriticalSection,
   drawInterestZone,
   enableZoneCreation,
 } from '@/utils/mapUtils';

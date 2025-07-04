@@ -17,7 +17,6 @@ Our project focuses on developing a web platform for monitoring maritime activit
 ## Team Members
 
 - **Μάριος Γιαννόπουλος, Α.Μ. 1115202000032**
-- **Απόστολος-Παναγιώτης Γραμματόπουλος, Α.Μ. 1115202000041**
 - **Γεώργιος Κορύλλος, Α.Μ. 1115202100069**
 - **Αργύριος Λαζαρίδης, Α.Μ. 1115202100083**
 - **Όλγα Πασβάνη, Α.Μ. 1115202100146**
@@ -26,9 +25,9 @@ Our project focuses on developing a web platform for monitoring maritime activit
 
 - Frontend: HTML, CSS, JavaScript, Tailwind CSS, React.js
 - Maps: Leaflet.js
-- Backend: Java with Spring Boot
+- Backend: Java with Spring Boot, Maven
 - Database: PostgreSQL
-- Microservices: Docker
+- Microservices: Docker, Docker Compose
 
 ## Installation and Setup
 1. Clone the repository:
@@ -64,7 +63,33 @@ sudo docker-compose up --build
     - The backend API will be available at `http://localhost:8443`.
 
 ## Cleaning Up
-To stop the backend services, run:
+
+### Stop Services
+To stop the backend services while preserving data:
 ```bash
 sudo docker-compose down
+```
+
+### Complete Cleanup
+To stop the backend services and remove all volumes and images (⚠️ **This will delete all database data**):
+```bash
+sudo docker-compose down -v --rmi all
+```
+
+### Stop Frontend
+To stop the frontend development server:
+- Press `Ctrl + C` in the terminal where `npm run dev` is running
+
+### Restart Everything
+If you need to restart the entire application:
+```bash
+# Stop everything
+sudo docker-compose down
+
+# Start backend
+sudo docker-compose up --build
+
+# In another terminal, start frontend
+cd frontend
+npm run dev
 ```

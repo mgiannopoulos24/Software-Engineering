@@ -8,7 +8,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -25,7 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Edit, Info, MoreHorizontal, Trash2 } from 'lucide-react';
+import { Edit, Info, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 // User type based on the backend's UserDTO and RoleType
