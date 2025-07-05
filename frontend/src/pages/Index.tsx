@@ -1,5 +1,3 @@
-// Index.tsx
-
 import { RealTimeShipUpdateDTO } from '@/types/types';
 import { getVesselIcon } from '@/utils/vesselIcon';
 import { Client } from '@stomp/stompjs';
@@ -11,97 +9,45 @@ import SockJS from 'sockjs-client';
 const Index: React.FC = () => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
-  const [coordinates, setCoordinates] = useState('Hover over the map to display coordinates');
+  const [coordinates, setCoordinates] = useState('Hover over the map for coordinates');
   const vesselMarkersRef = useRef<Map<string, L.Marker>>(new Map());
   const stompClientRef = useRef<Client | null>(null);
 
-  // #region Helper Functions
-  // Helper to determine vessel type from AIS data. Now handles 'shiptype' and is case-insensitive.
+  // #region Helper Functions (No changes needed to internal logic)
   const getVesselTypeFromData = (vessel: RealTimeShipUpdateDTO): string => {
-    const type = vessel.shiptype ? vessel.shiptype.toLowerCase() : 'unknown';
-    switch (vessel.shiptype) {
-      case 'anti-pollution':
-        return 'anti-pollution';
-      case 'cargo':
-        return 'cargo';
-      case 'cargo-hazarda(major)':
-        return 'cargo-hazarda(major)';
-      case 'cargo-hazardb':
-        return 'cargo-hazardb';
-      case 'cargo-hazardc(minor)':
-        return 'cargo-hazardc(minor)';
-      case 'cargo-hazardd(recognizable)':
-        return 'cargo-hazardd(recognizable)';
-      case 'divevessel':
-        return 'divevessel';
-      case 'dredger':
-        return 'dredger';
-      case 'fishing':
-        return 'fishing';
-      case 'high-speedcraft':
-        return 'high-speedcraft';
-      case 'lawenforce':
-        return 'lawenforce';
-      case 'localvessel':
-        return 'localvessel';
-      case 'militaryops':
-        return 'militaryops';
-      case 'other':
-        return 'other';
-      case 'passenger':
-        return 'passenger';
-      case 'pilotvessel':
-        return 'pilotvessel';
-      case 'pleasurecraft':
-        return 'pleasurecraft';
-      case 'sailingvessel':
-        return 'sailingvessel';
-      case 'sar':
-        return 'sar';
-      case 'specialcraft':
-        return 'specialcraft';
-      case 'tanker':
-        return 'tanker';
-      case 'tanker-hazarda(major)':
-        return 'tanker-hazarda(major)';
-      case 'tanker-hazardb':
-        return 'tanker-hazardb';
-      case 'tanker-hazardc(minor)':
-        return 'tanker-hazardc(minor)';
-      case 'tanker-hazardd(recognizable)':
-        return 'tanker-hazardd(recognizable)';
-      case 'tug':
-        return 'tug';
-      case 'wingingrnd':
-        return 'wingingrnd';
-      default:
-        return 'unknown';
-    }
+    return vessel.shiptype ? vessel.shiptype.toLowerCase() : 'unknown';
   };
-
-  // Helper to get the status code as a string, likely for the getVesselIcon function.
   const getVesselStatusCode = (vessel: RealTimeShipUpdateDTO): string => {
     return vessel.navigationalStatus?.toString() ?? 'unknown';
   };
+  // const getVesselStatusDescription = (vessel: RealTimeShipUpdateDTO): string => {
+  //   switch (vessel.navigationalStatus) {
+  //     case 0:
+  //       return 'Under way using engine';
+  //     case 1:
+  //       return 'At anchor';
+  //     case 2:
+  //       return 'Not under command';
+  //     case 3:
+  //       return 'Restricted manoeuverability';
+  //     case 4:
+  //       return 'Constrained by her draught';
+  //     case 5:
+  //       return 'Moored';
+  //     case 6:
+  //       return 'Aground';
+  //     case 7:
+  //       return 'Engaged in Fishing';
+  //     case 8:
+  //       return 'Under way sailing';
+  //     case 15:
+  //       return 'Not defined'; // Standard AIS code for 15
+  //     default:
+  //       return `Unknown (${vessel.navigationalStatus ?? 'N/A'})`;
+  //   }
+  // };
+  // #endregion
 
-  // New helper for user-friendly status text in popups.
-  const getVesselStatusDescription = (vessel: RealTimeShipUpdateDTO): string => {
-    switch (vessel.navigationalStatus) {
-      case 0: return 'Under way using engine';
-      case 1: return 'At anchor';
-      case 2: return 'Not under command';
-      case 3: return 'Restricted manoeuverability';
-      case 4: return 'Constrained by her draught';
-      case 5: return 'Moored';
-      case 6: return 'Aground';
-      case 7: return 'Engaged in Fishing';
-      case 8: return 'Under way sailing';
-      case 15: return 'Not defined'; // Standard AIS code for 15
-      default: return `Unknown (${vessel.navigationalStatus ?? 'N/A'})`;
-    }
-  };
-
-  // Refactored function to add or update a vessel marker, removing code duplication.
   const addOrUpdateVesselMarker = (vessel: RealTimeShipUpdateDTO) => {
     if (!mapInstanceRef.current || vessel.latitude == null || vessel.longitude == null) {
       return;
@@ -109,27 +55,39 @@ const Index: React.FC = () => {
 
     const vesselType = getVesselTypeFromData(vessel);
     const vesselStatusCode = getVesselStatusCode(vessel);
-    const vesselStatusDescription = getVesselStatusDescription(vessel);
+    // const vesselStatusDescription = getVesselStatusDescription(vessel);
     const icon = getVesselIcon(vesselType, vesselStatusCode, vessel.trueHeading);
-    
-    // FIX: Convert epoch seconds to milliseconds for JavaScript's Date object.
+
     const lastUpdated = new Date(vessel.timestampEpoch * 1000).toLocaleString();
 
+    // The vessel's name or MMSI if name is not available
+    const vesselName = `Vessel ${vessel.mmsi}`;
+
+    // The popup is now styled with Tailwind CSS classes for a modern look
     const popupContent = `
-      <div style="font-family: system-ui, -apple-system, sans-serif; min-width: 200px;">
-        <h4 style="margin: 0 0 8px 0; color: #1f2937; display: flex; align-items: center; gap: 8px;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="3,11 22,2 13,21 11,13 3,11"></polygon>
-          </svg>
-          RealTimeShipUpdateDTO ${vessel.mmsi}
-        </h4>
-        <div style="font-size: 12px; line-height: 1.4; color: #374151;">
-          <div style="margin-bottom: 4px;"><strong>MMSI:</strong> ${vessel.mmsi}</div>
-          <div style="margin-bottom: 4px;"><strong>Status:</strong> ${vesselStatusDescription}</div>
-          <div style="margin-bottom: 4px;"><strong>Speed:</strong> ${vessel.speedOverGround.toFixed(1)} knots</div>
-          <div style="margin-bottom: 4px;"><strong>Heading:</strong> ${vessel.trueHeading !== 511 ? vessel.trueHeading + '°' : 'N/A'}</div>
-          <div style="margin-bottom: 4px;"><strong>Course:</strong> ${vessel.courseOverGround.toFixed(1)}°</div>
-          <div><strong>Last Updated:</strong> ${lastUpdated}</div>
+      <div class="font-sans w-64 -m-1">
+        <div class="bg-slate-700 text-white p-3 rounded-t-lg">
+          <h4 class="font-bold text-lg truncate">${vesselName}</h4>
+          <p class="text-xs text-slate-300">MMSI: ${vessel.mmsi}</p>
+        </div>
+        <div class="p-3 bg-white rounded-b-lg text-sm text-slate-800 grid grid-cols-2 gap-x-4 gap-y-2">
+            
+
+            <strong class="text-slate-500">Speed:</strong>
+            <span>${vessel.speedOverGround.toFixed(1)} kn</span>
+
+            <strong class="text-slate-500">Heading:</strong>
+            <span>${vessel.trueHeading !== 511 ? vessel.trueHeading + '°' : 'N/A'}</span>
+
+            <strong class="text-slate-500">Course:</strong>
+            <span>${vessel.courseOverGround.toFixed(1)}°</span>
+
+            <strong class="text-slate-500">Type:</strong>
+            <span class="capitalize truncate">${vesselType}</span>
+            
+            <div class="col-span-2 mt-2 pt-2 border-t border-slate-200 text-xs text-slate-400">
+              Last update: ${lastUpdated}
+            </div>
         </div>
       </div>
     `;
@@ -137,40 +95,40 @@ const Index: React.FC = () => {
     let marker = vesselMarkersRef.current.get(vessel.mmsi);
 
     if (marker) {
-      // Update existing marker
       marker.setLatLng([vessel.latitude, vessel.longitude]);
       marker.setIcon(icon);
-      marker.setPopupContent(popupContent); // Update popup content as well
+      marker.setPopupContent(popupContent);
     } else {
-      // Create new marker
       marker = L.marker([vessel.latitude, vessel.longitude], { icon })
         .addTo(mapInstanceRef.current)
-        .bindPopup(popupContent);
+        .bindPopup(popupContent, { offset: [0, -10] }); // Adjust offset for better pointer position
       vesselMarkersRef.current.set(vessel.mmsi, marker);
     }
   };
-  // #endregion
 
   useEffect(() => {
-    // --- 1. Map Initialization ---
     if (mapRef.current && !mapInstanceRef.current) {
       const map = L.map(mapRef.current, {
         maxBounds: L.latLngBounds(L.latLng(-90, -180), L.latLng(90, 180)),
         maxBoundsViscosity: 1.0,
+        zoomControl: false, // We can add a custom styled one if needed
       }).setView([37.9, 23.0], 7);
 
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19,
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        maxZoom: 20,
       }).addTo(map);
-      
+
+      L.control.zoom({ position: 'bottomright' }).addTo(map);
+
       mapInstanceRef.current = map;
 
-      map.on('mousemove', (e) => setCoordinates(`Latitude: ${e.latlng.lat.toFixed(6)}, Longitude: ${e.latlng.lng.toFixed(6)}`));
-      map.on('mouseout', () => setCoordinates('Hover over the map to display coordinates'));
+      map.on('mousemove', (e) =>
+        setCoordinates(`Lat: ${e.latlng.lat.toFixed(4)}, Lng: ${e.latlng.lng.toFixed(4)}`)
+      );
+      map.on('mouseout', () => setCoordinates('Hover over the map for coordinates'));
       map.invalidateSize();
     }
 
-    // --- 2. Initial Data Fetch ---
     const fetchInitialVessels = async () => {
       try {
         const response = await fetch('https://localhost:8443/api/ship-data/active-ships');
@@ -183,12 +141,11 @@ const Index: React.FC = () => {
     };
     fetchInitialVessels();
 
-    // --- 3. WebSocket Connection ---
     if (!stompClientRef.current) {
       const client = new Client({
         webSocketFactory: () => new SockJS('https://localhost:8443/ws-ais'),
         reconnectDelay: 5000,
-        debug: () => {}, // Disable console logging for STOMP
+        debug: () => {},
       });
 
       client.onConnect = () => {
@@ -206,28 +163,26 @@ const Index: React.FC = () => {
       stompClientRef.current = client;
     }
 
-    // --- 4. Cleanup Logic ---
     return () => {
       if (stompClientRef.current?.active) {
         stompClientRef.current.deactivate();
+        stompClientRef.current = null;
       }
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
     };
-  }, []); // Empty dependency array ensures this runs only once.
+  }, []);
 
   return (
-    <div className="flex w-screen">
-      <div className="relative w-full flex-1">
-        <div id="map" ref={mapRef} className="h-[89vh] w-full"></div>
-        <div
-          id="coordinates"
-          className="absolute bottom-2.5 left-1/2 z-[999] -translate-x-1/2 transform whitespace-nowrap rounded border border-white/30 bg-black/60 px-2.5 py-1 text-center text-xs font-medium text-white shadow-md"
-        >
-          {coordinates}
-        </div>
+    <div className="relative flex flex-1">
+      <div ref={mapRef} className="h-full w-full" />
+      <div
+        id="coordinates"
+        className="absolute bottom-4 left-1/2 z-[1000] -translate-x-1/2 transform whitespace-nowrap rounded-md bg-slate-800/80 px-3 py-1.5 text-center font-mono text-xs text-white shadow-lg backdrop-blur-sm"
+      >
+        {coordinates}
       </div>
     </div>
   );
