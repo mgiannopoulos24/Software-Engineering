@@ -77,7 +77,6 @@ public class ShipDataController {
      * @return Ένα ResponseEntity που περιέχει μια λίστα από ShipDetailsDTO, ένα για κάθε πλοίο, και status 200 OK.
      */
     @GetMapping("/active-ships")
-    @PreAuthorize("permitAll()") // Προσθήκη ελέγχου πρόσβασης
     public ResponseEntity<List<ShipDetailsDTO>> getAllActiveShips() {
         List<ShipDetailsDTO> allShipsDetails = shipDataService.getAllActiveShipsDetails();
         return ResponseEntity.ok(allShipsDetails);
