@@ -2,7 +2,7 @@ import NotAuthorized from './NotAuthorized';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 import React, { useEffect } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 type ProtectedRouteProps = {
@@ -20,7 +20,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
       // Show toast immediately
       toast.error('Authentication Required', {
         description: 'You must be logged in to access this page.',
-        
       });
 
       // Delay navigation to allow toast to be seen
@@ -37,7 +36,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
       <div className="flex h-screen w-screen items-center justify-center">
         <div className="text-center">
           <Loader2 className="mx-auto h-12 w-12 animate-spin text-blue-600" />
-          <p className="mt-4 text-lg text-slate-600 dark:text-slate-300 transition-colors duration-300 hover:text-slate-800 dark:hover:text-slate-100">Verifying access...</p>
+          <p className="mt-4 text-lg text-slate-600 transition-colors duration-300 hover:text-slate-800 dark:text-slate-300 dark:hover:text-slate-100">
+            Verifying access...
+          </p>
         </div>
       </div>
     );

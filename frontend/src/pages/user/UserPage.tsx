@@ -20,11 +20,11 @@ import {
   drawInterestZone,
   enableZoneCreation,
 } from '@/utils/mapUtils';
+import { getVesselIcon } from '@/utils/vesselIcon';
+import { Client } from '@stomp/stompjs';
 import L from 'leaflet';
 import { Settings2 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-import { getVesselIcon } from '@/utils/vesselIcon';
-import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 
 const UserPage: React.FC = () => {
