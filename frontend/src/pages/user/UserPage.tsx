@@ -632,9 +632,9 @@ const UserPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex w-screen">
+    // <div className="flex f">
       <div className="relative w-full flex-1">
-        <div id="map" ref={mapRef} className="h-[89vh] w-full"></div>
+        <div id="map" ref={mapRef} className="h-full w-full z-10"></div>
 
         {/* Coordinates Display */}
         <div
@@ -829,7 +829,7 @@ const UserPage: React.FC = () => {
           <div className="fixed inset-0 z-[998]" onClick={() => setIsFiltersOpen(false)} />
         )}
       </div>
-    </div>
+    // </div>
   );
 };
 
