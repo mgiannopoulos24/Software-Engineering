@@ -145,7 +145,7 @@ const Navbar = () => {
                 </button>
 
                 {isUserDropdownOpen && (
-                  <div className="absolute right-0 z-[99] mt-2 w-56 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                  <div className="absolute right-0 z-[1000] mt-2 w-56 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                     {isAuthenticated ? (
                       <>
                         <div className="px-4 py-2 text-sm text-slate-500">
@@ -226,7 +226,7 @@ const Navbar = () => {
 
         {/* Mobile Sheet (Slide-out menu) */}
         {isSheetOpen && (
-          <div className="fixed inset-0 z-[998] md:hidden">
+          <div className="fixed inset-0 z-[1001] md:hidden">
             {/* Overlay */}
             <div className="absolute inset-0 bg-black/60" onClick={closeSheet} />
             {/* Content */}
