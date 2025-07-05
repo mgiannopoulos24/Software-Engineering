@@ -11,3 +11,16 @@ export interface RealTimeShipUpdateDTO {
 }
 
 export type FilterValue = string | number[];
+
+export interface ShipDetailsDTO {
+  mmsi: number; // Note: number (Long in Java), not string
+  shiptype?: string;
+  navigationalStatus?: number;
+  rateOfTurn?: number;
+  speedOverGround?: number;
+  courseOverGround?: number;
+  trueHeading?: number;
+  longitude?: number;
+  latitude?: number;
+  lastUpdateTimestampEpoch?: number;
+}

@@ -1,4 +1,4 @@
-import { RealTimeShipUpdateDTO } from '@/types/types';
+import {RealTimeShipUpdateDTO, ShipDetailsDTO} from '@/types/types';
 import { getVesselIcon } from '@/utils/vesselIcon';
 import { Client } from '@stomp/stompjs';
 import axios from 'axios';
@@ -132,8 +132,31 @@ const Index: React.FC = () => {
 
     const fetchInitialVessels = async () => {
       try {
-        const response = await axios.get<RealTimeShipUpdateDTO[]>('https://localhost:8443/api/ship-data/active-ships');
-        response.data.forEach(addOrUpdateVesselMarker);
+        // Use the correct DTO for the initial fetch
+        const response = await axios.get<ShipDetailsDTO[]>('https://localhost:8443/api/ship-data/active-ships');
+
+        // Now, you need to handle the fact that you're getting ShipDetailsDTO
+        // and your marker function might expect RealTimeShipUpdateDTO.
+        // The best way is to convert or "map" it.
+
+        response.data.forEach(shipDetail => {
+          // Convert ShipDetailsDTO to the format your marker function expects
+          const vesselUpdate: RealTimeShipUpdateDTO = {
+            mmsi: shipDetail.mmsi.toString(), // Convert number to string
+            shiptype: shipDetail.shiptype,
+            navigationalStatus: shipDetail.navigationalStatus,
+            speedOverGround: shipDetail.speedOverGround,
+            courseOverGround: shipDetail.courseOverGround,
+            trueHeading: shipDetail.trueHeading,
+            longitude: shipDetail.longitude,
+            latitude: shipDetail.latitude,
+            timestampEpoch: shipDetail.lastUpdateTimestampEpoch
+          };
+
+          // Now call your existing function with the correctly formatted object
+          addOrUpdateVesselMarker(vesselUpdate);
+        });
+
       } catch (error) {
         console.error('Error fetching initial vessel data:', error);
       }
