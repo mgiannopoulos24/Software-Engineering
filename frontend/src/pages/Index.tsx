@@ -1,6 +1,7 @@
 import { RealTimeShipUpdateDTO } from '@/types/types';
 import { getVesselIcon } from '@/utils/vesselIcon';
 import { Client } from '@stomp/stompjs';
+import axios from 'axios';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import React, { useEffect, useRef, useState } from 'react';
@@ -131,10 +132,8 @@ const Index: React.FC = () => {
 
     const fetchInitialVessels = async () => {
       try {
-        const response = await fetch('https://localhost:8443/api/ship-data/active-ships');
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const vessels: RealTimeShipUpdateDTO[] = await response.json();
-        vessels.forEach(addOrUpdateVesselMarker);
+        const response = await axios.get<RealTimeShipUpdateDTO[]>('https://localhost:8443/api/ship-data/active-ships');
+        response.data.forEach(addOrUpdateVesselMarker);
       } catch (error) {
         console.error('Error fetching initial vessel data:', error);
       }
