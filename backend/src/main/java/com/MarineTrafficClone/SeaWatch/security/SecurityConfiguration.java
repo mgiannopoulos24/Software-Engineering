@@ -48,7 +48,9 @@ public class SecurityConfiguration {
                         // Ορίζουμε τα endpoints που είναι δημόσια προσβάσιμα.
                         .requestMatchers(
                                 "/api/auth/**", // Endpoints για login/register.
-                                "/ws-ais/**"    // Το endpoint για τη σύνδεση WebSocket.
+                                "/ws-ais/**",    // Το endpoint για τη σύνδεση WebSocket.
+                                "/api/ship-data/active-ships",    // Endpoint για την αρχική φόρτωση των πλοίων στο χάρτη.
+                                "/api/zone/**" // Endpoints για τις ζώνες.
                         ).permitAll()
                         // Ορίζουμε ότι τα admin endpoints απαιτούν τον ρόλο 'ADMIN'.
                         .requestMatchers("/api/admin/**").hasAuthority(RoleType.ADMIN.name())

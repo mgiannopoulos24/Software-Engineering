@@ -112,7 +112,7 @@ const Index: React.FC = () => {
         maxBounds: L.latLngBounds(L.latLng(-90, -180), L.latLng(90, 180)),
         maxBoundsViscosity: 1.0,
         zoomControl: false, // We can add a custom styled one if needed
-      }).setView([37.9, 23.0], 7);
+      }).setView([49.0, 0.0], 7);
 
       L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         maxZoom: 20,
@@ -143,7 +143,7 @@ const Index: React.FC = () => {
 
     if (!stompClientRef.current) {
       const client = new Client({
-        webSocketFactory: () => new SockJS('https://localhost:8443/ws-ais'),
+        webSocketFactory: () => new SockJS('http://localhost:8080/ws-ais'),
         reconnectDelay: 5000,
         debug: () => {},
       });

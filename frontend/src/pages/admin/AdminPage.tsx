@@ -60,7 +60,7 @@ const AdminPage = () => {
           throw new Error('Authentication token not found.');
         }
 
-        const response = await fetch('http://localhost:8080/api/users', {
+        const response = await fetch('https://localhost:8443/api/users', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -100,7 +100,7 @@ const AdminPage = () => {
         throw new Error('Authentication token not found.');
       }
 
-      const response = await fetch(`http://localhost:8080/api/users/${userId}`, {
+      const response = await fetch(`https://localhost:8443/api/users/${userId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -128,7 +128,7 @@ const AdminPage = () => {
         throw new Error('Authentication token not found.');
       }
 
-      const response = await fetch(`http://localhost:8080/api/users/${selectedUser.id}`, {
+      const response = await fetch(`https://localhost:8443/api/users/${selectedUser.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

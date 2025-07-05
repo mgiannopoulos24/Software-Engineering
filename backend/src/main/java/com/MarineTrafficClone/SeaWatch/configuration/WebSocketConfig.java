@@ -41,13 +41,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws-ais")
-                .setAllowedOriginPatterns("*")
-//                .setAllowedOriginPatterns(
-//                        "http://localhost:5173",
-//                        "https://localhost:5173",
-//                        "https://localhost:8443",
-//                        "http://localhost:8080"
-//                )
+                // .setAllowedOriginPatterns("*")
+                .setAllowedOriginPatterns(
+                        "http://localhost:5173",
+                        "https://localhost:5173"
+                )
                 .withSockJS();
     }
 
