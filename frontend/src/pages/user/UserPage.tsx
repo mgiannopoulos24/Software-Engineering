@@ -645,7 +645,7 @@ const UserPage: React.FC = () => {
         </div>
 
         {/* Zone Controls - Top Right */}
-        <div className="absolute right-6 top-4 z-[999] flex flex-col items-end space-y-2">
+        <div className="absolute right-6 top-4 z-[10] flex flex-col items-end space-y-2">
           <div className="rounded-md bg-black/80 px-3 py-2">
             <Label className="text-sm font-medium text-white">Zone Creation</Label>
             <Select

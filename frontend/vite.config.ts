@@ -1,10 +1,10 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import path from 'path'
-// import mkcert from 'vite-plugin-mkcert'
+import mkcert from 'vite-plugin-mkcert'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), mkcert()],
   test: {
     globals: true,
     environment: 'jsdom',

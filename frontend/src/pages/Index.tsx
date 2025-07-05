@@ -199,7 +199,7 @@ const Index: React.FC = () => {
 
   return (
     <div className="relative flex flex-1">
-      <div ref={mapRef} className="h-full w-full z-[10]" />
+      <div ref={mapRef} data-testid="map-container" className="h-full w-full z-[10]" />
       <div
         id="coordinates"
         className="absolute bottom-4 left-1/2 z-[999] -translate-x-1/2 transform whitespace-nowrap rounded-md bg-slate-800/80 px-3 py-1.5 text-center font-mono text-xs text-white shadow-lg backdrop-blur-sm"

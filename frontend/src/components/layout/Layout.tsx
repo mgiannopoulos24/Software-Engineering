@@ -21,7 +21,7 @@ const Tooltip: React.FC<{ children: React.ReactNode; text: string }> = ({ childr
   return (
     <div className="group relative flex items-center">
       {children}
-      <div className="absolute bottom-full left-1/2 mb-2 hidden w-max -translate-x-1/2 transform rounded-md bg-slate-900 px-2 py-1 text-xs text-white group-hover:block">
+      <div className="absolute top-full left-1/2 mb-2 hidden w-max -translate-x-1/2 transform rounded-md bg-slate-900 px-2 py-1 text-xs text-white group-hover:block">
         {text}
       </div>
     </div>
@@ -68,7 +68,7 @@ const Navbar = () => {
   return (
     <>
       <nav className="sticky top-0 z-50 border-b border-slate-700 bg-slate-800 text-white shadow-md">
-        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             {/* Logo/Title */}
             <div className="flex items-center">
@@ -101,7 +101,9 @@ const Navbar = () => {
             {/* Right side icons & User Menu - Desktop */}
             <div className="hidden items-center space-x-4 md:flex">
               {isAuthenticated && (
-                <>
+                <>  
+                  {!isAdminPage && (
+                    <>
                   <Tooltip text="Saved Vessels">
                     <Link
                       to="/user/vessels"
@@ -118,6 +120,8 @@ const Navbar = () => {
                       <Map size={20} />
                     </Link>
                   </Tooltip>
+                  </>
+                  )}
                   {isAdminPage && (
                     <Tooltip text="Manage Users">
                       <Link

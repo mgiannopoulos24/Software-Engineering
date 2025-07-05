@@ -70,11 +70,7 @@ const Login: React.FC = () => {
             >
               Password
             </label>
-            <div className="text-sm">
-              <Link to="/forgot-password" className="font-semibold text-sky-600 hover:text-sky-500">
-                Forgot password?
-              </Link>
-            </div>
+            
           </div>
           <div className="relative mt-2">
             <input
@@ -95,6 +91,12 @@ const Login: React.FC = () => {
             >
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
+
+          </div>
+          <div className="text-sm">
+              <Link to="/forgot-password" className="font-semibold text-sky-600 hover:text-sky-500">
+                Forgot password?
+              </Link>
           </div>
         </div>
 
