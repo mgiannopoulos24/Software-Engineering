@@ -1,8 +1,32 @@
+// Layout.tsx
 import { useAuth } from '@/contexts/AuthContext';
-import { Bookmark, Map, Menu, Search, User, Users, X } from 'lucide-react';
-import React, { useState } from 'react';
+import {
+  Bookmark,
+  ChevronDown,
+  LogOut,
+  Map,
+  Menu,
+  Search,
+  Settings,
+  ShieldCheck,
+  User,
+  Users,
+  X,
+} from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
+
+const Tooltip: React.FC<{ children: React.ReactNode; text: string }> = ({ children, text }) => {
+  return (
+    <div className="group relative flex items-center">
+      {children}
+      <div className="absolute bottom-full left-1/2 mb-2 hidden w-max -translate-x-1/2 transform rounded-md bg-slate-900 px-2 py-1 text-xs text-white group-hover:block">
+        {text}
+      </div>
+    </div>
+  );
+};
 
 const Navbar = () => {
   const { currentUser, isAdmin, logout } = useAuth();
@@ -10,148 +34,174 @@ const Navbar = () => {
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Check if we're on a user page
-  const isUserPage = location.pathname === '/user' || location.pathname.startsWith('/user');
-  const isAdminPage = location.pathname === '/admin' || location.pathname.startsWith('/admin');
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsUserDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-  const toggleSheet = () => {
-    setIsSheetOpen(!isSheetOpen);
+  // const isUserPage = location.pathname.startsWith('/user');
+  const isAdminPage = location.pathname.startsWith('/admin');
+  const isAuthenticated = !!currentUser;
+
+  const toggleSheet = () => setIsSheetOpen(!isSheetOpen);
+  const closeSheet = () => setIsSheetOpen(false);
+  const toggleUserDropdown = () => setIsUserDropdownOpen(!isUserDropdownOpen);
+  const closeUserDropdown = () => setIsUserDropdownOpen(false);
+
+  const homePath = isAuthenticated ? (isAdmin ? '/admin' : '/user') : '/';
+
+  const handleLogout = () => {
+    closeUserDropdown();
+    closeSheet();
+    logout();
+    navigate('/login');
   };
-
-  const toggleUserDropdown = () => {
-    setIsUserDropdownOpen(!isUserDropdownOpen);
-  };
-
-  const homePath = currentUser ? (isAdmin ? '/admin' : '/user') : '/';
 
   return (
     <>
-      {/* Navbar */}
-      <nav className="border-b bg-[#212930]">
-        <div className="w-full px-4 sm:px-6 lg:px-8">
+      <nav className="sticky top-0 z-50 border-b border-slate-700 bg-slate-800 text-white shadow-md">
+        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             {/* Logo/Title */}
-            <div className="flex-shrink-0">
-              <Link to={homePath} className="text-lg font-bold text-white hover:text-gray-200">
+            <div className="flex items-center">
+              <Link
+                to={homePath}
+                className="text-xl font-bold tracking-tight text-white hover:text-slate-200"
+              >
                 AIS Service
               </Link>
             </div>
 
-            {/* Desktop Navigation */}
-            <div className="hidden items-center space-x-8 md:flex">
-              {/* Search Bar - Centered */}
-              <div className="relative w-full max-w-6xl">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                  <Search className="h-5 w-5 text-gray-400" />
+            {/* Desktop Navigation - Center */}
+            {isAuthenticated && (
+              <div className="hidden flex-1 justify-center px-8 md:flex">
+                <div className="w-full max-w-lg">
+                  <div className="relative">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                      <Search className="h-5 w-5 text-slate-400" />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Search vessels by MMSI, name..."
+                      className="block w-full rounded-full border-transparent bg-slate-700 py-2 pl-10 pr-3 leading-5 text-slate-100 placeholder-slate-400 focus:border-sky-500 focus:bg-slate-600 focus:outline-none focus:ring-1 focus:ring-sky-500 sm:text-sm"
+                    />
+                  </div>
                 </div>
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  className="block w-full rounded-full border border-gray-300 bg-white py-2 pl-12 pr-4 leading-5 placeholder-gray-500 shadow-sm focus:border-blue-500 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
               </div>
-            </div>
+            )}
 
-            {/* Right side icons - Desktop */}
+            {/* Right side icons & User Menu - Desktop */}
             <div className="hidden items-center space-x-4 md:flex">
-              {/* Show user navigation icons only on user page */}
-              {(isUserPage || isAdminPage) && (
+              {isAuthenticated && (
                 <>
-                  <Link
-                    to="/user/vessels"
-                    className="flex items-center space-x-2 rounded-full bg-gray-700 p-2 text-white transition-colors hover:bg-gray-600"
-                  >
-                    <Bookmark size={18} />
-                  </Link>
-                  <Link
-                    to={isAdminPage ? '/admin' : '/user'}
-                    className="flex items-center space-x-2 rounded-full bg-gray-700 p-2 text-white transition-colors hover:bg-gray-600"
-                  >
-                    <Map size={18} />
-                  </Link>
-                  {/* Show Users icon only for admin */}
+                  <Tooltip text="Saved Vessels">
+                    <Link
+                      to="/user/vessels"
+                      className="rounded-full p-2 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white"
+                    >
+                      <Bookmark size={20} />
+                    </Link>
+                  </Tooltip>
+                  <Tooltip text="Map View">
+                    <Link
+                      to={isAdminPage ? '/admin' : '/user'}
+                      className="rounded-full p-2 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white"
+                    >
+                      <Map size={20} />
+                    </Link>
+                  </Tooltip>
                   {isAdminPage && (
-                    <button className="flex items-center space-x-2 rounded-full bg-gray-700 p-2 text-white transition-colors hover:bg-gray-600">
-                      <Users size={18} />
-                    </button>
+                    <Tooltip text="Manage Users">
+                      <Link
+                        to="/admin/users"
+                        className="rounded-full p-2 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white"
+                      >
+                        <Users size={20} />
+                      </Link>
+                    </Tooltip>
                   )}
                 </>
               )}
 
-              {/* User Profile Icon */}
-              <div className="relative">
+              {/* User Profile Dropdown */}
+              <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={toggleUserDropdown}
-                  className="flex items-center space-x-2 rounded-full border-black bg-white p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  className="flex items-center space-x-2 rounded-full bg-slate-700 py-1 pl-3 pr-2 text-sm font-medium text-white transition-colors hover:bg-slate-600"
                 >
                   <User size={18} />
+                  <ChevronDown
+                    size={16}
+                    className={`transition-transform ${isUserDropdownOpen ? 'rotate-180' : ''}`}
+                  />
                 </button>
 
                 {isUserDropdownOpen && (
-                  <div className="absolute right-0 z-[9999] mt-2 w-48 rounded-md border border-gray-200 bg-white py-1 shadow-lg">
-                    {isUserPage || isAdminPage ? (
-                      // User/Admin page dropdown
+                  <div className="absolute right-0 z-[99] mt-2 w-56 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                    {isAuthenticated ? (
                       <>
+                        <div className="px-4 py-2 text-sm text-slate-500">
+                          <p className="font-medium text-slate-800">
+                            {currentUser?.email || 'User'}
+                          </p>
+                          <p>{currentUser?.role}</p>
+                        </div>
+                        <div className="my-1 h-px bg-slate-200" />
                         <Link
                           to="/user/profile"
-                          className="block px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
-                          onClick={() => setIsUserDropdownOpen(false)}
+                          onClick={closeUserDropdown}
+                          className="flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
                         >
-                          Profile
+                          <User className="mr-3 h-5 w-5" /> Profile
                         </Link>
                         <Link
                           to="/user/settings"
-                          className="block px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
-                          onClick={() => setIsUserDropdownOpen(false)}
+                          onClick={closeUserDropdown}
+                          className="flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
                         >
-                          Settings
+                          <Settings className="mr-3 h-5 w-5" /> Settings
                         </Link>
-                        {isAdminPage && (
+                        {isAdmin && (
                           <>
-                            <hr className="my-1" />
-                            <Link
-                              to="/admin/users"
-                              className="block px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
-                              onClick={() => setIsUserDropdownOpen(false)}
-                            >
-                              Manage Users
-                            </Link>
+                            <div className="my-1 h-px bg-slate-200" />
                             <Link
                               to="/admin/system"
-                              className="block px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
-                              onClick={() => setIsUserDropdownOpen(false)}
+                              onClick={closeUserDropdown}
+                              className="flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
                             >
-                              System Settings
+                              <ShieldCheck className="mr-3 h-5 w-5" /> Admin Panel
                             </Link>
                           </>
                         )}
-                        <hr className="my-1" />
+                        <div className="my-1 h-px bg-slate-200" />
                         <button
-                          onClick={() => {
-                            logout();
-                            setIsUserDropdownOpen(false);
-                            navigate('/login');
-                          }}
-                          className="block w-full px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                          onClick={handleLogout}
+                          className="flex w-full items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
                         >
-                          Logout
+                          <LogOut className="mr-3 h-5 w-5" /> Logout
                         </button>
                       </>
                     ) : (
-                      // Default dropdown
                       <>
                         <Link
                           to="/login"
-                          className="block px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
-                          onClick={() => setIsUserDropdownOpen(false)}
+                          onClick={closeUserDropdown}
+                          className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
                         >
                           Login
                         </Link>
                         <Link
                           to="/signup"
-                          className="block px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
-                          onClick={() => setIsUserDropdownOpen(false)}
+                          onClick={closeUserDropdown}
+                          className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
                         >
                           Sign Up
                         </Link>
@@ -166,131 +216,100 @@ const Navbar = () => {
             <div className="md:hidden">
               <button
                 onClick={toggleSheet}
-                className="inline-flex items-center justify-center rounded-md border-black bg-white p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                className="inline-flex items-center justify-center rounded-md p-2 text-slate-300 hover:bg-slate-700 hover:text-white"
               >
-                {isSheetOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                <Menu className="h-6 w-6" />
               </button>
             </div>
           </div>
         </div>
 
-        {/* Mobile Sheet */}
+        {/* Mobile Sheet (Slide-out menu) */}
         {isSheetOpen && (
-          <div className="md:hidden">
-            <div className="fixed inset-0 z-[999] bg-black bg-opacity-50" onClick={toggleSheet}>
-              <div
-                className="fixed inset-y-0 right-0 w-full max-w-xs bg-white shadow-xl"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex items-center justify-between border-b border-gray-200 p-4">
-                  <h2 className="text-lg font-semibold text-gray-900">Menu</h2>
-                  <button
-                    onClick={toggleSheet}
-                    className="rounded-md border-gray-300 bg-white p-2 text-gray-600 hover:border-black hover:bg-gray-100 hover:text-gray-900"
-                  >
-                    <X className="h-6 w-6" />
-                  </button>
-                </div>
-
-                <div className="space-y-6 px-4 py-6">
-                  {/* Search Bar Mobile */}
-                  <div className="relative">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                      <Search className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="Search..."
-                      className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-10 pr-3 leading-5 placeholder-gray-500 focus:border-blue-500 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  {/* Navigation Items Mobile */}
-                  {isUserPage && (
-                    <div className="space-y-4">
+          <div className="fixed inset-0 z-[998] md:hidden">
+            {/* Overlay */}
+            <div className="absolute inset-0 bg-black/60" onClick={closeSheet} />
+            {/* Content */}
+            <div className="fixed right-0 top-0 h-full w-full max-w-xs bg-slate-800 text-white shadow-xl">
+              <div className="flex items-center justify-between border-b border-slate-700 p-4">
+                <h2 className="text-lg font-semibold">Menu</h2>
+                <button
+                  onClick={closeSheet}
+                  className="rounded-md p-2 text-slate-300 hover:bg-slate-700"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              <div className="flex h-[calc(100%-4.5rem)] flex-col justify-between p-4">
+                <div className="space-y-4">
+                  {isAuthenticated ? (
+                    <>
                       <Link
                         to="/user/vessels"
-                        className="flex w-full items-center space-x-3 text-left text-gray-600 transition-colors hover:text-gray-900"
-                        onClick={() => setIsSheetOpen(false)}
+                        onClick={closeSheet}
+                        className="flex items-center space-x-3 rounded-md p-2 text-lg text-slate-300 hover:bg-slate-700"
                       >
-                        <Bookmark className="h-5 w-5" />
-                        <span>Saved Vessels</span>
+                        <Bookmark className="h-6 w-6" /> <span>Saved Vessels</span>
                       </Link>
                       <Link
                         to={isAdminPage ? '/admin' : '/user'}
-                        className="flex w-full items-center space-x-3 text-left text-gray-600 transition-colors hover:text-gray-900"
-                        onClick={() => setIsSheetOpen(false)}
+                        onClick={closeSheet}
+                        className="flex items-center space-x-3 rounded-md p-2 text-lg text-slate-300 hover:bg-slate-700"
                       >
-                        <Map className="h-5 w-5" />
-                        <span>Map</span>
+                        <Map className="h-6 w-6" /> <span>Map View</span>
                       </Link>
-                    </div>
+                      {isAdminPage && (
+                        <Link
+                          to="/admin/users"
+                          onClick={closeSheet}
+                          className="flex items-center space-x-3 rounded-md p-2 text-lg text-slate-300 hover:bg-slate-700"
+                        >
+                          <Users className="h-6 w-6" /> <span>Manage Users</span>
+                        </Link>
+                      )}
+                    </>
+                  ) : (
+                    <Link
+                      to="/login"
+                      onClick={closeSheet}
+                      className="block w-full rounded-md bg-sky-600 px-4 py-3 text-center font-medium text-white transition-colors hover:bg-sky-700"
+                    >
+                      Login / Sign Up
+                    </Link>
                   )}
-
-                  {/* User Actions Mobile */}
-                  <div className="space-y-3 border-t border-gray-200 pt-6">
-                    {isUserPage ? (
-                      <>
-                        <Link
-                          to="/user/profile"
-                          className="block w-full rounded-md bg-blue-600 px-4 py-2 text-center text-sm font-medium text-white transition-colors hover:bg-blue-700"
-                          onClick={() => setIsSheetOpen(false)}
-                        >
-                          Profile
-                        </Link>
-                        <Link
-                          to="/user/settings"
-                          className="block w-full rounded-md border border-blue-600 px-4 py-2 text-center text-sm font-medium text-blue-600 transition-colors hover:bg-blue-50"
-                          onClick={() => setIsSheetOpen(false)}
-                        >
-                          Settings
-                        </Link>
-                        <button
-                          onClick={() => {
-                            logout();
-                            setIsSheetOpen(false);
-                            navigate('/login');
-                          }}
-                          className="block w-full rounded-md border border-red-600 px-4 py-2 text-center text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
-                        >
-                          Logout
-                        </button>
-                      </>
-                    ) : (
-                      <Link
-                        to="/login"
-                        className="block w-full rounded-md bg-blue-600 px-4 py-2 text-center text-sm font-medium text-white transition-colors hover:bg-blue-700"
-                        onClick={() => setIsSheetOpen(false)}
-                      >
-                        Login
-                      </Link>
-                    )}
-                  </div>
                 </div>
+                {isAuthenticated && (
+                  <div className="space-y-2 border-t border-slate-700 pt-4">
+                    <Link
+                      to="/user/profile"
+                      onClick={closeSheet}
+                      className="block w-full rounded-md bg-sky-600 px-4 py-3 text-center font-medium text-white transition-colors hover:bg-sky-700"
+                    >
+                      My Profile
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="block w-full rounded-md bg-slate-700 px-4 py-3 text-center font-medium text-slate-200 transition-colors hover:bg-slate-600"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         )}
       </nav>
-
-      {/* Click outside to close dropdown */}
-      {isUserDropdownOpen && (
-        <div className="fixed inset-0 z-40" onClick={() => setIsUserDropdownOpen(false)} />
-      )}
     </>
   );
 };
 
-// Footer Component
 const Footer = () => {
   const currentYear = new Date().getFullYear();
-
   return (
-    <footer className="bg-[#212930] text-white">
-      <div className="w-full px-0 py-2 sm:px-6 lg:px-8">
-        <div className="text-center">
-          <p className="text-sm">© {currentYear} AIS Service. All rights reserved.</p>
-        </div>
+    <footer className="bg-slate-800 text-slate-400">
+      <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+        <p className="text-center text-sm">© {currentYear} AIS Service. All rights reserved.</p>
       </div>
     </footer>
   );
@@ -298,10 +317,10 @@ const Footer = () => {
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-screen flex-col bg-slate-100">
       <Navbar />
-      <main className="flex flex-1 flex-col">{children}</main>
-      <Toaster position='top-right' />
+      <main className="flex flex-1 flex-col overflow-y-auto">{children}</main>
+      <Toaster position="top-right" richColors />
       <Footer />
     </div>
   );

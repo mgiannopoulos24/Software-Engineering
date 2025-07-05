@@ -1,149 +1,114 @@
-import boatLogo from '../assets/images/boat.png';
+import AuthLayout from '@/components/layout/AuthLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 const Login: React.FC = () => {
-  const [email, setEmail] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
-  const [showToast, setShowToast] = useState<boolean>(false);
-  const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setIsLoading(true);
 
     try {
       const { role } = await login(email, password);
-
-      if (role === 'admin') {
-        navigate('/admin');
-      } else if (role === 'registered') {
-        navigate('/user');
-      } else {
-        setError('Unknown role. Please contact support.');
-        setShowToast(true);
-      }
+      toast.success('Login successful!');
+      navigate(role === 'admin' ? '/admin' : '/user');
     } catch (error: any) {
       const errorMessage =
         error.response?.data?.message || 'Login failed. Please check your credentials.';
-      setError(errorMessage);
-      setShowToast(true);
+      toast.error(errorMessage);
       console.error('Login failed:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex h-[89vh] w-screen items-center justify-center bg-[#f8f9fa]">
-      <div className="w-full max-w-[800px] px-4 sm:px-6 md:w-4/5 lg:w-3/4 xl:w-1/2">
-        <div className="w-full rounded-[10px] bg-white p-[30px] shadow-[0_4px_10px_rgba(0,0,0,0.1)]">
-          <h2 className="mb-3 text-center text-2xl font-semibold text-gray-800">Welcome back</h2>
-
-          <hr className="my-4 border-gray-200" />
-
-          <div className="mb-6 flex justify-center">
-            <img src={boatLogo} alt="Login Logo" className="mx-auto block w-[120px]" />
+    <AuthLayout
+      title="Welcome Back"
+      footer={
+        <>
+          <span>Don't have an account? </span>
+          <Link to="/signup" className="font-semibold text-sky-600 hover:text-sky-500">
+            Sign up
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium leading-6 text-slate-900">
+            Email address
+          </label>
+          <div className="mt-2">
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="block w-full rounded-md border-0 py-2 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-sky-600 sm:text-sm sm:leading-6"
+            />
           </div>
+        </div>
 
-          {showToast && (
-            <div className="fixed right-4 top-4 z-50 flex w-72 items-center justify-between rounded bg-red-500 px-4 py-2 text-white shadow-lg">
-              <div>
-                <p className="font-bold">Error</p>
-                <p className="text-sm">{error || 'Invalid credentials'}</p>
-              </div>
-              <button
-                onClick={() => setShowToast(false)}
-                className="text-white hover:text-gray-200"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </button>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit}>
-            <div className="mb-4">
-              <label htmlFor="email" className="mb-1 block text-sm font-medium text-gray-700">
-                Email
-              </label>
-              <input
-                type="email"
-                id="email"
-                placeholder="Enter your email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div className="mb-4">
-              <label htmlFor="password" className="mb-1 block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  id="password"
-                  placeholder="Enter your password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                {showPassword ? (
-                  <EyeOff
-                    size={20}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 transform cursor-pointer text-gray-400 hover:text-gray-600"
-                    onClick={() => setShowPassword(false)}
-                  />
-                ) : (
-                  <Eye
-                    size={20}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 transform cursor-pointer text-gray-400 hover:text-gray-600"
-                    onClick={() => setShowPassword(true)}
-                  />
-                )}
-              </div>
-            </div>
-
-            <div className="mb-6 text-left">
-              <Link to="/forgot-password" className="text-sm text-blue-600 hover:text-blue-800">
+        <div>
+          <div className="flex items-center justify-between">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium leading-6 text-slate-900"
+            >
+              Password
+            </label>
+            <div className="text-sm">
+              <Link to="/forgot-password" className="font-semibold text-sky-600 hover:text-sky-500">
                 Forgot password?
               </Link>
             </div>
-
+          </div>
+          <div className="relative mt-2">
+            <input
+              id="password"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="block w-full rounded-md border-0 py-2 pr-10 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-sky-600 sm:text-sm sm:leading-6"
+            />
             <button
-              type="submit"
-              className="w-full rounded-md bg-blue-600 px-4 py-2 font-medium text-white transition-colors duration-300 hover:bg-blue-700"
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
-              Log In
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
-
-            <div className="mt-6 text-center text-sm text-gray-600">
-              <span>You don't have an account? </span>
-              <Link to="/signup" className="text-blue-600 hover:text-blue-800">
-                Sign up
-              </Link>
-            </div>
-          </form>
+          </div>
         </div>
-      </div>
-    </div>
+
+        <div>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="flex w-full justify-center rounded-md bg-sky-600 px-3 py-2 text-sm font-semibold leading-6 text-white shadow-sm transition-colors hover:bg-sky-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isLoading ? 'Signing in...' : 'Sign in'}
+          </button>
+        </div>
+      </form>
+    </AuthLayout>
   );
 };
 
