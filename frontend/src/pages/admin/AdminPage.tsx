@@ -169,7 +169,7 @@ const AdminPage = () => {
   };
 
   return (
-    <div className="flex w-screen bg-background">
+    <div className="flex h-screen w-screen bg-background">
       <div className="container mx-auto py-10">
         <div className="space-y-8">
           {/* Admin Header */}
