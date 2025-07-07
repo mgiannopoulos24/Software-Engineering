@@ -32,7 +32,7 @@ const routes: RouteConfig[] = [
     path: '/admin',
     element: <AdminPage />,
     protected: true,
-    roles: ['admin'],
+    roles: ['ADMIN'],
   },
 
   // User routes
@@ -40,13 +40,13 @@ const routes: RouteConfig[] = [
     path: '/user',
     element: <UserPage />,
     protected: true,
-    roles: ['registered'],
+    roles: ['REGISTERED'],
   },
   {
     path: '/user/vessels',
     element: <SavedVessels />,
     protected: true,
-    roles: ['registered'],
+    roles: ['REGISTERED'],
   },
 ];
 

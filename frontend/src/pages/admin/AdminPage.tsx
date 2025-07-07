@@ -31,7 +31,7 @@ import { useCallback, useEffect, useState } from 'react';
 interface User {
   id: number;
   email: string;
-  role: 'admin' | 'registered';
+  role: 'ADMIN' | 'REGISTERED';
 }
 
 interface SystemStats {
@@ -281,7 +281,7 @@ const AdminPage = () => {
                             <TableRow key={user.id}>
                               <TableCell><div className="font-medium">{user.email}</div></TableCell>
                               <TableCell>
-                                <Badge variant={user.role === 'admin' ? 'destructive' : 'secondary'}>{user.role}</Badge>
+                                <Badge variant={user.role === 'ADMIN' ? 'destructive' : 'secondary'}>{user.role}</Badge>
                               </TableCell>
                               <TableCell className="flex justify-center space-x-2">
                                 <Button variant="outline" size="icon" onClick={() => openEditDialog(user)}>

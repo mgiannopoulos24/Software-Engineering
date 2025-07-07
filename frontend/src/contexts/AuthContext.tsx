@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 
 // Τύποι που χρησιμοποιούνται στο context
-type UserRole = 'admin' | 'registered' | null;
+type UserRole = 'ADMIN' | 'REGISTERED' | null;
 
 interface UserProfile {
   id: number;
@@ -147,8 +147,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     currentUser,
     userRole: currentUser?.role ?? null,
     loading,
-    isAdmin: currentUser?.role === 'admin',
-    isRegistered: currentUser?.role === 'registered',
+    isAdmin: currentUser?.role === 'ADMIN',
+    isRegistered: currentUser?.role === 'REGISTERED',
     login,
     signup,
     logout,
