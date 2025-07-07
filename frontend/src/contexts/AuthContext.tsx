@@ -30,21 +30,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // ΒΟΗΘΗΤΙΚΗ ΣΥΝΑΡΤΗΣΗ: Παίρνει τα πλήρη στοιχεία του χρήστη από το /api/users/me
-  // χρησιμοποιώντας το token που μόλις λάβαμε.
   const fetchAndSetUser = async (token: string): Promise<UserProfile> => {
     const response = await fetch('/api/users/me', {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
+
     if (!response.ok) {
-      throw new Error('Could not fetch user profile after login.');
+      // Αν το token έχει λήξει, το backend θα στείλει 401 ή 403, οπότε η promise θα απορριφθεί.
+      throw new Error('Could not fetch user profile. The session may have expired.');
     }
+
     const userProfile: UserProfile = await response.json();
 
-    // Αποθήκευση του πλήρους προφίλ
-    localStorage.setItem('user', JSON.stringify(userProfile));
+    // Ομαλοποιούμε τον ρόλο σε κεφαλαία για να είναι συνεπής με τον υπόλοιπο κώδικα.
+    if (userProfile.role) {
+      userProfile.role = userProfile.role.toUpperCase() as UserRole;
+    }
+    // ----------------------------
+
+    // Αποθήκευση του πλήρους, ομαλοποιημένου προφίλ στο localStorage και στο state
+    localStorage.setItem('user', JSON.stringify(userProfile) );
     setCurrentUser(userProfile);
 
     return userProfile;
