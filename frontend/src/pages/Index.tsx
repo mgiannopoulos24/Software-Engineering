@@ -133,7 +133,7 @@ const Index: React.FC = () => {
     const fetchInitialVessels = async () => {
       try {
         // Use the correct DTO for the initial fetch
-        const response = await axios.get<ShipDetailsDTO[]>('https://localhost:8443/api/ship-data/active-ships');
+        const response = await axios.get<ShipDetailsDTO[]>('/api/ship-data/active-ships');
 
         // Now, you need to handle the fact that you're getting ShipDetailsDTO
         // and your marker function might expect RealTimeShipUpdateDTO.

@@ -111,11 +111,12 @@ export const kmToMapUnits = (km: number): number => {
  * @returns Leaflet circle object
  */
 export const drawCriticalSection = (
-  map: L.Map,
-  section: CriticalSection,
-  onRemove?: (id: string) => void,
-  onUpdate?: (id: string, newRadius: number, newName?: string) => void,
-  isNew = false
+    map: L.Map,
+    section: CriticalSection,
+    onRemove?: (id: string) => void,
+    // ΒΗΜΑ 1: Αλλάζουμε τον ορισμό για να είναι συνεπής. Προσθέτουμε το 'newConstraints'.
+    onUpdate?: (id: string, newRadius: number, newConstraints?: Constraint[], newName?: string) => void,
+    isNew = false
 ): L.Circle => {
   const circle = L.circle(section.center, {
     radius: kmToMapUnits(section.radius),
@@ -243,7 +244,11 @@ export const drawCriticalSection = (
           saveBtn.onclick = () => {
             const newRadius = parseFloat(radiusSlider.value);
             const newName = nameInput.value;
-            onUpdate(section.id, newRadius, newName);
+
+            // Ελέγχουμε αν υπάρχει η onUpdate πριν την καλέσουμε
+            if (onUpdate) {
+              onUpdate(section.id, newRadius, undefined, newName);
+            }
 
             staticRadiusDisplay.textContent = `${newRadius}`;
             if (newName) {
@@ -344,7 +349,7 @@ export const drawInterestZone = (
               break;
             case InterestZoneConstraint.UNWANTED_NAV_STATUS:
               valueInputHTML = `<select multiple id="value-${currentZone.id}-${constraint}" style="width: 100%; font-size: 11px; margin-top: 4px; display: ${isChecked ? 'block' : 'none'};">
-              ${ALL_NAV_STATUSES.map((ns) => `<option value="${ns}" ${((value as string[] | undefined) ?? []).includes(ns) ? 'selected' : ''}>${ns}</option>`).join('')}
+              ${ALL_NAV_STATUSES.map((ns) => `<option value="${ns}" ${((value as string[] | undefined) ?? []).includes(ns.toString()) ? 'selected' : ''}>${ns}</option>`).join('')}
             </select>`;
               break;
           }
@@ -690,15 +695,4 @@ export const enableZoneCreation = (
 
   // Return cleanup function
   return disableCreation;
-};
-
-// Keep the original enableCriticalSectionCreation for backwards compatibility
-export const enableCriticalSectionCreation = (
-  map: L.Map,
-  onClick: (section: CriticalSection, circle: L.Circle) => void,
-  currentCount: number,
-  onRemove?: (id: string) => void,
-  onUpdate?: (id: string, newRadius: number, newName?: string) => void
-): (() => void) => {
-  return enableZoneCreation(map, 'critical', onClick, currentCount, onRemove, onUpdate);
 };

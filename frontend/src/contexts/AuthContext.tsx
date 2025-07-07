@@ -1,11 +1,14 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 
+// Τύποι που χρησιμοποιούνται στο context
 type UserRole = 'admin' | 'registered' | null;
 
 interface UserProfile {
   id: number;
-  email?: string;
+  email: string;
   role: UserRole;
+  hasActiveInterestZone: boolean;
+  hasActiveCollisionZone: boolean;
 }
 
 interface AuthContextType {
@@ -14,156 +17,138 @@ interface AuthContextType {
   loading: boolean;
   isAdmin: boolean;
   isRegistered: boolean;
-  login: (email: string, password: string) => Promise<{ role: UserRole }>;
-  signup: (email: string, password: string) => Promise<{ role: UserRole }>;
+  login: (email: string, password: string) => Promise<UserProfile>;
+  signup: (email: string, password: string) => Promise<UserProfile>;
   logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextType>({
-  currentUser: null,
-  userRole: null,
-  loading: true,
-  isAdmin: false,
-  isRegistered: false,
-  login: async () => ({ role: null }),
-  signup: async () => ({ role: null }),
-  logout: () => {},
-});
+const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  const [userRole, setUserRole] = useState<UserRole>(null);
   const [loading, setLoading] = useState(true);
 
-  const login = async (email: string, password: string): Promise<{ role: UserRole }> => {
+  // ΒΟΗΘΗΤΙΚΗ ΣΥΝΑΡΤΗΣΗ: Παίρνει τα πλήρη στοιχεία του χρήστη από το /api/users/me
+  // χρησιμοποιώντας το token που μόλις λάβαμε.
+  const fetchAndSetUser = async (token: string): Promise<UserProfile> => {
+    const response = await fetch('/api/users/me', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) {
+      throw new Error('Could not fetch user profile after login.');
+    }
+    const userProfile: UserProfile = await response.json();
+
+    // Αποθήκευση του πλήρους προφίλ
+    localStorage.setItem('user', JSON.stringify(userProfile));
+    setCurrentUser(userProfile);
+
+    return userProfile;
+  };
+
+  const login = async (email: string, password: string): Promise<UserProfile> => {
+    // Βήμα 1: Κάνε login για να πάρεις το token
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text(); // Χρησιμοποιούμε .text() για να δούμε τι ακριβώς επιστρέφει
+      console.error('Login API error response:', errorData);
+      throw new Error('Login failed. Please check your credentials.');
+    }
+
+    const data = await response.json();
+    const token = data.token;
+
+    if (!token) {
+      throw new Error('No token received from login API.');
+    }
+
+    // Αποθηκεύουμε προσωρινά το token
+    localStorage.setItem('token', token);
+
+    // Βήμα 2: Χρησιμοποίησε το token για να πάρεις το πλήρες προφίλ
     try {
-      const response = await fetch('https://localhost:8443/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Login failed');
-      }
-
-      const data = await response.json();
-
-      // Store token if provided
-      if (data.token) {
-        localStorage.setItem('token', data.token);
-      }
-
-      // Create user profile from login response
-      const userProfile: UserProfile = {
-        id: data.id || data.user?.id,
-        email: email,
-        role: data.role || data.user?.role,
-      };
-
-      localStorage.setItem('user', JSON.stringify(userProfile)); // Store user profile
-      setCurrentUser(userProfile);
-      setUserRole(userProfile.role);
-
-      return { role: userProfile.role };
+      const userProfile = await fetchAndSetUser(token);
+      return userProfile;
     } catch (error) {
-      console.error('Login error:', error);
+      // Αν αποτύχει η λήψη του προφίλ, καθαρίζουμε το token και κάνουμε logout
+      logout();
       throw error;
     }
   };
 
-  const signup = async (email: string, password: string): Promise<{ role: UserRole }> => {
-    try {
-      const response = await fetch('https://localhost:8443/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
+  const signup = async (email: string, password: string): Promise<UserProfile> => {
+    // Λογική παρόμοια με το login
+    const response = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Registration failed');
-      }
-
-      const data = await response.json();
-
-      // Store token if provided
-      if (data.token) {
-        localStorage.setItem('token', data.token);
-      }
-
-      // Create user profile from login response
-      const userProfile: UserProfile = {
-        id: data.id || data.user?.id,
-        email: email,
-        role: data.role || data.user?.role,
-      };
-
-      localStorage.setItem('user', JSON.stringify(userProfile)); // Store user profile
-      setCurrentUser(userProfile);
-      setUserRole(userProfile.role);
-
-      return { role: userProfile.role };
-    } catch (error) {
-      console.error('Registration error:', error);
-      throw error;
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Registration failed');
     }
+
+    const data = await response.json();
+    const token = data.token;
+
+    if (!token) {
+      throw new Error('No token received from register API.');
+    }
+
+    localStorage.setItem('token', token);
+
+    const userProfile = await fetchAndSetUser(token);
+    return userProfile;
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('token');
-    localStorage.removeItem('user'); // Also remove user from storage
+    localStorage.removeItem('user');
     setCurrentUser(null);
-    setUserRole(null);
-  };
+  }, []);
 
+  // ΒΕΛΤΙΩΜΕΝΟ useEffect ΓΙΑ ΕΛΕΓΧΟ ΤΗΣ SESSION ΚΑΤΑ ΤΗ ΦΟΡΤΩΣΗ
   useEffect(() => {
-    const checkExistingSession = () => {
+    const checkExistingSession = async () => {
       const token = localStorage.getItem('token');
       if (!token) {
-        setCurrentUser(null);
-        setUserRole(null);
         setLoading(false);
         return;
       }
 
-      // Since you don't have a profile endpoint, we can't verify the token
-      // You might want to store user data in localStorage as well
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        try {
-          const userData: UserProfile = JSON.parse(storedUser);
-          setCurrentUser(userData);
-          setUserRole(userData.role);
-        } catch (error) {
-          console.error('Error parsing stored user data:', error);
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-        }
-      } else {
-        // Token exists but no user data, clear token
-        localStorage.removeItem('token');
+      try {
+        // Προσπαθούμε να πάρουμε το προφίλ με το αποθηκευμένο token.
+        // Αυτόματα, αυτό επικυρώνει ότι το token είναι ακόμα έγκυρο.
+        await fetchAndSetUser(token);
+      } catch (error) {
+        // Αν το token είναι άκυρο (π.χ. έληξε), το API θα επιστρέψει 401/403.
+        // Σε αυτή την περίπτωση, καθαρίζουμε τα πάντα.
+        console.error("Session check failed, logging out:", error);
+        logout();
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     };
 
     checkExistingSession();
-  }, []);
+  }, [logout]);
 
   const value = {
     currentUser,
-    userRole,
+    userRole: currentUser?.role ?? null,
     loading,
-    isAdmin: userRole === 'admin',
-    isRegistered: userRole === 'registered',
+    isAdmin: currentUser?.role === 'admin',
+    isRegistered: currentUser?.role === 'registered',
     login,
     signup,
     logout,
