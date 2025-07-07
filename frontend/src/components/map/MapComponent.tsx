@@ -49,6 +49,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ initialVessels, onMapReady,
         if (mapRef.current && !mapInstanceRef.current) {
             const map = L.map(mapRef.current, {
                 // ... map options ...
+                zoomControl: false,
             }).setView([37.9, 23.0], 7);
 
             L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
