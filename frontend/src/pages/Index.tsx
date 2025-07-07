@@ -165,7 +165,7 @@ const Index: React.FC = () => {
 
     if (!stompClientRef.current) {
       const client = new Client({
-        webSocketFactory: () => new SockJS('http://localhost:8080/ws-ais'),
+        webSocketFactory: () => new SockJS('/ws-ais'),
         reconnectDelay: 5000,
         debug: () => {},
       });

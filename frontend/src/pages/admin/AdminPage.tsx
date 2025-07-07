@@ -173,7 +173,7 @@ const AdminPage = () => {
       const response = await fetch(`/api/users/${selectedUser.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ role: selectedRole.toLowerCase() }), // Στέλνουμε το role ως lowercase
+        body: JSON.stringify({ role: selectedRole }),
       });
       if (!response.ok) {
         setUsersError('Failed to update user role.');
