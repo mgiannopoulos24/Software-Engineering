@@ -2,7 +2,7 @@ import AuthLayout from '@/components/layout/AuthLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
 const Signup: React.FC = () => {
@@ -10,7 +10,6 @@ const Signup: React.FC = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
   const { signup } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -18,16 +17,11 @@ const Signup: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // ΒΗΜΑ 1: Καλούμε τη νέα συνάρτηση signup, η οποία επιστρέφει πλέον ολόκληρο το προφίλ του χρήστη.
-      const userProfile = await signup(email, password);
+      // Απλά καλούμε τη login. Η ανακατεύθυνση θα γίνει αυτόματα
+      // από το AuthRedirectHandler όταν το currentUser αλλάξει.
+      await signup(email, password);
 
-      toast.success('Account created successfully!', {
-        description: 'You are now being logged in.',
-      });
-
-      // ΒΗΜΑ 2: Κάνουμε την ανακατεύθυνση με βάση τον πραγματικό ρόλο από το backend.
-      // Για νέες εγγραφές, ο ρόλος θα είναι πάντα 'REGISTERED', αλλά αυτή η λογική είναι πιο ανθεκτική σε μελλοντικές αλλαγές.
-      navigate(userProfile.role === 'ADMIN' ? '/admin' : '/user');
+      toast.success('Login successful!');
 
     } catch (error: any) {
       // Ο χειρισμός σφαλμάτων παραμένει ίδιος.

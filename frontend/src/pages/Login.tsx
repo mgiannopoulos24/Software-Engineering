@@ -2,7 +2,7 @@ import AuthLayout from '@/components/layout/AuthLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
 const Login: React.FC = () => {
@@ -10,7 +10,6 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -18,16 +17,15 @@ const Login: React.FC = () => {
     setIsLoading(true);
 
     try {
-      /// Η login επιστρέφει πλέον το πλήρες προφίλ με τον σωστό ρόλο
-      const userProfile = await login(email, password);
-      toast.success('Login successful!');
+      // Απλά καλούμε τη login. Η ανακατεύθυνση θα γίνει αυτόματα
+      // από το AuthRedirectHandler όταν το currentUser αλλάξει.
+      await login(email, password);
 
-      // Κάνουμε ανακατεύθυνση με βάση τον ρόλο από το αξιόπιστο προφίλ
-      navigate(userProfile.role === 'ADMIN' ? '/admin' : '/user');
+      toast.success('Login successful!');
 
     } catch (error: any) {
       const errorMessage =
-        error.response?.data?.message || 'Login failed. Please check your credentials.';
+          error.response?.data?.message || 'Login failed. Please check your credentials.';
       toast.error(errorMessage);
       console.error('Login failed:', error);
     } finally {
