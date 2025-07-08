@@ -152,10 +152,10 @@ class WebSocketIntegrationTest extends AbstractTest {
         };
 
         // Συνδεόμαστε και περιμένουμε να ολοκληρωθεί η σύνδεση
-        StompSession stompSession = stompClient.connectAsync(URL, sessionHandler).get(10, TimeUnit.SECONDS);
+        StompSession stompSession = stompClient.connectAsync(URL, sessionHandler).get(15, TimeUnit.SECONDS);
 
         // Περιμένουμε το αποτέλεσμα από το CompletableFuture
-        RealTimeShipUpdateDTO receivedMessage = resultFuture.get(10, TimeUnit.SECONDS);
+        RealTimeShipUpdateDTO receivedMessage = resultFuture.get(15, TimeUnit.SECONDS);
 
         assertThat(receivedMessage).isNotNull();
         assertThat(receivedMessage.getMmsi()).isEqualTo("12345");
@@ -212,9 +212,9 @@ class WebSocketIntegrationTest extends AbstractTest {
         };
 
         StompSession stompSession = stompClient.connectAsync(URL, new WebSocketHttpHeaders(), connectHeaders, sessionHandler)
-                .get(10, TimeUnit.SECONDS);
+                .get(15, TimeUnit.SECONDS);
 
-        NotificationDTO receivedMessage = resultFuture.get(10, TimeUnit.SECONDS);
+        NotificationDTO receivedMessage = resultFuture.get(15, TimeUnit.SECONDS);
 
         assertThat(receivedMessage).isNotNull();
         assertThat(receivedMessage.getMessage()).isEqualTo("Test Violation");

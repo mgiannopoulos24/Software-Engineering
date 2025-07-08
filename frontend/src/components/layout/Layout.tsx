@@ -324,7 +324,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     <div className="flex h-screen flex-col bg-slate-100">
       <Navbar />
       <main className="flex flex-1 flex-col overflow-y-auto">{children}</main>
-      <Toaster position="top-right" richColors />
+      <Toaster position="top-right" richColors closeButton />
       <Footer />
     </div>
   );

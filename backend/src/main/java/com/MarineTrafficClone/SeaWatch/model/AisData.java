@@ -15,7 +15,9 @@ import java.util.Objects;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "ais_data")
+@Table(name = "ais_data", indexes = {
+        @Index(name = "idx_aisdata_mmsi_timestamp", columnList = "mmsi, timestampEpoch DESC")
+})
 public class AisData {
 
     @Id // Ορίζει αυτό το πεδίο ως το πρωτεύον κλειδί (primary key).

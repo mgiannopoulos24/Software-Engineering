@@ -1,24 +1,23 @@
 import MapComponent from '@/components/map/MapComponent';
+import FiltersPanel from '@/components/map/FiltersPanel';
 import ZoneControls from '@/components/map/ZoneControls';
-import { toast } from '@/hooks/use-toast';
-import { FilterValue, RealTimeShipUpdateDTO, ShipDetailsDTO } from '@/types/types';
+import {Button} from '@/components/ui/button';
+import {FilterValue, RealTimeShipUpdateDTO, ShipDetailsDTO} from '@/types/types';
 import {
   Constraint,
   CriticalSection,
+  enableZoneCreation,
   InterestZone,
   MAX_CRITICAL_SECTIONS,
   MAX_INTEREST_ZONES,
   ZoneType,
-  drawInterestZone,
-  enableZoneCreation,
 } from '@/utils/mapUtils';
-import { Client } from '@stomp/stompjs';
+import {Client} from '@stomp/stompjs';
 import L from 'leaflet';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {Settings2} from 'lucide-react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import SockJS from 'sockjs-client';
-import FiltersPanel from '@/components/map/FiltersPanel';
-import { Button } from '@/components/ui/button';
-import { Settings2 } from 'lucide-react';
+import {toast} from 'sonner'; // ΑΛΛΑΓΗ: Εισαγωγή από τη sonner
 
 const UserPage: React.FC = () => {
   // --- STATE MANAGEMENT ---
@@ -41,30 +40,10 @@ const UserPage: React.FC = () => {
   });
   const [criticalSections, setCriticalSections] = useState<CriticalSection[]>([]);
   const [interestZones, setInterestZones] = useState<InterestZone[]>([]);
-  const [activeZoneType, setActiveZoneType] = useState<ZoneType>('critical');
+  const [activeZoneType, setActiveZoneType] = useState<ZoneType>('interest');
   const [isCreatingZone, setIsCreatingZone] = useState(false);
 
-
   // --- LOGIC / CALLBACKS ---
-
-  // Callback που θα εκτελεστεί από το MapComponent όταν ο χάρτης είναι έτοιμος.
-  const handleMapReady = useCallback((map: L.Map) => {
-    mapInstanceRef.current = map;
-
-    map.on('mousemove', (e) => {
-      const lat = e.latlng.lat.toFixed(6);
-      const lng = e.latlng.lng.toFixed(6);
-      setCoordinates(`Latitude: ${lat}, Longitude: ${lng}`);
-    });
-    map.on('mouseout', () => {
-      setCoordinates('Hover over the map to display coordinates');
-    });
-
-    // Τώρα που έχουμε χάρτη, μπορούμε να ζητήσουμε τα δεδομένα και να συνδεθούμε.
-    fetchInitialData();
-    connectWebSocket();
-    fetchUserZone();
-  }, []); // Το useCallback διασφαλίζει ότι η συνάρτηση δεν αλλάζει σε κάθε render
 
   const addOrUpdateVessel = useCallback((vessel: RealTimeShipUpdateDTO) => {
     setVessels(prevVessels => new Map(prevVessels).set(vessel.mmsi, vessel));
@@ -81,43 +60,48 @@ const UserPage: React.FC = () => {
 
       const initialVesselsMap = new Map<string, RealTimeShipUpdateDTO>();
       vesselsDetails.forEach(detail => {
-        // Διόρθωση Bug 1.1: Μετατροπή DTO
-        const vesselUpdate: RealTimeShipUpdateDTO = {
-          mmsi: detail.mmsi.toString(),
-          shiptype: detail.shiptype || 'unknown',
-          navigationalStatus: detail.navigationalStatus,
-          speedOverGround: detail.speedOverGround ?? 0,
-          courseOverGround: detail.courseOverGround ?? 0,
-          trueHeading: detail.trueHeading ?? 511,
-          longitude: detail.longitude ?? 0,
-          latitude: detail.latitude ?? 0,
-          timestampEpoch: detail.lastUpdateTimestampEpoch ?? 0,
-        };
-        initialVesselsMap.set(vesselUpdate.mmsi, vesselUpdate);
+        if (detail.mmsi && detail.latitude && detail.longitude) {
+          const vesselUpdate: RealTimeShipUpdateDTO = {
+            mmsi: detail.mmsi.toString(),
+            shiptype: detail.shiptype || 'unknown',
+            navigationalStatus: detail.navigationalStatus,
+            speedOverGround: detail.speedOverGround ?? 0,
+            courseOverGround: detail.courseOverGround ?? 0,
+            trueHeading: detail.trueHeading ?? 511,
+            longitude: detail.longitude ?? 0,
+            latitude: detail.latitude ?? 0,
+            timestampEpoch: detail.lastUpdateTimestampEpoch ?? 0,
+          };
+          initialVesselsMap.set(vesselUpdate.mmsi, vesselUpdate);
+        }
       });
       setVessels(initialVesselsMap);
 
     } catch (error) {
       console.error('Error fetching initial vessel data:', error);
-      toast({ title: 'Error', description: 'Could not fetch initial vessel data.', variant: 'destructive' });
+      toast.error('Could not fetch initial vessel data.');
     }
   };
 
-  const connectWebSocket = () => {
-    if (stompClientRef.current) return;
+  const connectWebSocket = useCallback(() => {
+    if (stompClientRef.current?.active) return;
 
-    // Διόρθωση Bug 1.2: Προσθήκη token στα headers
     const token = localStorage.getItem('token');
     const connectHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
     const client = new Client({
-      webSocketFactory: () => new SockJS('/ws-ais'), // Χρήση του proxy
+      webSocketFactory: () => new SockJS('/ws-ais'),
       connectHeaders: connectHeaders,
+      heartbeatIncoming: 10000,
+      heartbeatOutgoing: 10000,
       reconnectDelay: 5000,
-      debug: () => {},
+      debug: (str) => {
+          console.log(new Date(), str);
+        },
     });
 
     client.onConnect = () => {
+      toast.success('Real-time connection established.');
       // Public subscription
       client.subscribe('/topic/ais-updates', (message) => {
         const vessel: RealTimeShipUpdateDTO = JSON.parse(message.body);
@@ -128,23 +112,53 @@ const UserPage: React.FC = () => {
       if (token) {
         client.subscribe('/user/queue/notifications', (message) => {
           const notification = JSON.parse(message.body);
-          toast({ title: `Zone Violation: ${notification.zoneName}`, description: notification.message });
+          toast.info(`Zone Violation: ${notification.zoneName}`, {
+            description: notification.message,
+          });
         });
         client.subscribe('/user/queue/collision-alerts', (message) => {
           const alert = JSON.parse(message.body);
-          toast({ title: '⚠️ COLLISION ALERT! ⚠️', description: alert.message, variant: 'destructive' });
+          toast.error('⚠️ COLLISION ALERT! ⚠️', {
+            description: alert.message,
+            duration: 10000, // Κράτα την ειδοποίηση για 10 δευτ.
+          });
         });
       }
     };
+
+    client.onStompError = (frame) => {
+      console.error('STOMP Error: Broker reported error: ' + frame.headers['message']);
+      toast.error('STOMP Protocol Error', { description: frame.headers['message'] });
+    };
+
+    client.onWebSocketClose = () => {
+      console.error('WebSocket connection closed!');
+      toast.error('Real-time connection lost.', { description: 'Attempting to reconnect...' });
+    };
+
     client.activate();
     stompClientRef.current = client;
-  };
+  }, [addOrUpdateVessel]);
 
-  const fetchUserZone = async () => {
-    // ... η λογική του fetchUserZone παραμένει ίδια, αλλά χρησιμοποιεί το proxy ...
-  };
+  // Callback που θα εκτελεστεί από το MapComponent όταν ο χάρτης είναι έτοιμος.
+  const handleMapReady = useCallback((map: L.Map) => {
+    mapInstanceRef.current = map;
 
-  // Όλες οι άλλες συναρτήσεις-handlers (handleFilterChange, handleZoneCreated, etc.) παραμένουν εδώ.
+    map.on('mousemove', (e) => {
+      const lat = e.latlng.lat.toFixed(6);
+      const lng = e.latlng.lng.toFixed(6);
+      setCoordinates(`Latitude: ${lat}, Longitude: ${lng}`);
+    });
+    map.on('mouseout', () => {
+      setCoordinates('Hover over the map to display coordinates');
+    });
+
+    void fetchInitialData();
+    connectWebSocket();
+    // void fetchUserZone(); // Αν έχεις λογική για φόρτωση ζωνών, θα μπει εδώ.
+  }, [connectWebSocket]);
+
+  // Handlers για φίλτρα και ζώνες
   const handleFilterChange = (key: string, value: FilterValue) => { /* ... */ };
   const applyFilters = () => { /* ... */ };
   const resetFilters = () => { /* ... */ };
@@ -163,21 +177,26 @@ const UserPage: React.FC = () => {
       const currentCount = activeZoneType === 'critical' ? criticalSections.length : interestZones.length;
       const maxLimit = activeZoneType === 'critical' ? MAX_CRITICAL_SECTIONS : MAX_INTEREST_ZONES;
       if (currentCount >= maxLimit) {
-        toast({ title: `Maximum limit reached for ${activeZoneType} zones.` });
+        toast.warning(`Maximum limit reached for ${activeZoneType} zones.`);
         return;
       }
 
-      const cleanup = enableZoneCreation(mapInstanceRef.current, activeZoneType, handleZoneCreated, currentCount, handleRemoveZone, handleUpdateZone);
-      zoneCleanupRef.current = cleanup;
+      zoneCleanupRef.current = enableZoneCreation(mapInstanceRef.current, activeZoneType, handleZoneCreated, currentCount, handleRemoveZone, handleUpdateZone);
       setIsCreatingZone(true);
-      toast({ title: `${activeZoneType === 'critical' ? 'Critical Section' : 'Interest Zone'} Mode Activated` });
+      toast.info(`${activeZoneType === 'critical' ? 'Critical Section' : 'Interest Zone'} Mode Activated`);
     }
   };
 
+  useEffect(() => {
+    // Cleanup WebSocket on component unmount
+    return () => {
+      stompClientRef.current?.deactivate();
+    };
+  }, []);
 
   // --- RENDER ---
   return (
-      <div className="relative w-full flex-1">
+      <div className="relative flex w-full flex-1">
         <MapComponent
             initialVessels={Array.from(vessels.values())}
             onMapReady={handleMapReady}
@@ -186,7 +205,7 @@ const UserPage: React.FC = () => {
 
         <div
             id="coordinates"
-            className="w-240 absolute bottom-2.5 left-1/2 z-[999] -translate-x-1/2 transform whitespace-nowrap rounded border border-white/30 bg-black/60 px-2.5 text-center text-xs font-medium text-white shadow-md"
+            className="absolute bottom-2.5 left-1/2 z-[999] -translate-x-1/2 transform whitespace-nowrap rounded border border-white/30 bg-black/60 px-2.5 text-center text-xs font-medium text-white shadow-md"
         >
           {coordinates}
         </div>
@@ -196,7 +215,7 @@ const UserPage: React.FC = () => {
             isCreatingZone={isCreatingZone}
             onZoneTypeChange={(value) => {
               if (isCreatingZone) toggleZoneCreation(); // Cancel creation if type changes
-              setActiveZoneType(value);
+              setActiveZoneType(value as ZoneType);
             }}
             onToggleCreation={toggleZoneCreation}
         />
