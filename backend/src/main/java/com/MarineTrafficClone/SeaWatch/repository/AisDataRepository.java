@@ -41,17 +41,43 @@ public interface AisDataRepository extends JpaRepository<AisData, Long> {
      */
     Optional<AisData> findTopByMmsiOrderByTimestampEpochDesc(String mmsi);
 
+    /*
     /**
      * Βρίσκει την πιο πρόσφατη εγγραφή AisData για κάθε MMSI σε μια δεδομένη λίστα.
      * Χρησιμοποιεί ένα πιο σύνθετο JPQL query για βέλτιστη απόδοση, αποφεύγοντας το πρόβλημα N+1
      * που θα προέκυπτε αν καλούσαμε την findTopByMmsiOrderByTimestampEpochDesc σε ένα loop.
      * Το subquery `(SELECT MAX(a2.timestampEpoch) ...)` βρίσκει τη μέγιστη χρονοσφραγίδα για κάθε πλοίο,
      * και το εξωτερικό query επιστρέφει την πλήρη εγγραφή που αντιστοιχεί σε αυτή τη χρονοσφραγίδα.
+     * Δεν τα πάει καλά με μεγάλους πίνακες όμως.
      *
      * @param mmsis Μια λίστα από MMSI (ως String).
      * @return Μια λίστα που περιέχει την τελευταία εγγραφή για κάθε πλοίο της λίστας εισόδου.
      */
+    /*
     @Query("SELECT a FROM AisData a WHERE a.mmsi IN :mmsis AND a.timestampEpoch = (SELECT MAX(a2.timestampEpoch) FROM AisData a2 WHERE a2.mmsi = a.mmsi)")
+    List<AisData> findLatestAisDataForMmsiList(@Param("mmsis") List<String> mmsis);
+    */
+
+    /**
+     * Βρίσκει την πιο πρόσφατη εγγραφή AisData για κάθε MMSI σε μια δεδομένη λίστα.
+     * Χρησιμοποιεί ένα αποδοτικό native SQL query με window functions (ROW_NUMBER)
+     * αντί για ένα αργό correlated subquery, το οποίο είναι κρίσιμο για την απόδοση
+     * σε μεγάλους πίνακες δεδομένων.
+     *
+     * @param mmsis Μια λίστα από MMSI (ως String).
+     * @return Μια λίστα που περιέχει την τελευταία εγγραφή για κάθε πλοίο της λίστας εισόδου.
+     */
+    @Query(value = """
+            WITH RankedAisData AS (
+                SELECT *,
+                       ROW_NUMBER() OVER(PARTITION BY mmsi ORDER BY timestamp_epoch DESC) as rn
+                FROM ais_data
+                WHERE mmsi IN (:mmsis)
+            )
+            SELECT id, mmsi, navigational_status, rate_of_turn, speed_over_ground, course_over_ground, true_heading, longitude, latitude, timestamp_epoch
+            FROM RankedAisData
+            WHERE rn = 1
+            """, nativeQuery = true)
     List<AisData> findLatestAisDataForMmsiList(@Param("mmsis") List<String> mmsis);
 
     /**

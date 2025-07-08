@@ -14,7 +14,7 @@ import {
   X,
 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 
 const Tooltip: React.FC<{ children: React.ReactNode; text: string }> = ({ children, text }) => {
@@ -32,7 +32,6 @@ const Navbar = () => {
   const { currentUser, isAdmin, logout } = useAuth();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
-  const location = useLocation();
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -47,8 +46,6 @@ const Navbar = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // const isUserPage = location.pathname.startsWith('/user');
-  const isAdminPage = location.pathname.startsWith('/admin');
   const isAuthenticated = !!currentUser;
 
   const toggleSheet = () => setIsSheetOpen(!isSheetOpen);
@@ -57,6 +54,8 @@ const Navbar = () => {
   const closeUserDropdown = () => setIsUserDropdownOpen(false);
 
   const homePath = isAuthenticated ? (isAdmin ? '/admin' : '/user') : '/';
+
+  const mapPath = isAdmin ? '/admin' : '/user';
 
   const handleLogout = () => {
     closeUserDropdown();
@@ -101,36 +100,38 @@ const Navbar = () => {
             {/* Right side icons & User Menu - Desktop */}
             <div className="hidden items-center space-x-4 md:flex">
               {isAuthenticated && (
-                <>  
-                  {!isAdminPage && (
-                    <>
-                  <Tooltip text="Saved Vessels">
-                    <Link
-                      to="/user/vessels"
-                      className="rounded-full p-2 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white"
-                    >
-                      <Bookmark size={20} />
-                    </Link>
-                  </Tooltip>
+                <>
+                  {/* Κοινό κουμπί χάρτη για όλους τους συνδεδεμένους χρήστες */}
                   <Tooltip text="Map View">
                     <Link
-                      to={isAdminPage ? '/admin' : '/user'}
-                      className="rounded-full p-2 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white"
+                        to={mapPath} // Χρησιμοποιεί τη δυναμική διαδρομή
+                        className="rounded-full p-2 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white"
                     >
                       <Map size={20} />
                     </Link>
                   </Tooltip>
-                  </>
+                  {/* Εικονίδια ΜΟΝΟ για User (π.χ. Registered) */}
+                  {!isAdmin && (
+                      <Tooltip text="Saved Vessels">
+                        <Link
+                            to="/user/vessels"
+                            className="rounded-full p-2 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white"
+                        >
+                          <Bookmark size={20} />
+                        </Link>
+                      </Tooltip>
                   )}
-                  {isAdminPage && (
-                    <Tooltip text="Manage Users">
-                      <Link
-                        to="/admin/users"
-                        className="rounded-full p-2 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white"
-                      >
-                        <Users size={20} />
-                      </Link>
-                    </Tooltip>
+
+                  {/* Εικονίδια ΜΟΝΟ για Admin */}
+                  {isAdmin && (
+                      <Tooltip text="Manage Users">
+                        <Link
+                            to="/admin/dashboard" // Το dashboard των admins
+                            className="rounded-full p-2 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white"
+                        >
+                          <Users size={20} />
+                        </Link>
+                      </Tooltip>
                   )}
                 </>
               )}
@@ -248,28 +249,36 @@ const Navbar = () => {
                 <div className="space-y-4">
                   {isAuthenticated ? (
                     <>
+                      {/* Κοινό κουμπί χάρτη για mobile */}
                       <Link
-                        to="/user/vessels"
-                        onClick={closeSheet}
-                        className="flex items-center space-x-3 rounded-md p-2 text-lg text-slate-300 hover:bg-slate-700"
-                      >
-                        <Bookmark className="h-6 w-6" /> <span>Saved Vessels</span>
-                      </Link>
-                      <Link
-                        to={isAdminPage ? '/admin' : '/user'}
-                        onClick={closeSheet}
-                        className="flex items-center space-x-3 rounded-md p-2 text-lg text-slate-300 hover:bg-slate-700"
+                          to={mapPath} // Χρησιμοποιεί τη δυναμική διαδρομή
+                          onClick={closeSheet}
+                          className="flex items-center space-x-3 rounded-md p-2 text-lg text-slate-300 hover:bg-slate-700"
                       >
                         <Map className="h-6 w-6" /> <span>Map View</span>
                       </Link>
-                      {isAdminPage && (
-                        <Link
-                          to="/admin/users"
-                          onClick={closeSheet}
-                          className="flex items-center space-x-3 rounded-md p-2 text-lg text-slate-300 hover:bg-slate-700"
-                        >
-                          <Users className="h-6 w-6" /> <span>Manage Users</span>
-                        </Link>
+
+                      {/* Links ΜΟΝΟ για User */}
+                      {!isAdmin && (
+                          <Link
+                              to="/user/vessels"
+                              onClick={closeSheet}
+                              className="flex items-center space-x-3 rounded-md p-2 text-lg text-slate-300 hover:bg-slate-700"
+                          >
+                            <Bookmark className="h-6 w-6" /> <span>Saved Vessels</span>
+                          </Link>
+                      )}
+
+
+                      {/* Links ΜΟΝΟ για Admin */}
+                      {isAdmin && (
+                          <Link
+                              to="/admin/dashboard"
+                              onClick={closeSheet}
+                              className="flex items-center space-x-3 rounded-md p-2 text-lg text-slate-300 hover:bg-slate-700"
+                          >
+                            <Users className="h-6 w-6" /> <span>Manage Users</span>
+                          </Link>
                       )}
                     </>
                   ) : (
@@ -324,9 +333,10 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     <div className="flex h-screen flex-col bg-slate-100">
       <Navbar />
       <main className="flex flex-1 flex-col overflow-y-auto">{children}</main>
-      <Toaster position="top-right" richColors />
+      <Toaster position="top-right" richColors closeButton />
       <Footer />
     </div>
   );
 };
+
 export default Layout;
