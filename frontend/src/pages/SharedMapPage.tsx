@@ -296,7 +296,7 @@ const SharedMapPage: React.FC = () => {
                 isAuthenticated={isAuthenticated}
             />
             
-            <div id="coordinates" className="absolute bottom-2.5 left-1/2 z-[999] -translate-x-1/2 rounded-md bg-slate-800 bg-opacity-70 px-3 py-1 text-xs text-white shadow-lg">
+            <div id="coordinates" className="absolute bottom-2.5 left-1/2 z-[20] -translate-x-1/2 rounded-md bg-slate-800 bg-opacity-70 px-3 py-1 text-xs text-white shadow-lg">
                 {coordinates}
             </div>
 
@@ -310,14 +310,14 @@ const SharedMapPage: React.FC = () => {
             )}
             
             {shipTrack.length > 0 && (
-                <div className="absolute bottom-4 right-4 z-[999]">
+                <div className="absolute bottom-4 right-4 z-[19]">
                     <Button onClick={handleHideTrackRequest} variant="destructive" className="flex items-center space-x-2 shadow-lg">
                         <History size={18} /><span>Clear Track</span>
                     </Button>
                 </div>
             )}
 
-            <div className="absolute bottom-4 left-4 z-[999]">
+            <div className="absolute bottom-4 left-4 z-[19]">
                 <Button onClick={() => setIsFiltersOpen(o => !o)} className="flex items-center space-x-2 shadow-lg">
                     <span>Filters</span><Settings2 size={18} />
                 </Button>
