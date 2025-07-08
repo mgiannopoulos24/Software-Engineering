@@ -5,7 +5,7 @@ import FiltersPanel from '@/components/map/FiltersPanel';
 import ZoneControls from '@/components/map/ZoneControls';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { RealTimeShipUpdateDTO, ShipDetailsDTO } from '@/types/types';
+import { RealTimeShipUpdateDTO, ShipDetailsDTO, TrackPointDTO } from '@/types/types';
 import {
     enableZoneCreation,
     ZoneType,
@@ -13,7 +13,7 @@ import {
 } from '@/utils/mapUtils';
 import { Client } from '@stomp/stompjs';
 import L from 'leaflet';
-import { Settings2 } from 'lucide-react';
+import { Settings2, History } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import SockJS from 'sockjs-client';
 import { toast } from 'sonner';
@@ -28,6 +28,7 @@ const SharedMapPage: React.FC = () => {
     const stompClientRef = useRef<Client | null>(null);
     const zoneCleanupRef = useRef<(() => void) | null>(null);
     const mapComponentRef = useRef<MapComponentRef>(null);
+    const currentTrackMmsiRef = useRef<string | null>(null);
 
     // State
     const [coordinates, setCoordinates] = useState('Hover over the map');
@@ -42,17 +43,76 @@ const SharedMapPage: React.FC = () => {
     const [activeZoneType, setActiveZoneType] = useState<ZoneType>('interest');
     // TODO: Προσθέστε state για τις λίστες των ζωνών (π.χ. interestZones, collisionZones)
 
-    // --- CORE LOGIC (Callbacks & Effects) ---
+    // --- STATE ΓΙΑ ΤΗΝ ΠΟΡΕΙΑ ---
+    const [shipTrack, setShipTrack] = useState<TrackPointDTO[]>([]);
+    const [currentTrackMmsi, setCurrentTrackMmsi] = useState<string | null>(null);
+    const [isTrackLoading, setIsTrackLoading] = useState(false);
 
-    // Το useCallback εδώ εξασφαλίζει ότι η συνάρτηση δεν δημιουργείται εκ νέου σε κάθε render,
-    // εκτός αν αλλάξουν οι εξαρτήσεις της. Η χρήση functional update (`setSelectedVessel(prev => ...)`)
-    // το καθιστά πιο ασφαλές και αφαιρεί την άμεση εξάρτηση από το `selectedVessel`.
+    const [zoomRequest, setZoomRequest] = useState<number>(0);
+
+    // --- CORE LOGIC (Callbacks & Effects) ---
+    useEffect(() => {
+        currentTrackMmsiRef.current = currentTrackMmsi;
+    }, [currentTrackMmsi]);
+
+    const handleShowTrackRequest = useCallback(async (mmsi: string, silent = false) => {
+        if (!silent) {
+            setIsTrackLoading(true);
+        }
+        setCurrentTrackMmsi(mmsi);
+        setShipTrack([]);
+
+        try {
+            const response = await fetch(`/api/ship-data/track/${mmsi}`);
+            if (!response.ok) throw new Error(`Failed to fetch track for MMSI ${mmsi}`);
+
+            const data: TrackPointDTO[] = await response.json();
+            setShipTrack(data);
+
+            if (data.length === 0 && !silent) {
+                toast.info("No track data found for the last 12 hours.");
+            }
+
+            // Αν η κλήση ΔΕΝ είναι silent και βρέθηκαν δεδομένα,
+            // τότε αυξάνουμε τον μετρητή του zoomRequest για να πυροδοτήσουμε το zoom.
+            if (!silent && data.length > 0) {
+                setZoomRequest(prev => prev + 1);
+            }
+
+        } catch (error) {
+            console.error(error);
+            if (!silent) toast.error("Could not load ship track.");
+            setCurrentTrackMmsi(null);
+        } finally {
+            if (!silent) {
+                setIsTrackLoading(false);
+            }
+        }
+    }, []);
+
     const addOrUpdateVessel = useCallback((vessel: RealTimeShipUpdateDTO) => {
         mapComponentRef.current?.addOrUpdateVessel(vessel);
         setSelectedVessel(prevSelected =>
             (prevSelected && prevSelected.mmsi === vessel.mmsi) ? vessel : prevSelected
         );
-    }, []); // Το dependency array είναι πλέον άδειο.
+
+        // --- Έλεγχος για αυτόματη ανανέωση της πορείας ---
+        if (vessel.mmsi && vessel.mmsi === currentTrackMmsiRef.current) {
+            console.log(`Refreshing track for currently viewed vessel: ${vessel.mmsi}`);
+            // Καλούμε την ανανέωση "αθόρυβα" (silent=true) για να μην δείχνει loading indicator
+            void handleShowTrackRequest(vessel.mmsi, true);
+        }
+        // -------------------------------------------------------------
+    }, [handleShowTrackRequest]);
+
+    // Αυτό το useEffect είναι ΑΠΟΚΛΕΙΣΤΙΚΑ υπεύθυνο για το ζουμ
+    // και εκτελείται ΜΟΝΟ όταν το zoomRequest αλλάξει.
+    useEffect(() => {
+        // Ο έλεγχος zoomRequest > 0 είναι για να μην τρέξει στην αρχική φόρτωση.
+        if (zoomRequest > 0) {
+            mapComponentRef.current?.zoomToTrack();
+        }
+    }, [zoomRequest]);
 
     // Τρέχει μία φορά όταν το component φορτώνει, και ξανά μόνο αν αλλάξει η κατάσταση αυθεντικοποίησης.
     useEffect(() => {
@@ -158,6 +218,15 @@ const SharedMapPage: React.FC = () => {
         void fetchInitialData();
     }, [fetchInitialData]);
 
+    const handleHideTrackRequest = () => {
+        setShipTrack([]);
+        setCurrentTrackMmsi(null);
+    };
+
+    const handleVesselClick = (vessel: RealTimeShipUpdateDTO | null) => {
+        setSelectedVessel(vessel);
+    };
+
     const handleToggleZoneCreation = () => {
         if (!mapInstanceRef.current || !isAuthenticated) return;
 
@@ -183,7 +252,12 @@ const SharedMapPage: React.FC = () => {
                 ref={mapComponentRef}
                 selectedVessel={selectedVessel}
                 onMapReady={handleMapReady}
-                onVesselClick={(vessel) => setSelectedVessel(vessel)}
+                onVesselClick={handleVesselClick}
+                trackData={shipTrack}
+                currentTrackMmsi={currentTrackMmsi}
+                onShowTrackRequest={handleShowTrackRequest}
+                onHideTrackRequest={handleHideTrackRequest}
+                isTrackLoading={isTrackLoading}
             />
 
             <div id="coordinates" className="absolute bottom-2.5 left-1/2 z-[999] -translate-x-1/2 rounded-md bg-slate-800 bg-opacity-70 px-3 py-1 text-xs text-white shadow-lg">
@@ -200,6 +274,15 @@ const SharedMapPage: React.FC = () => {
                     }}
                     onToggleCreation={handleToggleZoneCreation}
                 />
+            )}
+
+            {shipTrack.length > 0 && (
+                <div className="absolute bottom-4 right-4 z-[999]">
+                    <Button onClick={handleHideTrackRequest} variant="destructive" className="flex items-center space-x-2 shadow-lg">
+                        <History size={18} />
+                        <span>Clear Track</span>
+                    </Button>
+                </div>
             )}
 
             <div className="absolute bottom-4 left-4 z-[999]">

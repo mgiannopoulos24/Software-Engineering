@@ -1,25 +1,35 @@
 // src/components/map/MapComponent.tsx
 
-import { RealTimeShipUpdateDTO } from '@/types/types';
-import { getVesselIcon } from '@/utils/vesselIcon';
-import { getVesselStatusDescription } from '@/utils/vesselUtils';
-import { Anchor, Compass, Gauge, Ship as ShipIcon, Wind } from 'lucide-react';
+import {RealTimeShipUpdateDTO, TrackPointDTO} from '@/types/types';
+import {getVesselIcon} from '@/utils/vesselIcon';
+import {getVesselStatusDescription} from '@/utils/vesselUtils';
+import {Anchor, Compass, Gauge, History, Loader2, Ship as ShipIcon, Wind} from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import React, { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import React, {forwardRef, useEffect, useImperativeHandle, useRef} from 'react';
+import {renderToStaticMarkup} from 'react-dom/server';
 
 export interface MapComponentRef {
     addOrUpdateVessel: (vessel: RealTimeShipUpdateDTO) => void;
+    zoomToTrack: () => void;
 }
 
 interface MapComponentProps {
     selectedVessel: RealTimeShipUpdateDTO | null;
     onMapReady: (map: L.Map) => void;
     onVesselClick: (vessel: RealTimeShipUpdateDTO | null) => void;
+    trackData: TrackPointDTO[];
+    currentTrackMmsi: string | null;
+    isTrackLoading: boolean;
+    onShowTrackRequest: (mmsi: string) => void;
+    onHideTrackRequest: () => void;
 }
 
-const createPopupHtml = (vessel: RealTimeShipUpdateDTO): string => {
+const createPopupHtml = (
+    vessel: RealTimeShipUpdateDTO,
+    isTrackShown: boolean,
+    isTrackLoading: boolean
+): string => {
     // Helper function που παίρνει ένα JSX icon και το μετατρέπει σε HTML string.
     const iconToHtml = (icon: React.ReactElement) => renderToStaticMarkup(icon);
 
@@ -40,22 +50,61 @@ const createPopupHtml = (vessel: RealTimeShipUpdateDTO): string => {
     const statusHtml = getVesselStatusDescription(vessel.navigationalStatus);
     const lastUpdateHtml = new Date(vessel.timestampEpoch * 1000).toLocaleString();
 
+    // --- Δυναμικό κουμπί για την πορεία ---
+    let trackButtonHtml = '';
+    if (isTrackLoading) {
+        trackButtonHtml = `
+            <button class="track-button loading" disabled>
+                ${iconToHtml(<Loader2 size={16} className="animate-spin" />)}
+                <span>Loading...</span>
+            </button>`;
+    } else if (isTrackShown) {
+        trackButtonHtml = `
+            <button id="hide-track-btn-${vessel.mmsi}" class="track-button hide">
+                ${iconToHtml(<History size={16} />)}
+                <span>Hide Track</span>
+            </button>`;
+    } else {
+        trackButtonHtml = `
+            <button id="show-track-btn-${vessel.mmsi}" class="track-button show">
+                ${iconToHtml(<History size={16} />)}
+                <span>Show 12h Track</span>
+            </button>`;
+    }
+
     return `
+      <style>
+        .track-button {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            width: 100%; padding: 8px; margin-top: 12px; border: none;
+            border-radius: 6px; font-weight: 500; cursor: pointer; transition: background-color 0.2s;
+        }
+        .track-button.show { background-color: #2563eb; color: white; }
+        .track-button.show:hover { background-color: #1d4ed8; }
+        .track-button.hide { background-color: #dc2626; color: white; }
+        .track-button.hide:hover { background-color: #b91c1c; }
+        .track-button.loading { background-color: #64748b; color: white; cursor: not-allowed; }
+      </style>
       <div style="width: 280px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
         <div style="background-color: #1e293b; color: white; padding: 12px; border-radius: 8px 8px 0 0;">
-          <h4 style="margin: 0; font-size: 16px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          <h4 style="margin: 0; font-size: 16px; font-weight: bold;">
             Vessel: ${vessel.mmsi}
           </h4>
         </div>
         <div style="padding: 8px 12px 12px 12px; background: white;">
-          ${detailRow(iconToHtml(<ShipIcon size={16} />), "Type", vesselTypeHtml)}
-          ${detailRow(iconToHtml(<Gauge size={16} />), "Speed", speedHtml)}
-          ${detailRow(iconToHtml(<Wind size={16} />), "Course", courseHtml)}
-          ${detailRow(iconToHtml(<Compass size={16} />), "Heading", headingHtml)}
-          ${detailRow(iconToHtml(<Anchor size={16} />), "Status", statusHtml)}
-          <div style="margin-top: 10px; text-align: center; font-size: 11px; color: #999;">
-            Last Update: ${lastUpdateHtml}
-          </div>
+            <!-- Τα detail rows παραμένουν ίδια -->
+            ${detailRow(iconToHtml(<ShipIcon size={16} />), "Type", vesselTypeHtml)}
+            ${detailRow(iconToHtml(<Gauge size={16} />), "Speed", speedHtml)}
+            ${detailRow(iconToHtml(<Wind size={16} />), "Course", courseHtml)}
+            ${detailRow(iconToHtml(<Compass size={16} />), "Heading", headingHtml)}
+            ${detailRow(iconToHtml(<Anchor size={16} />), "Status", statusHtml)}
+
+
+            ${trackButtonHtml}
+            
+            <div style="margin-top: 10px; text-align: center; font-size: 11px; color: #999;">
+                Last Update: ${lastUpdateHtml}
+            </div>
         </div>
       </div>
     `;
@@ -63,37 +112,50 @@ const createPopupHtml = (vessel: RealTimeShipUpdateDTO): string => {
 
 
 const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
-    ({ selectedVessel, onMapReady, onVesselClick }, ref) => {
+    ({
+         selectedVessel, onMapReady, onVesselClick,
+         trackData, currentTrackMmsi, onShowTrackRequest, onHideTrackRequest, isTrackLoading
+     }, ref) => {
         const mapRef = useRef<HTMLDivElement>(null);
         const mapInstanceRef = useRef<L.Map | null>(null);
         const vesselMarkersRef = useRef<Map<string, L.Marker>>(new Map());
+        const trackLineRef = useRef<L.Polyline | null>(null);
 
-        const addOrUpdateVesselMarker = (vessel: RealTimeShipUpdateDTO) => {
-            if (!mapInstanceRef.current || vessel.latitude == null || vessel.longitude == null) return;
-
-            const icon = getVesselIcon(vessel.shiptype?.toLowerCase() || 'unknown', vessel.navigationalStatus?.toString() ?? 'unknown', vessel.trueHeading);
-            const popupContent = createPopupHtml(vessel);
-            let marker = vesselMarkersRef.current.get(vessel.mmsi);
-
-            if (marker) {
-                marker.setLatLng([vessel.latitude, vessel.longitude]);
-                marker.setIcon(icon);
-                marker.setPopupContent(popupContent);
-            } else {
-                marker = L.marker([vessel.latitude, vessel.longitude], { icon })
-                    .addTo(mapInstanceRef.current)
-                    .bindPopup(popupContent, { minWidth: 280 });
-                vesselMarkersRef.current.set(vessel.mmsi, marker);
+        const zoomToTrack = () => {
+            if (mapInstanceRef.current && trackLineRef.current) {
+                mapInstanceRef.current.fitBounds(trackLineRef.current.getBounds().pad(0.1));
             }
-            marker.off('click').on('click', () => onVesselClick(vessel));
         };
 
         useImperativeHandle(ref, () => ({
             addOrUpdateVessel(vessel: RealTimeShipUpdateDTO) {
-                addOrUpdateVesselMarker(vessel);
-            }
+                if (!mapInstanceRef.current || vessel.latitude == null || vessel.longitude == null) return;
+                const icon = getVesselIcon(vessel.shiptype?.toLowerCase() || 'unknown', vessel.navigationalStatus?.toString() ?? 'unknown', vessel.trueHeading);
+                let marker = vesselMarkersRef.current.get(vessel.mmsi);
+
+                if (marker) {
+                    marker.setLatLng([vessel.latitude, vessel.longitude]);
+                    marker.setIcon(icon);
+                } else {
+                    marker = L.marker([vessel.latitude, vessel.longitude], { icon }).addTo(mapInstanceRef.current);
+                    vesselMarkersRef.current.set(vessel.mmsi, marker);
+                }
+                marker.off('click').on('click', () => onVesselClick(vessel));
+
+                if (selectedVessel && selectedVessel.mmsi === vessel.mmsi) {
+                    const isTrackShown = currentTrackMmsi === vessel.mmsi && trackData.length > 0;
+                    const isLoadingThisTrack = isTrackLoading && currentTrackMmsi === vessel.mmsi;
+                    const popupContent = createPopupHtml(vessel, isTrackShown, isLoadingThisTrack);
+
+                    if (marker.getPopup() && marker.isPopupOpen()) {
+                        marker.setPopupContent(popupContent);
+                    }
+                }
+            },
+            zoomToTrack,
         }));
 
+        // Αρχικοποίηση του χάρτη (τρέχει μόνο μία φορά)
         useEffect(() => {
             if (mapRef.current && !mapInstanceRef.current) {
                 const map = L.map(mapRef.current).setView([49.0, 0.0], 5);
@@ -103,18 +165,97 @@ const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
                 }).addTo(map);
                 mapInstanceRef.current = map;
                 onMapReady(map);
+
+                // Όταν ο χρήστης κλείνει ένα popup (π.χ. πατώντας το 'x' ή κλικάροντας έξω),
+                // ενημερώνουμε το state ώστε να μην υπάρχει επιλεγμένο πλοίο.
                 map.on('popupclose', () => onVesselClick(null));
             }
         }, [onMapReady, onVesselClick]);
 
+        // Ξεχωριστό useEffect που είναι ΑΠΟΚΛΕΙΣΤΙΚΑ υπεύθυνο για τη διαχείριση του popup.
         useEffect(() => {
-            if (!mapInstanceRef.current || !selectedVessel) {
-                mapInstanceRef.current?.closePopup();
+            if (!mapInstanceRef.current) return;
+
+            // Αν δεν υπάρχει επιλεγμένο πλοίο, απλά κλείνουμε όποιο popup είναι ανοιχτό.
+            if (!selectedVessel) {
+                mapInstanceRef.current.closePopup();
                 return;
             }
+
             const marker = vesselMarkersRef.current.get(selectedVessel.mmsi);
-            if (marker) marker.openPopup();
-        }, [selectedVessel]);
+            // Αν για κάποιο λόγο ο marker δεν υπάρχει ακόμα, δεν κάνουμε τίποτα.
+            if (!marker) return;
+
+            const isTrackShown = currentTrackMmsi === selectedVessel.mmsi && trackData.length > 0;
+            const isLoadingThisTrack = isTrackLoading && currentTrackMmsi === selectedVessel.mmsi;
+            const popupContent = createPopupHtml(selectedVessel, isTrackShown, isLoadingThisTrack);
+
+            // Δημιουργούμε ή ενημερώνουμε το περιεχόμενο του popup
+            if (marker.getPopup()) {
+                marker.setPopupContent(popupContent);
+            } else {
+                marker.bindPopup(popupContent, { minWidth: 280, closeButton: false, autoPan: true });
+            }
+
+            // Διασφαλίζουμε ότι το popup είναι ανοιχτό
+            if (!marker.isPopupOpen()) {
+                marker.openPopup();
+            }
+
+            // Προσθέτουμε τα click listeners στα κουμπιά μας ΜΕΤΑ το άνοιγμα του popup
+            // χρησιμοποιώντας το L.DomEvent της Leaflet.
+            const setupPopupButtons = () => {
+                const popupNode = marker.getPopup()?.getElement();
+                if (!popupNode) return;
+
+                const showBtn = popupNode.querySelector<HTMLButtonElement>(`#show-track-btn-${selectedVessel.mmsi}`);
+                if (showBtn) {
+                    L.DomEvent.on(showBtn, 'click', (e) => {
+                        L.DomEvent.stop(e);
+                        onShowTrackRequest(selectedVessel.mmsi);
+                    });
+                }
+
+                const hideBtn = popupNode.querySelector<HTMLButtonElement>(`#hide-track-btn-${selectedVessel.mmsi}`);
+                if (hideBtn) {
+                    L.DomEvent.on(hideBtn, 'click', (e) => {
+                        L.DomEvent.stop(e);
+                        onHideTrackRequest();
+                    });
+                }
+            };
+
+            // Βάζουμε ένα listener για το 'popupopen' event του marker.
+            // Αυτό εξασφαλίζει ότι τα κουμπιά μας θα έχουν listeners ΜΟΝΟ όταν το popup είναι ανοιχτό.
+            marker.off('popupopen').on('popupopen', setupPopupButtons);
+
+            // Αν το popup είναι ήδη ανοιχτό (π.χ. από ένα re-render), ξανατρέχουμε τη setup για να είμαστε σίγουροι.
+            if (marker.isPopupOpen()) {
+                setupPopupButtons();
+            }
+
+        }, [selectedVessel, trackData, currentTrackMmsi, isTrackLoading, onShowTrackRequest, onHideTrackRequest]);
+
+        // --- useEffect ΓΙΑ ΤΗ ΖΩΓΡΑΦΙΚΗ ΤΗΣ ΠΟΡΕΙΑΣ ---
+        useEffect(() => {
+            if (!mapInstanceRef.current) return;
+
+            // 1. Καθαρίζουμε πάντα την παλιά γραμμή
+            if (trackLineRef.current) {
+                mapInstanceRef.current.removeLayer(trackLineRef.current);
+                trackLineRef.current = null;
+            }
+
+            // 2. Αν υπάρχουν νέα δεδομένα, τα ζωγραφίζουμε
+            if (trackData && trackData.length > 1) {
+                const latLngs = trackData.map(p => [p.latitude, p.longitude] as L.LatLngExpression);
+                trackLineRef.current = L.polyline(latLngs, {
+                    color: '#1d4ed8', // Ένα ωραίο μπλε
+                    weight: 3,
+                    opacity: 0.8,
+                }).addTo(mapInstanceRef.current);
+            }
+        }, [trackData]); // Αυτό το effect τρέχει μόνο όταν αλλάξει το trackData
 
         return <div ref={mapRef} className="h-full w-full z-10" />;
     });
