@@ -7,10 +7,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { ZoneType } from '@/utils/mapUtils';
 import React from 'react';
 
-// Ορίζουμε τις ιδιότητες (props) που περιμένει το component από τον γονέα του (UserPage)
+// Ορίζουμε τον τύπο εδώ για να είναι σαφής
+type ZoneType = 'interest' | 'collision';
+
 interface ZoneControlsProps {
     activeZoneType: ZoneType;
     isCreatingZone: boolean;
@@ -19,41 +20,40 @@ interface ZoneControlsProps {
 }
 
 const ZoneControls: React.FC<ZoneControlsProps> = ({
-                                                       activeZoneType,
-                                                       isCreatingZone,
-                                                       onZoneTypeChange,
-                                                       onToggleCreation,
-                                                   }) => {
+    activeZoneType,
+    isCreatingZone,
+    onZoneTypeChange,
+    onToggleCreation,
+}) => {
     return (
         <div className="absolute right-6 top-4 z-[10] flex flex-col items-end space-y-2">
             <div className="rounded-md bg-black/80 px-3 py-2">
                 <Label className="text-sm font-medium text-white">Zone Creation</Label>
 
-                {/* Το Select παίρνει την τιμή του και τη συνάρτηση αλλαγής από τα props */}
                 <Select value={activeZoneType} onValueChange={onZoneTypeChange}>
                     <SelectTrigger className="mt-1 w-[200px] border-gray-600 bg-gray-700 text-white">
                         <SelectValue placeholder="Select Zone Type" />
                     </SelectTrigger>
                     <SelectContent className="z-[999]">
-                        <SelectItem value="critical">Critical Section</SelectItem>
+                        {/* Οι τιμές τώρα είναι 'collision' και 'interest' */}
+                        <SelectItem value="collision">Collision Zone</SelectItem>
                         <SelectItem value="interest">Interest Zone</SelectItem>
                     </SelectContent>
                 </Select>
 
-                {/* Το Button καλεί τη συνάρτηση onToggleCreation όταν πατηθεί */}
                 <Button
                     onClick={onToggleCreation}
                     className={`mt-2 w-full ${
                         isCreatingZone
-                            ? 'bg-gray-500 hover:bg-gray-600' // Στυλ για "Cancel"
-                            : activeZoneType === 'critical'
-                                ? 'bg-red-600 hover:bg-red-700' // Στυλ για "Add Critical"
-                                : 'bg-blue-600 hover:bg-blue-700' // Στυλ για "Add Interest"
+                            ? 'bg-gray-500 hover:bg-gray-600'
+                            : activeZoneType === 'collision' // Έλεγχος για collision
+                                ? 'bg-red-600 hover:bg-red-700'
+                                : 'bg-blue-600 hover:bg-blue-700'
                     }`}
                 >
                     {isCreatingZone
                         ? 'Cancel Creation'
-                        : `Add ${activeZoneType === 'critical' ? 'Critical Section' : 'Interest Zone'}`}
+                        : `Add ${activeZoneType === 'collision' ? 'Collision Zone' : 'Interest Zone'}`}
                 </Button>
             </div>
         </div>
