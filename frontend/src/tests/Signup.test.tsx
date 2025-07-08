@@ -1,9 +1,10 @@
+import Signup from '@/pages/Signup';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
+import { toast } from 'sonner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import Signup from '@/pages/Signup';
 
 // --- Mocking External Dependencies ---
 
@@ -13,8 +14,6 @@ vi.mock('sonner', () => ({
     error: vi.fn(),
   },
 }));
-
-import { toast } from 'sonner';
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -61,7 +60,10 @@ describe('Signup Page', () => {
 
     await waitFor(() => {
       expect(mockSignup).toHaveBeenCalledWith('newuser@example.com', 'strongPassword123');
-      expect(toast.success).toHaveBeenCalledWith('Account created successfully!', expect.any(Object));
+      expect(toast.success).toHaveBeenCalledWith(
+        'Account created successfully!',
+        expect.any(Object)
+      );
       expect(mockNavigate).toHaveBeenCalledWith('/user');
     });
   });

@@ -1,10 +1,10 @@
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { vi } from 'vitest';
-import Login from '@/pages/Login';
 import { useAuth } from '@/contexts/AuthContext';
+import Login from '@/pages/Login';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import React from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { toast } from 'sonner';
+import { vi } from 'vitest';
 
 // --- Mocking Εξαρτήσεων ---
 vi.mock('@/contexts/AuthContext');
@@ -27,7 +27,15 @@ vi.mock('sonner', () => ({
 }));
 
 vi.mock('@/components/layout/AuthLayout', () => ({
-  default: ({ title, children, footer }: { title: string, children: React.ReactNode, footer: React.ReactNode }) => (
+  default: ({
+    title,
+    children,
+    footer,
+  }: {
+    title: string;
+    children: React.ReactNode;
+    footer: React.ReactNode;
+  }) => (
     <div>
       <h1>{title}</h1>
       {children}
@@ -76,7 +84,9 @@ describe('Login Page', () => {
     render(<Login />, { wrapper: MemoryRouter });
 
     // ΔΙΟΡΘΩΣΗ: Χρησιμοποιούμε ακριβή αντιστοίχιση
-    fireEvent.change(screen.getByLabelText(/^email address$/i), { target: { value: 'user@test.com' } });
+    fireEvent.change(screen.getByLabelText(/^email address$/i), {
+      target: { value: 'user@test.com' },
+    });
     fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: 'password' } });
     fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
 
@@ -92,7 +102,9 @@ describe('Login Page', () => {
     render(<Login />, { wrapper: MemoryRouter });
 
     // ΔΙΟΡΘΩΣΗ: Χρησιμοποιούμε ακριβή αντιστοίχιση
-    fireEvent.change(screen.getByLabelText(/^email address$/i), { target: { value: 'admin@test.com' } });
+    fireEvent.change(screen.getByLabelText(/^email address$/i), {
+      target: { value: 'admin@test.com' },
+    });
     fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: 'adminpass' } });
     fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
 
@@ -108,7 +120,9 @@ describe('Login Page', () => {
     render(<Login />, { wrapper: MemoryRouter });
 
     // ΔΙΟΡΘΩΣΗ: Χρησιμοποιούμε ακριβή αντιστοίχιση
-    fireEvent.change(screen.getByLabelText(/^email address$/i), { target: { value: 'user@test.com' } });
+    fireEvent.change(screen.getByLabelText(/^email address$/i), {
+      target: { value: 'user@test.com' },
+    });
     fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: 'wrongpassword' } });
     fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
 
@@ -121,7 +135,7 @@ describe('Login Page', () => {
 
   it('should toggle password visibility when eye icon is clicked', async () => {
     render(<Login />, { wrapper: MemoryRouter });
-    
+
     // ΔΙΟΡΘΩΣΗ: Χρησιμοποιούμε ακριβή αντιστοίχιση
     const passwordInput = screen.getByLabelText(/^password$/i) as HTMLInputElement;
     const toggleButton = screen.getByRole('button', { name: /show password/i });
@@ -142,14 +156,18 @@ describe('Login Page', () => {
   });
 
   it('should disable the submit button while loading', async () => {
-    mockLogin.mockImplementation(() => new Promise(resolve => setTimeout(() => resolve({ role: 'registered' }), 100)));
+    mockLogin.mockImplementation(
+      () => new Promise((resolve) => setTimeout(() => resolve({ role: 'registered' }), 100))
+    );
     render(<Login />, { wrapper: MemoryRouter });
 
     const signInButton = screen.getByRole('button', { name: /sign in/i });
     expect(signInButton).not.toBeDisabled();
 
     // ΔΙΟΡΘΩΣΗ: Βάζουμε κείμενο στα πεδία για να περάσει το validation της φόρμας
-    fireEvent.change(screen.getByLabelText(/^email address$/i), { target: { value: 'user@test.com' } });
+    fireEvent.change(screen.getByLabelText(/^email address$/i), {
+      target: { value: 'user@test.com' },
+    });
     fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: 'password' } });
 
     fireEvent.click(signInButton);

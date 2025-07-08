@@ -1,10 +1,10 @@
-import React from 'react';
-import { render, screen, waitFor, act } from '@testing-library/react';
-import { vi } from 'vitest';
 import Index from '@/pages/Index';
-import { ShipDetailsDTO, RealTimeShipUpdateDTO } from '@/types/types';
+import { RealTimeShipUpdateDTO, ShipDetailsDTO } from '@/types/types';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import axios from 'axios';
-import L from 'leaflet'; 
+import L from 'leaflet';
+import React from 'react';
+import { vi } from 'vitest';
 
 // --- Mocking External Dependencies ---
 
@@ -64,7 +64,7 @@ const mockMapInstance = {
   addLayer: vi.fn().mockReturnThis(),
   invalidateSize: vi.fn().mockReturnThis(),
   fitBounds: vi.fn().mockReturnThis(),
-  
+
   options: {},
   _leaflet_id: 'mock_map_id',
   _container: document.createElement('div'),
@@ -87,16 +87,42 @@ vi.spyOn(L, 'tileLayer').mockImplementation(() => mockTileLayerInstance as any);
 vi.spyOn(L, 'marker').mockImplementation(() => mockMarkerInstance as any);
 vi.spyOn(L.control, 'zoom').mockImplementation(() => ({ addTo: vi.fn() }) as any);
 
-
 // --- The Test Suite ---
 
 describe('Index Page (Anonymous Map View)', () => {
   const mockShipDetails: ShipDetailsDTO[] = [
-    { mmsi: 111, shiptype: 'cargo', latitude: 49.1, longitude: 0.1, speedOverGround: 10.0, courseOverGround: 90.0, trueHeading: 90, lastUpdateTimestampEpoch: Date.now() / 1000 },
-    { mmsi: 222, shiptype: 'tanker', latitude: 49.2, longitude: 0.2, speedOverGround: 12.0, courseOverGround: 180.0, trueHeading: 180, lastUpdateTimestampEpoch: Date.now() / 1000 },
+    {
+      mmsi: 111,
+      shiptype: 'cargo',
+      latitude: 49.1,
+      longitude: 0.1,
+      speedOverGround: 10.0,
+      courseOverGround: 90.0,
+      trueHeading: 90,
+      lastUpdateTimestampEpoch: Date.now() / 1000,
+    },
+    {
+      mmsi: 222,
+      shiptype: 'tanker',
+      latitude: 49.2,
+      longitude: 0.2,
+      speedOverGround: 12.0,
+      courseOverGround: 180.0,
+      trueHeading: 180,
+      lastUpdateTimestampEpoch: Date.now() / 1000,
+    },
   ];
 
-  const mockWebSocketUpdate: RealTimeShipUpdateDTO = { mmsi: '333', shiptype: 'passenger', latitude: 49.3, longitude: 0.3, speedOverGround: 20.0, courseOverGround: 270.0, trueHeading: 270, timestampEpoch: Date.now() / 1000 };
+  const mockWebSocketUpdate: RealTimeShipUpdateDTO = {
+    mmsi: '333',
+    shiptype: 'passenger',
+    latitude: 49.3,
+    longitude: 0.3,
+    speedOverGround: 20.0,
+    courseOverGround: 270.0,
+    trueHeading: 270,
+    timestampEpoch: Date.now() / 1000,
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -120,7 +146,9 @@ describe('Index Page (Anonymous Map View)', () => {
     mockedAxios.get.mockResolvedValue({ data: mockShipDetails });
     render(<Index />);
     await waitFor(() => {
-      expect(mockedAxios.get).toHaveBeenCalledWith('https://localhost:8443/api/ship-data/active-ships');
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        'https://localhost:8443/api/ship-data/active-ships'
+      );
       expect(L.marker).toHaveBeenCalledTimes(2);
       expect(L.marker).toHaveBeenCalledWith([49.1, 0.1], expect.any(Object));
       expect(L.marker).toHaveBeenCalledWith([49.2, 0.2], expect.any(Object));
@@ -133,7 +161,10 @@ describe('Index Page (Anonymous Map View)', () => {
       expect(mockStompClient.activate).toHaveBeenCalled();
     });
     await waitFor(() => {
-      expect(mockStompClient.subscribe).toHaveBeenCalledWith('/topic/ais-updates', expect.any(Function));
+      expect(mockStompClient.subscribe).toHaveBeenCalledWith(
+        '/topic/ais-updates',
+        expect.any(Function)
+      );
     });
   });
 
@@ -156,9 +187,14 @@ describe('Index Page (Anonymous Map View)', () => {
     await waitFor(() => {
       expect(L.marker).toHaveBeenCalledTimes(1);
     });
-    vi.mocked(L.marker).mockClear(); 
+    vi.mocked(L.marker).mockClear();
 
-    const updatedVesselData: RealTimeShipUpdateDTO = { ...mockShipDetails[0], mmsi: '111', latitude: 49.15, longitude: 0.15 };
+    const updatedVesselData: RealTimeShipUpdateDTO = {
+      ...mockShipDetails[0],
+      mmsi: '111',
+      latitude: 49.15,
+      longitude: 0.15,
+    };
 
     act(() => {
       mockStompClient._simulateMessage('/topic/ais-updates', updatedVesselData);
