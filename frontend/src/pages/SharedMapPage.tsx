@@ -1,7 +1,7 @@
 // src/pages/SharedMapPage.tsx
 
 import MapComponent, { MapComponentRef } from '@/components/map/MapComponent';
-import FiltersPanel from '@/components/map/FiltersPanel';
+import FiltersPanel, { FilterState } from '@/components/map/FiltersPanel';
 import ZoneControls from '@/components/map/ZoneControls';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,14 +31,20 @@ const SharedMapPage: React.FC = () => {
     const currentTrackMmsiRef = useRef<string | null>(null);
 
     // State
+    // Χρησιμοποιούμε Map για γρήγορη πρόσβαση και ενημέρωση (O(1)).
+    const [allVessels, setAllVessels] = useState<Map<string, RealTimeShipUpdateDTO>>(new Map());
+
+    // State για τα φιλτραρισμένα πλοία που θα εμφανιστούν στον χάρτη.
+    const [filteredVessels, setFilteredVessels] = useState<RealTimeShipUpdateDTO[]>([]);
+
     const [coordinates, setCoordinates] = useState('Hover over the map');
     const [isFiltersOpen, setIsFiltersOpen] = useState(false);
     const [selectedVessel, setSelectedVessel] = useState<RealTimeShipUpdateDTO | null>(null);
-    const [filters, setFilters] = useState({
-        vesselType: 'all',
-        capacity: [50],
-        vesselStatus: 'all',
-    });
+    const initialFilters: FilterState = {
+        vesselType: [],
+        vesselStatus: [],
+    };
+    const [filters, setFilters] = useState<FilterState>(initialFilters);
     const [isCreatingZone, setIsCreatingZone] = useState(false);
     const [activeZoneType, setActiveZoneType] = useState<ZoneType>('interest');
     // TODO: Προσθέστε state για τις λίστες των ζωνών (π.χ. interestZones, collisionZones)
@@ -91,7 +97,9 @@ const SharedMapPage: React.FC = () => {
     }, []);
 
     const addOrUpdateVessel = useCallback((vessel: RealTimeShipUpdateDTO) => {
-        mapComponentRef.current?.addOrUpdateVessel(vessel);
+        setAllVessels(prevMap => new Map(prevMap).set(vessel.mmsi, vessel));
+
+        // Ενημερώνουμε και το selectedVessel αν είναι το ίδιο, για να ανανεωθεί το popup.
         setSelectedVessel(prevSelected =>
             (prevSelected && prevSelected.mmsi === vessel.mmsi) ? vessel : prevSelected
         );
@@ -113,6 +121,23 @@ const SharedMapPage: React.FC = () => {
             mapComponentRef.current?.zoomToTrack();
         }
     }, [zoomRequest]);
+
+    // Αυτό τρέχει κάθε φορά που αλλάζει η λίστα με όλα τα πλοία ή οι ρυθμίσεις των φίλτρων.
+    useEffect(() => {
+        const vesselsArray = Array.from(allVessels.values());
+
+        const newFilteredVessels = vesselsArray.filter(vessel => {
+            // Αν δεν έχουν επιλεγεί φίλτρα τύπου, το πλοίο περνάει. Αλλιώς, ελέγχουμε αν ο τύπος του περιλαμβάνεται στα επιλεγμένα.
+            const typeMatch = filters.vesselType.length === 0 || filters.vesselType.includes(vessel.shiptype);
+
+            // Το ίδιο για την κατάσταση.
+            const statusMatch = filters.vesselStatus.length === 0 || filters.vesselStatus.includes(vessel.navigationalStatus?.toString() ?? '-1');
+
+            return typeMatch && statusMatch;
+        });
+
+        setFilteredVessels(newFilteredVessels);
+    }, [allVessels, filters]); // Εξαρτήσεις: η κεντρική λίστα πλοίων και τα φίλτρα
 
     // Τρέχει μία φορά όταν το component φορτώνει, και ξανά μόνο αν αλλάξει η κατάσταση αυθεντικοποίησης.
     useEffect(() => {
@@ -184,6 +209,8 @@ const SharedMapPage: React.FC = () => {
             if (!response.ok) throw new Error('Failed to fetch initial ship data');
 
             const vesselsDetails: ShipDetailsDTO[] = await response.json();
+            const initialVesselMap = new Map<string, RealTimeShipUpdateDTO>();
+
             vesselsDetails.forEach(detail => {
                 if (detail.mmsi && detail.latitude && detail.longitude) {
                     const vesselUpdate: RealTimeShipUpdateDTO = {
@@ -197,19 +224,19 @@ const SharedMapPage: React.FC = () => {
                         latitude: detail.latitude ?? 0,
                         timestampEpoch: detail.lastUpdateTimestampEpoch ?? 0,
                     };
-                    mapComponentRef.current?.addOrUpdateVessel(vesselUpdate);
+                    initialVesselMap.set(vesselUpdate.mmsi, vesselUpdate);
                 }
             });
-            console.log(`Loaded ${vesselsDetails.length} initial vessels.`);
+            setAllVessels(initialVesselMap); // Θέτουμε το αρχικό state
+            console.log(`Loaded ${initialVesselMap.size} initial vessels.`);
         } catch (error) {
             console.error('Error fetching initial vessel data:', error);
             toast.error('Could not fetch initial vessel data.');
         }
     }, []);
 
-    // Η `handleMapReady` είναι τώρα πιο απλή. Ο μόνος της ρόλος είναι να
+    // Ο μόνος της ρόλος είναι να
     // αρχικοποιήσει τον χάρτη και να φορτώσει τα αρχικά δεδομένα.
-    // Δεν ασχολείται πλέον με το WebSocket.
     const handleMapReady = useCallback((map: L.Map) => {
         mapInstanceRef.current = map;
         map.on('mousemove', (e) => setCoordinates(`Lat: ${e.latlng.lat.toFixed(4)}, Lng: ${e.latlng.lng.toFixed(4)}`));
@@ -246,10 +273,23 @@ const SharedMapPage: React.FC = () => {
         }
     };
 
+    const handleMultiSelectChange = (key: keyof FilterState, value: string) => {
+        setFilters(prev => {
+            const currentValues = prev[key];
+            // Ελέγχουμε αν η τιμή υπάρχει ήδη στον πίνακα.
+            const newValues = currentValues.includes(value)
+                ? currentValues.filter(v => v !== value) // Αν υπάρχει, την αφαιρούμε
+                : [...currentValues, value];             // Αν δεν υπάρχει, την προσθέτουμε
+
+            return { ...prev, [key]: newValues };
+        });
+    };
+
     return (
         <div className="relative flex w-full flex-1">
             <MapComponent
                 ref={mapComponentRef}
+                vessels={filteredVessels}
                 selectedVessel={selectedVessel}
                 onMapReady={handleMapReady}
                 onVesselClick={handleVesselClick}
@@ -295,10 +335,8 @@ const SharedMapPage: React.FC = () => {
             <FiltersPanel
                 isOpen={isFiltersOpen}
                 filters={filters}
-                selectedVessel={selectedVessel}
-                onFilterChange={(key, value) => setFilters(prev => ({...prev, [key]: value}))}
-                onReset={() => setFilters({ vesselType: 'all', capacity: [50], vesselStatus: 'all' })}
-                onApply={() => { /* TODO: Apply filter logic */ }}
+                onMultiSelectChange={handleMultiSelectChange} // Χρήση του νέου handler
+                onReset={() => setFilters(initialFilters)}
                 onClose={() => setIsFiltersOpen(false)}
             />
         </div>
