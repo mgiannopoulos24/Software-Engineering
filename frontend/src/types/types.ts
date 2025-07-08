@@ -24,3 +24,9 @@ export interface ShipDetailsDTO {
   latitude?: number;
   lastUpdateTimestampEpoch?: number;
 }
+
+export interface TrackPointDTO {
+  latitude: number;
+  longitude: number;
+  timestampEpoch: number;
+}
