@@ -7,8 +7,8 @@ import {
   Map,
   Menu,
   Search,
-  Settings,
-  ShieldCheck,
+  // Settings,
+  // ShieldCheck,
   User,
   Users,
   X,
@@ -21,7 +21,7 @@ const Tooltip: React.FC<{ children: React.ReactNode; text: string }> = ({ childr
   return (
     <div className="group relative flex items-center">
       {children}
-      <div className="absolute top-full left-1/2 mb-2 hidden w-max -translate-x-1/2 transform rounded-md bg-slate-900 px-2 py-1 text-xs text-white group-hover:block">
+      <div className="absolute left-1/2 top-full mb-2 hidden w-max -translate-x-1/2 transform rounded-md bg-slate-900 px-2 py-1 text-xs text-white group-hover:block">
         {text}
       </div>
     </div>
@@ -104,34 +104,34 @@ const Navbar = () => {
                   {/* Κοινό κουμπί χάρτη για όλους τους συνδεδεμένους χρήστες */}
                   <Tooltip text="Map View">
                     <Link
-                        to={mapPath} // Χρησιμοποιεί τη δυναμική διαδρομή
-                        className="rounded-full p-2 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white"
+                      to={mapPath} // Χρησιμοποιεί τη δυναμική διαδρομή
+                      className="rounded-full p-2 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white"
                     >
                       <Map size={20} />
                     </Link>
                   </Tooltip>
                   {/* Εικονίδια ΜΟΝΟ για User (π.χ. Registered) */}
                   {!isAdmin && (
-                      <Tooltip text="Saved Vessels">
-                        <Link
-                            to="/user/vessels"
-                            className="rounded-full p-2 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white"
-                        >
-                          <Bookmark size={20} />
-                        </Link>
-                      </Tooltip>
+                    <Tooltip text="Saved Vessels">
+                      <Link
+                        to="/user/vessels"
+                        className="rounded-full p-2 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white"
+                      >
+                        <Bookmark size={20} />
+                      </Link>
+                    </Tooltip>
                   )}
 
                   {/* Εικονίδια ΜΟΝΟ για Admin */}
                   {isAdmin && (
-                      <Tooltip text="Manage Users">
-                        <Link
-                            to="/admin/dashboard" // Το dashboard των admins
-                            className="rounded-full p-2 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white"
-                        >
-                          <Users size={20} />
-                        </Link>
-                      </Tooltip>
+                    <Tooltip text="Manage Users">
+                      <Link
+                        to="/admin/dashboard" // Το dashboard των admins
+                        className="rounded-full p-2 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white"
+                      >
+                        <Users size={20} />
+                      </Link>
+                    </Tooltip>
                   )}
                 </>
               )}
@@ -159,22 +159,22 @@ const Navbar = () => {
                           </p>
                           <p>{currentUser?.role}</p>
                         </div>
-                        <div className="my-1 h-px bg-slate-200" />
-                        <Link
+                        {/* <div className="my-1 h-px bg-slate-200" /> */}
+                        {/* <Link
                           to="/user/profile"
                           onClick={closeUserDropdown}
                           className="flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
                         >
                           <User className="mr-3 h-5 w-5" /> Profile
-                        </Link>
-                        <Link
+                        </Link> */}
+                        {/* <Link
                           to="/user/settings"
                           onClick={closeUserDropdown}
                           className="flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
                         >
                           <Settings className="mr-3 h-5 w-5" /> Settings
-                        </Link>
-                        {isAdmin && (
+                        </Link> */}
+                        {/* {isAdmin && (
                           <>
                             <div className="my-1 h-px bg-slate-200" />
                             <Link
@@ -185,7 +185,7 @@ const Navbar = () => {
                               <ShieldCheck className="mr-3 h-5 w-5" /> Admin Panel
                             </Link>
                           </>
-                        )}
+                        )} */}
                         <div className="my-1 h-px bg-slate-200" />
                         <button
                           onClick={handleLogout}
@@ -251,34 +251,33 @@ const Navbar = () => {
                     <>
                       {/* Κοινό κουμπί χάρτη για mobile */}
                       <Link
-                          to={mapPath} // Χρησιμοποιεί τη δυναμική διαδρομή
-                          onClick={closeSheet}
-                          className="flex items-center space-x-3 rounded-md p-2 text-lg text-slate-300 hover:bg-slate-700"
+                        to={mapPath} // Χρησιμοποιεί τη δυναμική διαδρομή
+                        onClick={closeSheet}
+                        className="flex items-center space-x-3 rounded-md p-2 text-lg text-slate-300 hover:bg-slate-700"
                       >
                         <Map className="h-6 w-6" /> <span>Map View</span>
                       </Link>
 
                       {/* Links ΜΟΝΟ για User */}
                       {!isAdmin && (
-                          <Link
-                              to="/user/vessels"
-                              onClick={closeSheet}
-                              className="flex items-center space-x-3 rounded-md p-2 text-lg text-slate-300 hover:bg-slate-700"
-                          >
-                            <Bookmark className="h-6 w-6" /> <span>Saved Vessels</span>
-                          </Link>
+                        <Link
+                          to="/user/vessels"
+                          onClick={closeSheet}
+                          className="flex items-center space-x-3 rounded-md p-2 text-lg text-slate-300 hover:bg-slate-700"
+                        >
+                          <Bookmark className="h-6 w-6" /> <span>Saved Vessels</span>
+                        </Link>
                       )}
-
 
                       {/* Links ΜΟΝΟ για Admin */}
                       {isAdmin && (
-                          <Link
-                              to="/admin/dashboard"
-                              onClick={closeSheet}
-                              className="flex items-center space-x-3 rounded-md p-2 text-lg text-slate-300 hover:bg-slate-700"
-                          >
-                            <Users className="h-6 w-6" /> <span>Manage Users</span>
-                          </Link>
+                        <Link
+                          to="/admin/dashboard"
+                          onClick={closeSheet}
+                          className="flex items-center space-x-3 rounded-md p-2 text-lg text-slate-300 hover:bg-slate-700"
+                        >
+                          <Users className="h-6 w-6" /> <span>Manage Users</span>
+                        </Link>
                       )}
                     </>
                   ) : (
@@ -293,13 +292,13 @@ const Navbar = () => {
                 </div>
                 {isAuthenticated && (
                   <div className="space-y-2 border-t border-slate-700 pt-4">
-                    <Link
+                    {/* <Link
                       to="/user/profile"
                       onClick={closeSheet}
                       className="block w-full rounded-md bg-sky-600 px-4 py-3 text-center font-medium text-white transition-colors hover:bg-sky-700"
                     >
                       My Profile
-                    </Link>
+                    </Link> */}
                     <button
                       onClick={handleLogout}
                       className="block w-full rounded-md bg-slate-700 px-4 py-3 text-center font-medium text-slate-200 transition-colors hover:bg-slate-600"
