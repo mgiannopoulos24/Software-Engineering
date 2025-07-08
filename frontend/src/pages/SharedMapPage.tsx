@@ -5,7 +5,7 @@ import FiltersPanel, { FilterState } from '@/components/map/FiltersPanel';
 import ZoneControls from '@/components/map/ZoneControls';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { useFleet } from '@/contexts/FleetContext';
+import { useFleet } from '@/contexts/FleetContext'; // *** ΝΕΑ ΠΡΟΣΘΗΚΗ ***
 import { RealTimeShipUpdateDTO, ShipDetailsDTO, TrackPointDTO } from '@/types/types';
 import {
     enableZoneCreation,
@@ -15,13 +15,16 @@ import { Client } from '@stomp/stompjs';
 import L from 'leaflet';
 import { Settings2, History } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+// *** ΝΕΑ ΠΡΟΣΘΗΚΗ: Import του useSearchParams ***
+import { useSearchParams } from 'react-router-dom';
 import SockJS from 'sockjs-client';
 import { toast } from 'sonner';
 
 const SharedMapPage: React.FC = () => {
     // --- STATE MANAGEMENT ---
     const { currentUser, isRegistered, isAdmin } = useAuth();
-    const { isShipInFleet, addShip, removeShip, updateShipInFleet } = useFleet();
+    // *** ΝΕΑ ΠΡΟΣΘΗΚΗ: Παίρνουμε τις λειτουργίες του στόλου από το context ***
+    const { isShipInFleet, addShip, removeShip } = useFleet();
     const isAuthenticated = !!currentUser;
 
     // Refs
@@ -48,31 +51,58 @@ const SharedMapPage: React.FC = () => {
     const [isTrackLoading, setIsTrackLoading] = useState(false);
     const [zoomRequest, setZoomRequest] = useState<number>(0);
 
+    // *** ΝΕΑ ΠΡΟΣΘΗΚΗ: Hook για την ανάγνωση των παραμέτρων του URL ***
+    const [searchParams, setSearchParams] = useSearchParams();
+
     // --- CORE LOGIC (Callbacks & Effects) ---
     useEffect(() => {
         currentTrackMmsiRef.current = currentTrackMmsi;
     }, [currentTrackMmsi]);
+    
+    // *** ΝΕΑ ΠΡΟΣΘΗΚΗ: useEffect για να χειρίζεται την εστίαση από το URL ***
+    useEffect(() => {
+        const mmsiToFocus = searchParams.get('focus_mmsi');
+        
+        // Τρέχουμε τη λογική μόνο αν υπάρχει η παράμετρος, ο χάρτης είναι έτοιμος, και έχουμε πλοία
+        if (mmsiToFocus && mapInstanceRef.current && allVessels.size > 0) {
+            const vesselToFocus = allVessels.get(mmsiToFocus);
+
+            if (vesselToFocus?.latitude && vesselToFocus?.longitude) {
+                const map = mapInstanceRef.current;
+                const zoomLevel = 14; // Ένα καλό επίπεδο zoom
+                
+                // Ορίζουμε την προβολή του χάρτη στο πλοίο
+                map.setView([vesselToFocus.latitude, vesselToFocus.longitude], zoomLevel);
+                
+                // Ορίζουμε το πλοίο ως επιλεγμένο για να ανοίξει το popup του
+                setSelectedVessel(vesselToFocus);
+                toast.info(`Focused on vessel ${mmsiToFocus}`);
+
+                // Αφού εστιάσουμε, αφαιρούμε την παράμετρο από το URL για να μην τρέξει ξανά σε κάθε render.
+                // Το { replace: true } αποτρέπει την προσθήκη αυτής της αλλαγής στο ιστορικό του browser.
+                searchParams.delete('focus_mmsi');
+                setSearchParams(searchParams, { replace: true });
+            } else {
+                // Αν το πλοίο δεν βρεθεί (π.χ. δεν είναι ενεργό), ενημερώνουμε τον χρήστη.
+                toast.warning(`Vessel ${mmsiToFocus} not found or has no current position.`);
+                searchParams.delete('focus_mmsi');
+                setSearchParams(searchParams, { replace: true });
+            }
+        }
+    }, [searchParams, setSearchParams, allVessels]); // Εξαρτήσεις: τρέχει όταν αλλάξει το URL ή τα δεδομένα των πλοίων
+
 
     const handleShowTrackRequest = useCallback(async (mmsi: string, silent = false) => {
         if (!silent) setIsTrackLoading(true);
         setCurrentTrackMmsi(mmsi);
         setShipTrack([]);
-
         try {
             const response = await fetch(`/api/ship-data/track/${mmsi}`);
             if (!response.ok) throw new Error(`Failed to fetch track for MMSI ${mmsi}`);
-
             const data: TrackPointDTO[] = await response.json();
             setShipTrack(data);
-
-            if (data.length === 0 && !silent) {
-                toast.info("No track data found for the last 12 hours.");
-            }
-
-            if (!silent && data.length > 0) {
-                setZoomRequest(prev => prev + 1);
-            }
-
+            if (data.length === 0 && !silent) toast.info("No track data found for the last 12 hours.");
+            if (!silent && data.length > 0) setZoomRequest(prev => prev + 1);
         } catch (error) {
             console.error(error);
             if (!silent) toast.error("Could not load ship track.");
@@ -84,18 +114,14 @@ const SharedMapPage: React.FC = () => {
 
     const addOrUpdateVessel = useCallback((vessel: RealTimeShipUpdateDTO) => {
         setAllVessels(prevMap => new Map(prevMap).set(vessel.mmsi, vessel));
-        setSelectedVessel(prevSelected =>
-            (prevSelected && prevSelected.mmsi === vessel.mmsi) ? vessel : prevSelected
-        );
+        setSelectedVessel(prevSelected => (prevSelected && prevSelected.mmsi === vessel.mmsi) ? vessel : prevSelected);
         if (vessel.mmsi && vessel.mmsi === currentTrackMmsiRef.current) {
             void handleShowTrackRequest(vessel.mmsi, true);
         }
     }, [handleShowTrackRequest]);
 
     useEffect(() => {
-        if (zoomRequest > 0) {
-            mapComponentRef.current?.zoomToTrack();
-        }
+        if (zoomRequest > 0) mapComponentRef.current?.zoomToTrack();
     }, [zoomRequest]);
 
     useEffect(() => {
@@ -112,10 +138,9 @@ const SharedMapPage: React.FC = () => {
         console.log('Attempting to connect WebSocket. Authenticated:', isAuthenticated);
         const token = localStorage.getItem('token');
         const connectHeaders = isAuthenticated && token ? { Authorization: `Bearer ${token}` } : {};
-
         const client = new Client({
             webSocketFactory: () => new SockJS('/ws-ais'),
-            connectHeaders: connectHeaders,
+            connectHeaders,
             reconnectDelay: 5000,
             heartbeatIncoming: 10000,
             heartbeatOutgoing: 10000,
@@ -124,17 +149,10 @@ const SharedMapPage: React.FC = () => {
 
         client.onConnect = () => {
             console.log('✅ WebSocket Connected!');
-            client.subscribe('/topic/ais-updates', (message) => {
-                const vessel: RealTimeShipUpdateDTO = JSON.parse(message.body);
-                addOrUpdateVessel(vessel);
-            });
+            client.subscribe('/topic/ais-updates', (message) => addOrUpdateVessel(JSON.parse(message.body)));
 
             if (isAuthenticated) {
                 console.log('User is authenticated, subscribing to private queues...');
-                client.subscribe('/user/queue/fleet-updates', (message) => {
-                    const vesselUpdate: RealTimeShipUpdateDTO = JSON.parse(message.body);
-                    updateShipInFleet(vesselUpdate);
-                });
                 client.subscribe('/user/queue/notifications', (message) => {
                     const notification = JSON.parse(message.body);
                     toast.info(`Zone Violation: ${notification.zoneName}`, { description: notification.message });
@@ -157,19 +175,17 @@ const SharedMapPage: React.FC = () => {
             console.log('Deactivating WebSocket client...');
             stompClientRef.current?.deactivate();
         };
-    }, [isAuthenticated, addOrUpdateVessel, updateShipInFleet]);
+    }, [isAuthenticated, addOrUpdateVessel]);
 
     const fetchInitialData = useCallback(async () => {
         try {
             const response = await fetch('/api/ship-data/active-ships');
             if (!response.ok) throw new Error('Failed to fetch initial ship data');
-
             const vesselsDetails: ShipDetailsDTO[] = await response.json();
             const initialVesselMap = new Map<string, RealTimeShipUpdateDTO>();
-
             vesselsDetails.forEach(detail => {
                 if (detail.mmsi && detail.latitude && detail.longitude) {
-                    const vesselUpdate: RealTimeShipUpdateDTO = {
+                    initialVesselMap.set(detail.mmsi.toString(), {
                         mmsi: detail.mmsi.toString(),
                         shiptype: detail.shiptype || 'unknown',
                         navigationalStatus: detail.navigationalStatus,
@@ -179,8 +195,7 @@ const SharedMapPage: React.FC = () => {
                         longitude: detail.longitude ?? 0,
                         latitude: detail.latitude ?? 0,
                         timestampEpoch: detail.lastUpdateTimestampEpoch ?? 0,
-                    };
-                    initialVesselMap.set(vesselUpdate.mmsi, vesselUpdate);
+                    });
                 }
             });
             setAllVessels(initialVesselMap);
@@ -209,7 +224,6 @@ const SharedMapPage: React.FC = () => {
 
     const handleToggleZoneCreation = () => {
         if (!mapInstanceRef.current || !isAuthenticated) return;
-
         if (isCreatingZone) {
             if (zoneCleanupRef.current) zoneCleanupRef.current();
             zoneCleanupRef.current = null;
@@ -218,7 +232,7 @@ const SharedMapPage: React.FC = () => {
             setIsCreatingZone(true);
         }
     };
-
+    
     const handleMultiSelectChange = (key: keyof FilterState, value: string) => {
         setFilters(prev => {
             const currentValues = prev[key];
@@ -231,6 +245,7 @@ const SharedMapPage: React.FC = () => {
 
     return (
         <div className="relative flex w-full flex-1">
+            {/* *** ΑΛΛΑΓΗ: Περνάμε τις νέες συναρτήσεις για τον στόλο στο MapComponent *** */}
             <MapComponent
                 ref={mapComponentRef}
                 vessels={filteredVessels}
