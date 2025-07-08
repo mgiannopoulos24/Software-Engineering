@@ -10,11 +10,11 @@ import React, {forwardRef, useEffect, useImperativeHandle, useRef} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 
 export interface MapComponentRef {
-    addOrUpdateVessel: (vessel: RealTimeShipUpdateDTO) => void;
     zoomToTrack: () => void;
 }
 
 interface MapComponentProps {
+    vessels: RealTimeShipUpdateDTO[];
     selectedVessel: RealTimeShipUpdateDTO | null;
     onMapReady: (map: L.Map) => void;
     onVesselClick: (vessel: RealTimeShipUpdateDTO | null) => void;
@@ -113,6 +113,7 @@ const createPopupHtml = (
 
 const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
     ({
+         vessels,
          selectedVessel, onMapReady, onVesselClick,
          trackData, currentTrackMmsi, onShowTrackRequest, onHideTrackRequest, isTrackLoading
      }, ref) => {
@@ -128,32 +129,44 @@ const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
         };
 
         useImperativeHandle(ref, () => ({
-            addOrUpdateVessel(vessel: RealTimeShipUpdateDTO) {
-                if (!mapInstanceRef.current || vessel.latitude == null || vessel.longitude == null) return;
+            zoomToTrack,
+        }));
+
+        // Ένα useEffect που είναι υπεύθυνο για τον συγχρονισμό των markers με τα φιλτραρισμένα πλοία.
+        useEffect(() => {
+            if (!mapInstanceRef.current) return;
+
+            const map = mapInstanceRef.current;
+            const displayedVesselsMmsi = new Set(vessels.map(v => v.mmsi));
+
+            // Αφαίρεση παλιών markers
+            vesselMarkersRef.current.forEach((marker, mmsi) => {
+                if (!displayedVesselsMmsi.has(mmsi)) {
+                    map.removeLayer(marker);
+                    vesselMarkersRef.current.delete(mmsi);
+                }
+            });
+
+            // Προσθήκη ή ενημέρωση νέων markers
+            vessels.forEach(vessel => {
+                if (vessel.latitude == null || vessel.longitude == null) return;
+
                 const icon = getVesselIcon(vessel.shiptype?.toLowerCase() || 'unknown', vessel.navigationalStatus?.toString() ?? 'unknown', vessel.trueHeading);
                 let marker = vesselMarkersRef.current.get(vessel.mmsi);
 
-                if (marker) {
+                if (marker) { // Αν υπάρχει, ενημέρωσέ τον
                     marker.setLatLng([vessel.latitude, vessel.longitude]);
                     marker.setIcon(icon);
-                } else {
-                    marker = L.marker([vessel.latitude, vessel.longitude], { icon }).addTo(mapInstanceRef.current);
+                } else { // Αν δεν υπάρχει, δημιούργησέ τον
+                    marker = L.marker([vessel.latitude, vessel.longitude], { icon }).addTo(map);
                     vesselMarkersRef.current.set(vessel.mmsi, marker);
                 }
+
+                // Ενημέρωση του click handler
                 marker.off('click').on('click', () => onVesselClick(vessel));
+            });
 
-                if (selectedVessel && selectedVessel.mmsi === vessel.mmsi) {
-                    const isTrackShown = currentTrackMmsi === vessel.mmsi && trackData.length > 0;
-                    const isLoadingThisTrack = isTrackLoading && currentTrackMmsi === vessel.mmsi;
-                    const popupContent = createPopupHtml(vessel, isTrackShown, isLoadingThisTrack);
-
-                    if (marker.getPopup() && marker.isPopupOpen()) {
-                        marker.setPopupContent(popupContent);
-                    }
-                }
-            },
-            zoomToTrack,
-        }));
+        }, [vessels, onVesselClick]);
 
         // Αρχικοποίηση του χάρτη (τρέχει μόνο μία φορά)
         useEffect(() => {
