@@ -1,111 +1,103 @@
-import { Anchor, Navigation, Waves } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { useFleet } from '@/contexts/FleetContext';
+import { getVesselStatusDescription } from '@/utils/vesselUtils';
+import { Anchor, Compass, Gauge, Loader2, Navigation, Trash2, Wind } from 'lucide-react';
 import React from 'react';
-
-interface Vessel {
-  id: string;
-  title: string;
-  destination: string;
-  speed: number;
-  draught: number;
-}
+import { Link } from 'react-router-dom';
 
 const SavedVessels: React.FC = () => {
-  // Mock data for vessels
-  const savedVessels: Vessel[] = [
-    {
-      id: '1',
-      title: 'MV Mediterranean Star',
-      destination: 'Piraeus, Greece',
-      speed: 14.2,
-      draught: 8.5,
-    },
-    {
-      id: '2',
-      title: 'SS Atlantic Express',
-      destination: 'Marseille, France',
-      speed: 16.8,
-      draught: 9.2,
-    },
-    {
-      id: '3',
-      title: 'MV Aegean Explorer',
-      destination: 'Istanbul, Turkey',
-      speed: 12.5,
-      draught: 7.8,
-    },
-  ];
+  const { fleet, loading, removeShip } = useFleet();
+
+  if (loading) {
+    return (
+      <div className="flex h-full flex-1 items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="mx-auto h-12 w-12 animate-spin text-blue-600" />
+          <p className="mt-4 text-lg text-slate-600">Loading your fleet...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const fleetArray = Array.from(fleet.values());
 
   return (
-    <div className="flex h-[89vh] w-screen flex-col bg-gray-50 px-4 py-8 sm:px-6 lg:px-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Saved Vessels</h1>
-        <p className="mt-2 text-gray-600">Your bookmarked vessels and their current status</p>
-      </div>
-      <div className="mx-auto max-w-6xl">
-        {/* Vessels Grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {savedVessels.map((vessel) => (
-            <div
-              key={vessel.id}
-              className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
-            >
-              {/* Vessel Title */}
-              <div className="mb-4 flex items-center">
-                <Anchor className="mr-3 h-6 w-6 text-blue-600" />
-                <h3 className="text-lg font-semibold text-gray-900">{vessel.title}</h3>
-              </div>
-
-              {/* Vessel Details */}
-              <div className="space-y-3">
-                {/* Destination */}
-                <div className="flex items-center">
-                  <Navigation className="mr-3 h-5 w-5 text-gray-400" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Destination</p>
-                    <p className="text-sm text-gray-600">{vessel.destination}</p>
-                  </div>
-                </div>
-
-                {/* Speed */}
-                <div className="flex items-center">
-                  <Waves className="mr-3 h-5 w-5 text-gray-400" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Speed</p>
-                    <p className="text-sm text-gray-600">{vessel.speed} knots</p>
-                  </div>
-                </div>
-
-                {/* Draught */}
-                <div className="flex items-center">
-                  <div className="mr-3 flex h-5 w-5 items-center justify-center">
-                    <div className="h-4 w-4 rounded bg-gray-400"></div>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Draught</p>
-                    <p className="text-sm text-gray-600">{vessel.draught} meters</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Button */}
-              <div className="mt-6">
-                <button className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700">
-                  View Details
-                </button>
-              </div>
-            </div>
-          ))}
+    <div className="flex-1 bg-gray-50 p-4 sm:p-6 lg:p-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">My Fleet</h1>
+          <p className="mt-2 text-gray-600">Your saved vessels and their current status.</p>
         </div>
 
-        {/* Empty State (if no vessels) */}
-        {savedVessels.length === 0 && (
-          <div className="py-12 text-center">
+        {fleetArray.length > 0 ? (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            {fleetArray.map((vessel) => (
+              <div
+                key={vessel.mmsi}
+                className="flex flex-col rounded-lg border bg-white shadow-sm transition-shadow hover:shadow-md"
+              >
+                <div className="p-6">
+                  <div className="mb-4 flex items-start justify-between">
+                    <div className="flex items-center">
+                      <Anchor className="mr-3 h-6 w-6 text-blue-600" />
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">MMSI: {vessel.mmsi}</h3>
+                        <Badge variant="secondary" className="mt-1 capitalize">{vessel.shiptype?.replace(/-/g, ' ') ?? 'Unknown Type'}</Badge>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-gray-400 hover:bg-red-50 hover:text-red-600"
+                      onClick={() => removeShip(vessel.mmsi)}
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </Button>
+                  </div>
+
+                  <div className="space-y-3 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center text-gray-500"><Navigation className="mr-2 h-4 w-4" />Status</span>
+                      <span className="font-medium">{getVesselStatusDescription(vessel.navigationalStatus)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center text-gray-500"><Gauge className="mr-2 h-4 w-4" />Speed</span>
+                      <span className="font-medium">{vessel.speedOverGround?.toFixed(1) ?? 'N/A'} kn</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center text-gray-500"><Wind className="mr-2 h-4 w-4" />Course</span>
+                      <span className="font-medium">{vessel.courseOverGround?.toFixed(1) ?? 'N/A'} °</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center text-gray-500"><Compass className="mr-2 h-4 w-4" />Heading</span>
+                      <span className="font-medium">{vessel.trueHeading !== 511 ? `${vessel.trueHeading} °` : 'N/A'}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-auto border-t bg-gray-50 p-4">
+                  <Link
+                    to={`/user?mmsi=${vessel.mmsi}`} // Example: link to map centered on vessel
+                    className="w-full"
+                  >
+                    <Button className="w-full">
+                      View on Map
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 py-24 text-center">
             <Anchor className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No saved vessels</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Start by bookmarking vessels from the map view.
+            <h3 className="mt-4 text-xl font-semibold text-gray-900">Your Fleet is Empty</h3>
+            <p className="mt-2 text-gray-500">
+              Go to the map and click on a vessel to add it to your fleet.
             </p>
+            <Link to="/user" className="mt-6">
+              <Button>Go to Map</Button>
+            </Link>
           </div>
         )}
       </div>
