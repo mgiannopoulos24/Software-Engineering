@@ -93,3 +93,10 @@ sudo docker-compose up --build
 cd frontend
 npm run dev
 ```
+
+## Important Notes
+In order to run the entire application, you need to download the AIS data from the following links:
+- [AIS Data P1](https://zenodo.org/records/1167595/files/%5BP1%5D%20AIS%20Data.zip?download=1)
+- [vessel_types.csv](https://owncloud.skel.iit.demokritos.gr/index.php/s/k8eBG9Ze7B5TCjX)
+
+Once downloaded, place the files in the `backend/src/main/resources/AIS-Data` directory and start the build process.
