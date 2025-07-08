@@ -3,6 +3,7 @@ import Login from '@/pages/Login';
 import Signup from '@/pages/Signup';
 import AdminDashboard from '@/pages/admin/AdminPage';
 import SavedVessels from '@/pages/user/SavedVessels';
+import SettingsPage from '@/pages/user/SettingsPage'; // <-- ΠΡΟΣΘΗΚΗ IMPORT
 import UserPage from '@/pages/user/UserPage';
 import SharedMapPage from '@/pages/SharedMapPage';
 
@@ -30,13 +31,13 @@ const routes: RouteConfig[] = [
 
   // Admin routes
   {
-    path: '/admin/dashboard', // Η σελίδα με τα στατιστικά και τη διαχείριση χρηστών
+    path: '/admin/dashboard',
     element: <AdminDashboard />,
     protected: true,
     roles: ['ADMIN'],
   },
   {
-    path: '/admin', // Ο χάρτης για τον admin
+    path: '/admin',
     element: <SharedMapPage />,
     protected: true,
     roles: ['ADMIN'],
@@ -45,15 +46,22 @@ const routes: RouteConfig[] = [
   // User routes
   {
     path: '/user',
-    element: <UserPage />, // Χρησιμοποιεί το SharedMapPage εσωτερικά
+    element: <UserPage />,
     protected: true,
-    roles: ['REGISTERED', 'ADMIN'], // Ένας Admin μπορεί να δει και το user view
+    roles: ['REGISTERED', 'ADMIN'],
   },
   {
     path: '/user/vessels',
     element: <SavedVessels />,
     protected: true,
     roles: ['REGISTERED', 'ADMIN'],
+  },
+  // --- ΠΡΟΣΘΗΚΗ ΝΕΟΥ ROUTE ΕΔΩ ---
+  {
+    path: '/user/settings',
+    element: <SettingsPage />,
+    protected: true,
+    roles: ['REGISTERED', 'ADMIN'], // Προσβάσιμο και από τους δύο ρόλους
   },
 ];
 

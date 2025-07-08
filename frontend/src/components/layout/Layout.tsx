@@ -3,7 +3,7 @@ import { useNotifications } from '@/contexts/NotificationContext';
 import { AppNotification } from '@/types/types';
 import { formatDistanceToNow } from 'date-fns';
 import {
-  Bell, Bookmark, ChevronDown, CircleAlert, LogOut, Map, Menu, Settings, ShieldCheck, Siren, Trash2, User, Users, X
+  Bell, Bookmark, ChevronDown, CircleAlert, LogOut, Map, Menu, Settings, ShieldCheck, Siren, Trash2, User, Users, X, LogIn, UserPlus
 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -167,10 +167,23 @@ const Navbar = () => {
                   <NotificationsDropdown />
                 </>
               ) : (
-                <div className='space-x-4'>
-                    <Link to="/login"><Button>Login</Button></Link>
-                    <Link to="/signup"><Button variant="secondary">Sign Up</Button></Link>
-                </div>
+                <div className='space-x-2 flex'>
+  <Link
+    to="/login"
+    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md border border-transparent hover:border hover:border-slate-400 transition-all duration-200"
+  >
+    <LogIn size={18} />
+    <span>Login</span>
+  </Link>
+
+  <Link
+    to="/signup"
+    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md border border-transparent hover:border hover:border-slate-400 transition-all duration-200"
+  >
+    <UserPlus size={18} />
+    <span>Sign Up</span>
+  </Link>
+</div>
               )}
 
               {/* User Profile Dropdown */}
@@ -187,9 +200,9 @@ const Navbar = () => {
                                 <p className="capitalize">{currentUser?.role.toLowerCase()}</p>
                             </div>
                             <div className="my-1 h-px bg-slate-200" />
-                            <Link to="/user/profile" onClick={closeUserDropdown} className="flex w-full items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">
+                            {/* <Link to="/user/profile" onClick={closeUserDropdown} className="flex w-full items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">
                                 <User className="mr-3 h-5 w-5" /> Profile
-                            </Link>
+                            </Link> */}
                             <Link to="/user/settings" onClick={closeUserDropdown} className="flex w-full items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">
                                 <Settings className="mr-3 h-5 w-5" /> Settings
                             </Link>
