@@ -1,3 +1,5 @@
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,14 +26,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Edit, Info, RefreshCw, Trash2 } from 'lucide-react';
+import { Edit, Info, RefreshCw, Trash2, CheckCircle2, XCircle } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
-// Τύποι παραμένουν ίδιοι
 interface User {
   id: number;
   email: string;
   role: 'ADMIN' | 'REGISTERED';
+  hasActiveInterestZone: boolean;
+  hasActiveCollisionZone: boolean;
 }
 
 interface SystemStats {
@@ -42,6 +45,7 @@ interface SystemStats {
 }
 
 const AdminPage = () => {
+  const { currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [usersLoading, setUsersLoading] = useState(true);
   const [usersError, setUsersError] = useState<string | null>(null);
@@ -137,6 +141,10 @@ const AdminPage = () => {
   }, [fetchUsers, fetchStats]);
 
   const handleDeleteUser = async (userId: number) => {
+    if (currentUser?.id === userId) {
+      toast.error("Action Forbidden", { description: "You cannot delete your own account." });
+      return;
+    }
     if (!window.confirm('Are you sure you want to delete this user?')) {
       return;
     }
@@ -164,6 +172,12 @@ const AdminPage = () => {
 
   const handleUpdateUserRole = async () => {
     if (!selectedUser || !selectedRole) return;
+
+    if (currentUser?.id === selectedUser.id) {
+      toast.error("Action Forbidden", { description: "You cannot change your own role." });
+      setEditDialogOpen(false);
+      return;
+    }
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -269,28 +283,64 @@ const AdminPage = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>User Email</TableHead>
-                      <TableHead>Role</TableHead>
+                      <TableHead className="text-center">Role</TableHead>
+                      <TableHead className="text-center">Interest Zone</TableHead>
+                      <TableHead className="text-center">Collision Zone</TableHead>
                       <TableHead className="w-[150px] text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {usersLoading ? (
-                        <TableRow><TableCell colSpan={3} className="text-center">Loading users...</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={5} className="text-center">Loading users...</TableCell></TableRow>
                     ) : (
                         users.map((user) => (
                             <TableRow key={user.id}>
                               <TableCell><div className="font-medium">{user.email}</div></TableCell>
-                              <TableCell>
+                              <TableCell className="text-center">
                                 <Badge variant={user.role === 'ADMIN' ? 'destructive' : 'secondary'}>{user.role}</Badge>
                               </TableCell>
+                              <TableCell className="text-center">
+                                {user.hasActiveInterestZone ? (
+                                    <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-100">
+                                      <CheckCircle2 className="mr-1 h-4 w-4" /> Active
+                                    </Badge>
+                                ) : (
+                                    <Badge variant="outline">
+                                      <XCircle className="mr-1 h-4 w-4" /> Inactive
+                                    </Badge>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {user.hasActiveCollisionZone ? (
+                                    <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-100">
+                                      <CheckCircle2 className="mr-1 h-4 w-4" /> Active
+                                    </Badge>
+                                ) : (
+                                    <Badge variant="outline">
+                                      <XCircle className="mr-1 h-4 w-4" /> Inactive
+                                    </Badge>
+                                )}
+                              </TableCell>
                               <TableCell className="flex justify-center space-x-2">
-                                <Button variant="outline" size="icon" onClick={() => openEditDialog(user)}>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => openEditDialog(user)}
+                                    disabled={currentUser?.id === user.id}
+                                    title={currentUser?.id === user.id ? "You cannot edit your own role." : "Edit User"}
+                                >
                                   <Edit className="h-4 w-4" /><span className="sr-only">Edit User</span>
                                 </Button>
                                 <Button variant="outline" size="icon" onClick={() => openInfoDialog(user)}>
                                   <Info className="h-4 w-4" /><span className="sr-only">User Info</span>
                                 </Button>
-                                <Button variant="destructive" size="icon" onClick={() => handleDeleteUser(user.id)}>
+                                <Button
+                                    variant="destructive"
+                                    size="icon"
+                                    onClick={() => handleDeleteUser(user.id)}
+                                    disabled={currentUser?.id === user.id}
+                                    title={currentUser?.id === user.id ? "You cannot delete your own account." : "Delete User"}
+                                >
                                   <Trash2 className="h-4 w-4" /><span className="sr-only">Delete User</span>
                                 </Button>
                               </TableCell>
@@ -308,13 +358,48 @@ const AdminPage = () => {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>User Information</DialogTitle>
-                <DialogDescription>Details for the selected user.</DialogDescription>
+                <DialogDescription>Details for {selectedUser?.email}.</DialogDescription>
               </DialogHeader>
               {selectedUser && (
-                  <div className="space-y-2 py-4">
-                    <p><strong>ID:</strong> {selectedUser.id}</p>
-                    <p><strong>Email:</strong> {selectedUser.email}</p>
-                    <p><strong>Role:</strong> {selectedUser.role}</p>
+                  <div className="space-y-4 py-4 text-sm">
+                    <div className="flex justify-between">
+                      <strong className="text-muted-foreground">User ID:</strong>
+                      <span>{selectedUser.id}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <strong className="text-muted-foreground">Email:</strong>
+                      <span>{selectedUser.email}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <strong className="text-muted-foreground">Role:</strong>
+                      <Badge variant={selectedUser.role === 'ADMIN' ? 'destructive' : 'secondary'}>
+                        {selectedUser.role}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <strong className="text-muted-foreground">Interest Zone Active:</strong>
+                      {selectedUser.hasActiveInterestZone ? (
+                          <span className="flex items-center text-green-600">
+              <CheckCircle2 className="mr-2 h-4 w-4" /> Yes
+            </span>
+                      ) : (
+                          <span className="flex items-center text-red-600">
+              <XCircle className="mr-2 h-4 w-4" /> No
+            </span>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <strong className="text-muted-foreground">Collision Zone Active:</strong>
+                      {selectedUser.hasActiveCollisionZone ? (
+                          <span className="flex items-center text-green-600">
+              <CheckCircle2 className="mr-2 h-4 w-4" /> Yes
+            </span>
+                      ) : (
+                          <span className="flex items-center text-red-600">
+              <XCircle className="mr-2 h-4 w-4" /> No
+            </span>
+                      )}
+                    </div>
                   </div>
               )}
               <DialogFooter>
