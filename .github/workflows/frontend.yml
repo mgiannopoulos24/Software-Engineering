@@ -27,8 +27,8 @@ jobs:
 
       # For now we are skipping the format, lint and test steps to avoid failures.
 
-      # - name: Format code
-      #   run: npm run format
+      - name: Format code
+        run: npm run format
 
       # - name: Lint code
       #   run: npm run lint
@@ -36,5 +36,5 @@ jobs:
       - name: Build
         run: npm run build
 
-      # - name: Run tests
-      #   run: npm test
+      - name: Run tests
+        run: npm test

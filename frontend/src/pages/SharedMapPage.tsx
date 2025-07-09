@@ -69,7 +69,7 @@ const SharedMapPage: React.FC = () => {
   const [isZoneModalOpen, setIsZoneModalOpen] = useState(false);
   const [managedZone, setManagedZone] = useState<ZoneDataWithType | null>(null);
 
-  const [searchParams, setSearchParams] = useSearchParams();
+  //   const [searchParams, setSearchParams] = useSearchParams();
 
   const filteredVessels = useMemo(() => {
     const vesselsArray = Array.from(allVessels.values());
