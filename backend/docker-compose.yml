@@ -29,7 +29,7 @@ services:
       - SPRING_DATASOURCE_PASSWORD=postgres
       - SPRING_JPA_HIBERNATE_DDL_AUTO=create-drop
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092 # Το 'kafka:9092' αναφέρεται στο service 'kafka'.
-      - SIMULATION_SPEED_FACTOR=3.0 # Ταχύτητα Προσομοίωσης
+      - SIMULATION_SPEED_FACTOR=`.0 # Ταχύτητα Προσομοίωσης
 
   # === Υπηρεσία της Βάσης Δεδομένων PostgreSQL ===
   db:
