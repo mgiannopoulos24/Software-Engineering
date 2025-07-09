@@ -1,5 +1,5 @@
 import L from 'leaflet';
-import { CollisionZoneDTO, ZoneOfInterestDTO, ZoneDataWithType } from '@/types/types';
+import { ZoneOfInterestDTO, ZoneDataWithType } from '@/types/types';
 
 // Οι σταθερές παραμένουν χρήσιμες για το dialog
 export const ALL_SHIP_TYPES_FOR_MAP = [
@@ -13,8 +13,22 @@ export const ALL_SHIP_TYPES_FOR_MAP = [
 ].sort();
 
 export const ALL_NAV_STATUSES_FOR_MAP: { code: string; description: string }[] = [
-    { code: '0', description: 'Under way using engine' }, { code: '1', description: 'At anchor' },
-    { code: '5', description: 'Moored' }, { code: '15', description: 'Not defined' }
+    { code: 0, description: 'Under way using engine' },
+    { code: 1, description: 'At anchor' },
+    { code: 2, description: 'Not under command' },
+    { code: 3, description: 'Restricted manoeuverability' },
+    { code: 4, description: 'Constrained by her draught' },
+    { code: 5, description: 'Moored' },
+    { code: 6, description: 'Aground' },
+    { code: 7, description: 'Engaged in Fishing' },
+    { code: 8, description: 'Under way sailing' },
+    { code: 9, description: 'reserved for future use' },
+    { code: 10, description: 'reserved for future use' },
+    { code: 11, description: 'reserved for future use' },
+    { code: 12, description: 'reserved for future use' },
+    { code: 13, description: 'reserved for future use' },
+    { code: 14, description: 'reserved for future use' },
+    { code: 15, description: 'Not defined' }
 ];
 
 /**

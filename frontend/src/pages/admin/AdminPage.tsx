@@ -28,6 +28,9 @@ import {
 } from '@/components/ui/table';
 import { Edit, Info, RefreshCw, Trash2, CheckCircle2, XCircle } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { Slider } from '@/components/ui/slider';
+import { getSimulationSpeed, updateSimulationSpeed } from '@/services/adminService';
+import { FastForward, PauseCircle } from 'lucide-react';
 
 interface User {
   id: number;
@@ -63,6 +66,33 @@ const AdminPage = () => {
   const [isInfoDialogOpen, setInfoDialogOpen] = useState(false);
   const [isEditDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<User['role'] | ''>('');
+
+  const [simulationSpeed, setSimulationSpeed] = useState(1.0);
+  const [isUpdatingSpeed, setIsUpdatingSpeed] = useState(false);
+
+  // Φορτώνει την αρχική ταχύτητα από τον server
+  const fetchInitialSpeed = useCallback(async () => {
+    try {
+      const data = await getSimulationSpeed();
+      setSimulationSpeed(data.speedFactor);
+    } catch (err) {
+      console.error("Could not fetch initial simulation speed", err);
+      toast.error("Failed to get current simulation speed.");
+    }
+  }, []);
+
+  // Χειρίζεται την αποστολή της νέας ταχύτητας στον server
+  const handleSpeedUpdate = async (newSpeed: number) => {
+    setIsUpdatingSpeed(true);
+    try {
+      await updateSimulationSpeed(newSpeed);
+      toast.success(`Simulation speed set to ${newSpeed.toFixed(1)}x`);
+    } catch (err) {
+      toast.error("Failed to update speed", { description: err instanceof Error ? err.message : 'Unknown error' });
+    } finally {
+      setIsUpdatingSpeed(false);
+    }
+  };
 
   const fetchUsers = useCallback(async () => {
     setUsersLoading(true);
@@ -138,7 +168,8 @@ const AdminPage = () => {
   useEffect(() => {
     void fetchUsers();
     void fetchStats();
-  }, [fetchUsers, fetchStats]);
+    void fetchInitialSpeed();
+  }, [fetchUsers, fetchStats, fetchInitialSpeed]);
 
   const handleDeleteUser = async (userId: number) => {
     if (currentUser?.id === userId) {
@@ -271,6 +302,34 @@ const AdminPage = () => {
               </Card>
               {statsError && <p className="text-sm text-red-500 col-span-full">{statsError}</p>}
             </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Simulation Control</CardTitle>
+                <CardDescription>Adjust the real-time data simulation speed.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-2">
+                <div className="flex items-center gap-4">
+                  <PauseCircle className="h-6 w-6 text-muted-foreground" />
+                  <Slider
+                      value={[simulationSpeed]}
+                      onValueChange={(value) => setSimulationSpeed(value[0])}
+                      onValueCommit={(value) => handleSpeedUpdate(value[0])} // Στέλνει την τιμή όταν ο χρήστης αφήσει το slider
+                      min={0.5}
+                      max={50}
+                      step={0.5}
+                  />
+                  <FastForward className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Current Speed</p>
+                  <p className="text-2xl font-bold tracking-tighter">
+                    {simulationSpeed.toFixed(1)}x
+                  </p>
+                  {isUpdatingSpeed && <p className="text-xs text-blue-500 animate-pulse">Updating...</p>}
+                </div>
+              </CardContent>
+            </Card>
 
             <Card>
               <CardHeader>

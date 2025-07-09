@@ -5,7 +5,6 @@ import com.MarineTrafficClone.SeaWatch.model.AisData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
@@ -35,11 +34,7 @@ public class CsvDataLoaderService implements CommandLineRunner {
 
     private final KafkaProducerService kafkaProducerService;
     private final ObjectMapper objectMapper;
-
-    // Παράγοντας επιτάχυνσης της προσομοίωσης. Μπορεί να οριστεί στο application.properties.
-    // Π.χ., 2.0 θα τρέξει την προσομοίωση 2 φορές πιο γρήγορα. Προεπιλογή: 1.0 (πραγματικός χρόνος).
-    @Value("${simulation.speed.factor:1.0}")
-    private double simulationSpeedFactor;
+    private final SimulationControlService simulationControlService;
 
     // Χρησιμοποιούμε έναν ExecutorService με ένα μόνο thread για να τρέξει η προσομοίωση ασύγχρονα στο background.
     private final ExecutorService simulationExecutor = Executors.newSingleThreadExecutor();
@@ -49,9 +44,10 @@ public class CsvDataLoaderService implements CommandLineRunner {
     private static final Logger log = LoggerFactory.getLogger(CsvDataLoaderService.class);
 
     @Autowired
-    public CsvDataLoaderService(KafkaProducerService kafkaProducerService, ObjectMapper objectMapper) {
+    public CsvDataLoaderService(KafkaProducerService kafkaProducerService, ObjectMapper objectMapper, SimulationControlService simulationControlService) {
         this.kafkaProducerService = kafkaProducerService;
         this.objectMapper = objectMapper;
+        this.simulationControlService = simulationControlService;
     }
 
     /**
@@ -96,7 +92,7 @@ public class CsvDataLoaderService implements CommandLineRunner {
     private void simulateRealTimeDataFlowFromSortedCsv() {
         String filePath = "AIS-Data/nari_dynamic.csv";
         System.out.println("SIMULATION: Thread started. Processing CSV: " + filePath);
-        System.out.println("SIMULATION: Speed factor: " + simulationSpeedFactor);
+        System.out.println("SIMULATION: Initial speed factor: " + simulationControlService.getSpeedFactor());
 
         long previousRecordEpoch = -1; // Η χρονοσφραγίδα της προηγούμενης εγγραφής.
         AtomicLong recordsSentCounter = new AtomicLong(0);
@@ -116,6 +112,8 @@ public class CsvDataLoaderService implements CommandLineRunner {
                 if (line.trim().isEmpty()) {
                     continue; // Παρακάμπτουμε κενές γραμμές.
                 }
+
+                double currentSpeedFactor = simulationControlService.getSpeedFactor();
 
                 String[] values = line.split(",");
                 if (values.length == 9) {
@@ -142,9 +140,9 @@ public class CsvDataLoaderService implements CommandLineRunner {
                                 timestampDiffSeconds = 0;
                             }
                             // Υπολογίζουμε την καθυστέρηση σε milliseconds, λαμβάνοντας υπόψη τον παράγοντα επιτάχυνσης.
-                            long delayMillis = (long) ((timestampDiffSeconds * 1000) / simulationSpeedFactor);
+                            long delayMillis = (long) ((timestampDiffSeconds * 1000) / currentSpeedFactor);
                             if (delayMillis > 0) {
-                                Thread.sleep(delayMillis); // "Κοιμίζουμε" το thread για να προσομοιώσουμε το πέρασμα του χρόνου.
+                                Thread.sleep(delayMillis);
                             }
                         }
                         previousRecordEpoch = currentRecord.getTimestampEpoch(); // Ενημερώνουμε για την επόμενη επανάληψη.

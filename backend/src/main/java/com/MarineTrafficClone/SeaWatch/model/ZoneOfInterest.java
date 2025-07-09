@@ -39,7 +39,7 @@ public class ZoneOfInterest {
      * Ορίζει τη σχέση Ένα-προς-Ένα (One-to-One) με τον χρήστη.
      * Κάθε ζώνη ανήκει σε έναν και μόνο χρήστη.
      */
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", unique = true, nullable = false) // Η στήλη user_id είναι το ξένο κλειδί.
     @ToString.Exclude // Εξαίρεση από τη μέθοδο toString() για αποφυγή άπειρης αναδρομής.
     @EqualsAndHashCode.Exclude // Εξαίρεση από τις μεθόδους equals/hashCode για τον ίδιο λόγο.

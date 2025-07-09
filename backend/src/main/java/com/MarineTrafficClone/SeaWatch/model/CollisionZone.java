@@ -43,7 +43,7 @@ public class CollisionZone {
      *               που συνδέεται με το πρωτεύον κλειδί του πίνακα των χρηστών.
      * `unique = true`: Εξασφαλίζει ότι κάθε χρήστης μπορεί να έχει μόνο μία ζώνη σύγκρουσης.
      */
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", unique = true, nullable = false)
     private UserEntity user;
 }

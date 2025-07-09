@@ -49,3 +49,47 @@ export const updateShipType = async (mmsi: number, shiptype: string): Promise<Sh
     }
     return response.json();
 };
+
+/**
+ * Fetches the current simulation speed factor from the server.
+ * @returns A promise that resolves to an object containing the speed factor.
+ */
+export const getSimulationSpeed = async (): Promise<{ speedFactor: number }> => {
+    const token = getToken();
+    if (!token) throw new Error('Authentication token not found.');
+
+    const response = await fetch('/api/admin/simulation/speed', {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to fetch simulation speed.');
+    }
+    return response.json();
+};
+
+/**
+ * Updates the simulation speed factor on the server.
+ * @param speed The new speed factor.
+ * @returns A promise that resolves on success.
+ */
+export const updateSimulationSpeed = async (speed: number): Promise<void> => {
+    const token = getToken();
+    if (!token) throw new Error('Authentication token not found.');
+
+    const response = await fetch('/api/admin/simulation/speed', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ newSpeedFactor: speed }),
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update simulation speed.');
+    }
+};

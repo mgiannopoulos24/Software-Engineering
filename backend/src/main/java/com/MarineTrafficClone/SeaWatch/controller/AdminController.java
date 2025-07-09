@@ -2,12 +2,16 @@ package com.MarineTrafficClone.SeaWatch.controller;
 
 import com.MarineTrafficClone.SeaWatch.dto.ShipDetailsDTO;
 import com.MarineTrafficClone.SeaWatch.dto.ShipTypeUpdateRequest;
+import com.MarineTrafficClone.SeaWatch.dto.SimulationSpeedUpdateRequestDTO;
 import com.MarineTrafficClone.SeaWatch.service.AdminService;
+import com.MarineTrafficClone.SeaWatch.service.SimulationControlService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * REST Controller για λειτουργίες που αφορούν αποκλειστικά τους διαχειριστές (Admins).
@@ -19,10 +23,12 @@ import java.util.List;
 public class AdminController {
 
     private final AdminService adminService;
+    private final SimulationControlService simulationControlService;
 
     @Autowired
-    public AdminController(AdminService adminService) {
+    public AdminController(AdminService adminService, SimulationControlService simulationControlService) {
         this.adminService = adminService;
+        this.simulationControlService = simulationControlService;
     }
 
     /**
@@ -49,5 +55,25 @@ public class AdminController {
     public ResponseEntity<ShipDetailsDTO> updateShipType(@PathVariable Long mmsi, @RequestBody ShipTypeUpdateRequest request) {
         ShipDetailsDTO updatedShipDetails = adminService.updateShipType(mmsi, request.getShiptype());
         return ResponseEntity.ok(updatedShipDetails);
+    }
+
+    /**
+     * Endpoint για την ανάκτηση της τρέχουσας ταχύτητας προσομοίωσης.
+     * @return Ένα ResponseEntity που περιέχει την τρέχουσα ταχύτητα.
+     */
+    @GetMapping("/simulation/speed")
+    public ResponseEntity<Map<String, Double>> getSimulationSpeed() {
+        return ResponseEntity.ok(Map.of("speedFactor", simulationControlService.getSpeedFactor()));
+    }
+
+    /**
+     * Endpoint για την ενημέρωση της ταχύτητας της προσομοίωσης.
+     * @param request Το DTO που περιέχει τη νέα ταχύτητα.
+     * @return Ένα ResponseEntity που επιβεβαιώνει την αλλαγή.
+     */
+    @PostMapping("/simulation/speed")
+    public ResponseEntity<Map<String, String>> updateSimulationSpeed(@Valid @RequestBody SimulationSpeedUpdateRequestDTO request) {
+        simulationControlService.setSpeedFactor(request.getNewSpeedFactor());
+        return ResponseEntity.ok(Map.of("message", "Simulation speed updated to " + request.getNewSpeedFactor() + "x."));
     }
 }

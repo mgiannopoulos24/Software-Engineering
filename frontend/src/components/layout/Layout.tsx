@@ -2,7 +2,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { AppNotification } from '@/types/types';
 import { formatDistanceToNow } from 'date-fns';
-import { Bell, Bookmark, ChevronDown, LogOut, Map, Menu, Settings, ShieldCheck, Siren, Trash2, User, Users, X, LogIn, UserPlus, Ship } from 'lucide-react';
+import { Bell, Bookmark, ChevronDown, LogOut, Map, Menu, Settings, ShieldCheck, Siren, CircleAlert, Trash2, User, Users, X, LogIn, UserPlus, Ship } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Toaster } from 'sonner';

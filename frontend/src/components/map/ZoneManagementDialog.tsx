@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import { ZoneConstraintDTO, ZoneConstraintType, ZoneDataWithType, ZoneOfInterestDTO } from '@/types/types';
+import { ZoneConstraintDTO, ZoneConstraintType, ZoneDataWithType } from '@/types/types';
 import { ALL_NAV_STATUSES_FOR_MAP, ALL_SHIP_TYPES_FOR_MAP } from '@/utils/mapUtils';
 import React, { useEffect, useState } from 'react';
 
@@ -136,13 +136,13 @@ export const ZoneManagementDialog: React.FC<Props> = ({ isOpen, onClose, zone, o
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox id="cb-SPEED_LIMIT_ABOVE" checked={hasConstraint(ZoneConstraintType.SPEED_LIMIT_ABOVE)} onCheckedChange={(checked) => toggleConstraint(ZoneConstraintType.SPEED_LIMIT_ABOVE, !!checked)}/>
-                    <Label htmlFor="cb-SPEED_LIMIT_ABOVE" className="font-normal">Speed over</Label>
+                    <Label htmlFor="cb-SPEED_LIMIT_ABOVE" className="font-normal">Notify on speed over</Label>
                     <Input type="number" className="h-8 w-20" disabled={!hasConstraint(ZoneConstraintType.SPEED_LIMIT_ABOVE)} value={getConstraintValue(ZoneConstraintType.SPEED_LIMIT_ABOVE)} onChange={(e) => updateConstraintValue(ZoneConstraintType.SPEED_LIMIT_ABOVE, e.target.value)} />
                     <span>kn</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox id="cb-SPEED_LIMIT_BELOW" checked={hasConstraint(ZoneConstraintType.SPEED_LIMIT_BELOW)} onCheckedChange={(checked) => toggleConstraint(ZoneConstraintType.SPEED_LIMIT_BELOW, !!checked)}/>
-                    <Label htmlFor="cb-SPEED_LIMIT_BELOW" className="font-normal">Speed under</Label>
+                    <Label htmlFor="cb-SPEED_LIMIT_BELOW" className="font-normal">Notify on speed under</Label>
                     <Input type="number" className="h-8 w-20" disabled={!hasConstraint(ZoneConstraintType.SPEED_LIMIT_BELOW)} value={getConstraintValue(ZoneConstraintType.SPEED_LIMIT_BELOW)} onChange={(e) => updateConstraintValue(ZoneConstraintType.SPEED_LIMIT_BELOW, e.target.value)} />
                     <span>kn</span>
                   </div>
