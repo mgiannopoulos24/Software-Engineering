@@ -1,12 +1,12 @@
 import Index from '@/pages/Index';
 import Login from '@/pages/Login';
+import SharedMapPage from '@/pages/SharedMapPage';
 import Signup from '@/pages/Signup';
 import AdminDashboard from '@/pages/admin/AdminPage';
 import ManageShips from '@/pages/admin/ManageShips';
 import SavedVessels from '@/pages/user/SavedVessels';
 import SettingsPage from '@/pages/user/SettingsPage';
 import UserPage from '@/pages/user/UserPage';
-import SharedMapPage from '@/pages/SharedMapPage';
 
 type RouteConfig = {
   path: string;

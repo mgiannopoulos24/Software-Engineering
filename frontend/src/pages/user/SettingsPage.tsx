@@ -1,5 +1,6 @@
 import AuthLayout from '@/components/layout/AuthLayout';
-import { useAuth } from '@/contexts/AuthContext'; // Βεβαιώσου ότι το import υπάρχει
+import { useAuth } from '@/contexts/AuthContext';
+// Βεβαιώσου ότι το import υπάρχει
 import { updateUserSettings } from '@/services/userService';
 import { Eye, EyeOff } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
@@ -7,14 +8,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 const SettingsPage: React.FC = () => {
-
   const { currentUser, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  
+
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -24,7 +24,7 @@ const SettingsPage: React.FC = () => {
       setEmail(currentUser.email);
     }
   }, [currentUser]);
-  
+
   const mapPath = isAdmin ? '/admin' : '/user';
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,7 +63,6 @@ const SettingsPage: React.FC = () => {
         setCurrentPassword('');
         setNewPassword('');
       }
-
     } catch (error: any) {
       toast.error('Update Failed', {
         description: error.message || 'An unknown error occurred.',
@@ -78,15 +77,14 @@ const SettingsPage: React.FC = () => {
       title="Account Settings"
       footer={
         <p>
-          
-          Return to <Link to={mapPath} className="font-semibold text-sky-600 hover:text-sky-500">
+          Return to{' '}
+          <Link to={mapPath} className="font-semibold text-sky-600 hover:text-sky-500">
             Map View
           </Link>
         </p>
       }
     >
       <form onSubmit={handleSubmit} className="space-y-6">
-       
         <div>
           <label htmlFor="email" className="block text-sm font-medium leading-6 text-slate-900">
             Email address
@@ -100,13 +98,16 @@ const SettingsPage: React.FC = () => {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="block w-full rounded-md border-0 py-2 px-4 text-slate-900 text-base shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-sky-600 sm:text-sm sm:leading-6"
+              className="block w-full rounded-md border-0 px-4 py-2 text-base text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-sky-600 sm:text-sm sm:leading-6"
             />
           </div>
         </div>
 
         <div>
-          <label htmlFor="current-password" className="block text-sm font-medium leading-6 text-slate-900">
+          <label
+            htmlFor="current-password"
+            className="block text-sm font-medium leading-6 text-slate-900"
+          >
             Current Password
           </label>
           <div className="relative mt-2">
@@ -118,7 +119,7 @@ const SettingsPage: React.FC = () => {
               placeholder="Enter to make changes"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              className="block w-full rounded-md border-0 py-2 px-4 text-slate-900 text-base shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-sky-600 sm:text-sm sm:leading-6"
+              className="block w-full rounded-md border-0 px-4 py-2 text-base text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-sky-600 sm:text-sm sm:leading-6"
             />
             <button
               type="button"
@@ -129,9 +130,12 @@ const SettingsPage: React.FC = () => {
             </button>
           </div>
         </div>
-        
+
         <div>
-          <label htmlFor="new-password" className="block text-sm font-medium leading-6 text-slate-900">
+          <label
+            htmlFor="new-password"
+            className="block text-sm font-medium leading-6 text-slate-900"
+          >
             New Password (optional)
           </label>
           <div className="relative mt-2">
@@ -143,7 +147,7 @@ const SettingsPage: React.FC = () => {
               minLength={5}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="block w-full rounded-md border-0 py-2 px-4 text-slate-900 text-base shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-sky-600 sm:text-sm sm:leading-6"
+              className="block w-full rounded-md border-0 px-4 py-2 text-base text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-sky-600 sm:text-sm sm:leading-6"
             />
             <button
               type="button"

@@ -6,7 +6,6 @@ import { Anchor, Compass, Gauge, Loader2, MapPin, Navigation, Trash2 } from 'luc
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-
 const VesselCard: React.FC<{
   vessel: ShipDetailsDTO;
   onRemove: (mmsi: number) => void;
@@ -25,7 +24,12 @@ const VesselCard: React.FC<{
             </p>
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={() => onRemove(vessel.mmsi)} title="Remove from Fleet">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onRemove(vessel.mmsi)}
+          title="Remove from Fleet"
+        >
           <Trash2 className="h-5 w-5 text-red-500" />
         </Button>
       </div>

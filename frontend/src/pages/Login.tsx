@@ -17,15 +17,12 @@ const Login: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Απλά καλούμε τη login. Η ανακατεύθυνση θα γίνει αυτόματα
-      // από το AuthRedirectHandler όταν το currentUser αλλάξει.
       await login(email, password);
 
       toast.success('Login successful!');
-
     } catch (error: any) {
       const errorMessage =
-          error.response?.data?.message || 'Login failed. Please check your credentials.';
+        error.response?.data?.message || 'Login failed. Please check your credentials.';
       toast.error(errorMessage);
       console.error('Login failed:', error);
     } finally {
@@ -59,7 +56,7 @@ const Login: React.FC = () => {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="block w-full rounded-md border-0 py-2 px-4 text-slate-900 text-base shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-sky-600 sm:text-sm sm:leading-6"
+              className="block w-full rounded-md border-0 px-4 py-2 text-base text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-sky-600 sm:text-sm sm:leading-6"
             />
           </div>
         </div>
@@ -72,7 +69,6 @@ const Login: React.FC = () => {
             >
               Password
             </label>
-
           </div>
           <div className="relative mt-2">
             <input
@@ -83,7 +79,7 @@ const Login: React.FC = () => {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="block w-full rounded-md border-0 py-2 px-4 text-slate-900 text-base shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-sky-600 sm:text-sm sm:leading-6"
+              className="block w-full rounded-md border-0 px-4 py-2 text-base text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-sky-600 sm:text-sm sm:leading-6"
             />
             <button
               type="button"
@@ -93,12 +89,11 @@ const Login: React.FC = () => {
             >
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
-
           </div>
           <div className="text-sm">
-              <Link to="/forgot-password" className="font-semibold text-sky-600 hover:text-sky-500">
-                Forgot password?
-              </Link>
+            <Link to="/forgot-password" className="font-semibold text-sky-600 hover:text-sky-500">
+              Forgot password?
+            </Link>
           </div>
         </div>
 

@@ -1,6 +1,5 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
-// Τύποι που χρησιμοποιούνται στο context
 type UserRole = 'ADMIN' | 'REGISTERED' | null;
 
 interface UserProfile {
@@ -38,27 +37,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     if (!response.ok) {
-      // Αν το token έχει λήξει, το backend θα στείλει 401 ή 403, οπότε η promise θα απορριφθεί.
       throw new Error('Could not fetch user profile. The session may have expired.');
     }
 
     const userProfile: UserProfile = await response.json();
 
-    // Ομαλοποιούμε τον ρόλο σε κεφαλαία για να είναι συνεπής με τον υπόλοιπο κώδικα.
     if (userProfile.role) {
       userProfile.role = userProfile.role.toUpperCase() as UserRole;
     }
-    // ----------------------------
 
-    // Αποθήκευση του πλήρους, ομαλοποιημένου προφίλ στο localStorage και στο state
-    localStorage.setItem('user', JSON.stringify(userProfile) );
+    localStorage.setItem('user', JSON.stringify(userProfile));
     setCurrentUser(userProfile);
 
     return userProfile;
   };
 
   const login = async (email: string, password: string): Promise<UserProfile> => {
-    // Βήμα 1: Κάνε login για να πάρεις το token
     const response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -66,7 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     if (!response.ok) {
-      const errorData = await response.text(); // Χρησιμοποιούμε .text() για να δούμε τι ακριβώς επιστρέφει
+      const errorData = await response.text();
       console.error('Login API error response:', errorData);
       throw new Error('Login failed. Please check your credentials.');
     }
@@ -78,22 +72,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('No token received from login API.');
     }
 
-    // Αποθηκεύουμε προσωρινά το token
     localStorage.setItem('token', token);
 
-    // Βήμα 2: Χρησιμοποίησε το token για να πάρεις το πλήρες προφίλ
     try {
       const userProfile = await fetchAndSetUser(token);
       return userProfile;
     } catch (error) {
-      // Αν αποτύχει η λήψη του προφίλ, καθαρίζουμε το token και κάνουμε logout
       logout();
       throw error;
     }
   };
 
   const signup = async (email: string, password: string): Promise<UserProfile> => {
-    // Λογική παρόμοια με το login
     const response = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -124,7 +114,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCurrentUser(null);
   }, []);
 
-  // ΒΕΛΤΙΩΜΕΝΟ useEffect ΓΙΑ ΕΛΕΓΧΟ ΤΗΣ SESSION ΚΑΤΑ ΤΗ ΦΟΡΤΩΣΗ
   useEffect(() => {
     const checkExistingSession = async () => {
       const token = localStorage.getItem('token');
@@ -134,13 +123,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       try {
-        // Προσπαθούμε να πάρουμε το προφίλ με το αποθηκευμένο token.
-        // Αυτόματα, αυτό επικυρώνει ότι το token είναι ακόμα έγκυρο.
         await fetchAndSetUser(token);
       } catch (error) {
-        // Αν το token είναι άκυρο (π.χ. έληξε), το API θα επιστρέψει 401/403.
-        // Σε αυτή την περίπτωση, καθαρίζουμε τα πάντα.
-        console.error("Session check failed, logging out:", error);
+        console.error('Session check failed, logging out:', error);
         logout();
       } finally {
         setLoading(false);

@@ -1,5 +1,5 @@
 import { AppNotification } from '@/types/types';
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { ReactNode, createContext, useCallback, useContext, useState } from 'react';
 
 interface NotificationContextType {
   notifications: AppNotification[];
@@ -23,18 +23,19 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
 
-  const addNotification = useCallback((notificationData: Omit<AppNotification, 'id' | 'timestamp'>) => {
-    const newNotification: AppNotification = {
-      ...notificationData,
-      id: `${Date.now()}-${Math.random()}`,
-      timestamp: new Date(),
-    };
+  const addNotification = useCallback(
+    (notificationData: Omit<AppNotification, 'id' | 'timestamp'>) => {
+      const newNotification: AppNotification = {
+        ...notificationData,
+        id: `${Date.now()}-${Math.random()}`,
+        timestamp: new Date(),
+      };
 
-    // Add the new notification to the top of the list
-    setNotifications(prev => [newNotification, ...prev]);
-    // Increment unread count
-    setUnreadCount(prev => prev + 1);
-  }, []);
+      setNotifications((prev) => [newNotification, ...prev]);
+      setUnreadCount((prev) => prev + 1);
+    },
+    []
+  );
 
   const markAllAsRead = useCallback(() => {
     setUnreadCount(0);

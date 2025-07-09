@@ -1,5 +1,3 @@
-import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 import {
   Table,
   TableBody,
@@ -26,11 +25,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Edit, Info, RefreshCw, Trash2, CheckCircle2, XCircle } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
-import { Slider } from '@/components/ui/slider';
+import { useAuth } from '@/contexts/AuthContext';
 import { getSimulationSpeed, updateSimulationSpeed } from '@/services/adminService';
+import { CheckCircle2, Edit, Info, RefreshCw, Trash2, XCircle } from 'lucide-react';
 import { FastForward, PauseCircle } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 interface User {
   id: number;
@@ -70,25 +70,25 @@ const AdminPage = () => {
   const [simulationSpeed, setSimulationSpeed] = useState(1.0);
   const [isUpdatingSpeed, setIsUpdatingSpeed] = useState(false);
 
-  // Φορτώνει την αρχική ταχύτητα από τον server
   const fetchInitialSpeed = useCallback(async () => {
     try {
       const data = await getSimulationSpeed();
       setSimulationSpeed(data.speedFactor);
     } catch (err) {
-      console.error("Could not fetch initial simulation speed", err);
-      toast.error("Failed to get current simulation speed.");
+      console.error('Could not fetch initial simulation speed', err);
+      toast.error('Failed to get current simulation speed.');
     }
   }, []);
 
-  // Χειρίζεται την αποστολή της νέας ταχύτητας στον server
   const handleSpeedUpdate = async (newSpeed: number) => {
     setIsUpdatingSpeed(true);
     try {
       await updateSimulationSpeed(newSpeed);
       toast.success(`Simulation speed set to ${newSpeed.toFixed(1)}x`);
     } catch (err) {
-      toast.error("Failed to update speed", { description: err instanceof Error ? err.message : 'Unknown error' });
+      toast.error('Failed to update speed', {
+        description: err instanceof Error ? err.message : 'Unknown error',
+      });
     } finally {
       setIsUpdatingSpeed(false);
     }
@@ -130,17 +130,22 @@ const AdminPage = () => {
       }
 
       const headers = { Authorization: `Bearer ${token}` };
-      const endpoints: (keyof SystemStats)[] = ['activeVessels', 'stoppedVessels', 'interestZones', 'collisionZones'];
+      const endpoints: (keyof SystemStats)[] = [
+        'activeVessels',
+        'stoppedVessels',
+        'interestZones',
+        'collisionZones',
+      ];
 
       const requests = endpoints.map(async (stat) => {
         const endpointMap = {
           activeVessels: '/api/statistics/active-ships',
           stoppedVessels: '/api/statistics/stopped-ships',
           interestZones: '/api/statistics/interest-zones',
-          collisionZones: '/api/statistics/collision-zones'
+          collisionZones: '/api/statistics/collision-zones',
         };
 
-        const response = await fetch(endpointMap[stat], {headers});
+        const response = await fetch(endpointMap[stat], { headers });
 
         if (!response.ok) {
           throw new Error(`Failed to fetch ${stat}`);
@@ -157,9 +162,10 @@ const AdminPage = () => {
         interestZones: results[2].count,
         collisionZones: results[3].count,
       });
-
     } catch (err) {
-      setStatsError(err instanceof Error ? err.message : 'An unknown error occurred while fetching stats.');
+      setStatsError(
+        err instanceof Error ? err.message : 'An unknown error occurred while fetching stats.'
+      );
     } finally {
       setStatsLoading(false);
     }
@@ -173,7 +179,7 @@ const AdminPage = () => {
 
   const handleDeleteUser = async (userId: number) => {
     if (currentUser?.id === userId) {
-      toast.error("Action Forbidden", { description: "You cannot delete your own account." });
+      toast.error('Action Forbidden', { description: 'You cannot delete your own account.' });
       return;
     }
     if (!window.confirm('Are you sure you want to delete this user?')) {
@@ -205,7 +211,7 @@ const AdminPage = () => {
     if (!selectedUser || !selectedRole) return;
 
     if (currentUser?.id === selectedUser.id) {
-      toast.error("Action Forbidden", { description: "You cannot change your own role." });
+      toast.error('Action Forbidden', { description: 'You cannot change your own role.' });
       setEditDialogOpen(false);
       return;
     }
@@ -225,7 +231,9 @@ const AdminPage = () => {
         return;
       }
       const updatedUser = await response.json();
-      setUsers((prevUsers) => prevUsers.map((user) => (user.id === selectedUser.id ? updatedUser : user)));
+      setUsers((prevUsers) =>
+        prevUsers.map((user) => (user.id === selectedUser.id ? updatedUser : user))
+      );
       setEditDialogOpen(false);
       setSelectedUser(null);
     } catch (err) {
@@ -245,253 +253,310 @@ const AdminPage = () => {
   };
 
   return (
-      <div className="flex min-h-screen w-full bg-background">
-        <div className="container mx-auto py-10">
-          <div className="space-y-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-                <p className="text-muted-foreground">Manage your maritime monitoring system</p>
-              </div>
-              <Button variant="outline" onClick={() => { void fetchUsers(); void fetchStats(); }}>
-                <RefreshCw className={`mr-2 h-4 w-4 ${(usersLoading || statsLoading) ? 'animate-spin' : ''}`} />
-                Refresh Data
-              </Button>
+    <div className="flex min-h-screen w-full bg-background">
+      <div className="container mx-auto py-10">
+        <div className="space-y-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+              <p className="text-muted-foreground">Manage your maritime monitoring system</p>
             </div>
-
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-5">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Total Users</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold">{usersLoading ? '...' : users.length}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Active Vessels</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold">{statsLoading ? '...' : stats.activeVessels}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Stopped Vessels</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold">{statsLoading ? '...' : stats.stoppedVessels}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Zones of Interest</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold">{statsLoading ? '...' : stats.interestZones}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Collision Zones</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold">{statsLoading ? '...' : stats.collisionZones}</p>
-                </CardContent>
-              </Card>
-              {statsError && <p className="text-sm text-red-500 col-span-full">{statsError}</p>}
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Simulation Control</CardTitle>
-                <CardDescription>Adjust the real-time data simulation speed.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4 pt-2">
-                <div className="flex items-center gap-4">
-                  <PauseCircle className="h-6 w-6 text-muted-foreground" />
-                  <Slider
-                      value={[simulationSpeed]}
-                      onValueChange={(value) => setSimulationSpeed(value[0])}
-                      onValueCommit={(value) => handleSpeedUpdate(value[0])} // Στέλνει την τιμή όταν ο χρήστης αφήσει το slider
-                      min={0.5}
-                      max={50}
-                      step={0.5}
-                  />
-                  <FastForward className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground">Current Speed</p>
-                  <p className="text-2xl font-bold tracking-tighter">
-                    {simulationSpeed.toFixed(1)}x
-                  </p>
-                  {isUpdatingSpeed && <p className="text-xs text-blue-500 animate-pulse">Updating...</p>}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>User Management</CardTitle>
-                <CardDescription>Manage system users and their permissions</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {usersError && <p className="text-red-500">{usersError}</p>}
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>User Email</TableHead>
-                      <TableHead className="text-center">Role</TableHead>
-                      <TableHead className="text-center">Interest Zone</TableHead>
-                      <TableHead className="text-center">Collision Zone</TableHead>
-                      <TableHead className="w-[150px] text-center">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {usersLoading ? (
-                        <TableRow><TableCell colSpan={5} className="text-center">Loading users...</TableCell></TableRow>
-                    ) : (
-                        users.map((user) => (
-                            <TableRow key={user.id}>
-                              <TableCell><div className="font-medium">{user.email}</div></TableCell>
-                              <TableCell className="text-center">
-                                <Badge variant={user.role === 'ADMIN' ? 'destructive' : 'secondary'}>{user.role}</Badge>
-                              </TableCell>
-                              <TableCell className="text-center">
-                                {user.hasActiveInterestZone ? (
-                                    <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-100">
-                                      <CheckCircle2 className="mr-1 h-4 w-4" /> Active
-                                    </Badge>
-                                ) : (
-                                    <Badge variant="outline">
-                                      <XCircle className="mr-1 h-4 w-4" /> Inactive
-                                    </Badge>
-                                )}
-                              </TableCell>
-                              <TableCell className="text-center">
-                                {user.hasActiveCollisionZone ? (
-                                    <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-100">
-                                      <CheckCircle2 className="mr-1 h-4 w-4" /> Active
-                                    </Badge>
-                                ) : (
-                                    <Badge variant="outline">
-                                      <XCircle className="mr-1 h-4 w-4" /> Inactive
-                                    </Badge>
-                                )}
-                              </TableCell>
-                              <TableCell className="flex justify-center space-x-2">
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={() => openEditDialog(user)}
-                                    disabled={currentUser?.id === user.id}
-                                    title={currentUser?.id === user.id ? "You cannot edit your own role." : "Edit User"}
-                                >
-                                  <Edit className="h-4 w-4" /><span className="sr-only">Edit User</span>
-                                </Button>
-                                <Button variant="outline" size="icon" onClick={() => openInfoDialog(user)}>
-                                  <Info className="h-4 w-4" /><span className="sr-only">User Info</span>
-                                </Button>
-                                <Button
-                                    variant="destructive"
-                                    size="icon"
-                                    onClick={() => handleDeleteUser(user.id)}
-                                    disabled={currentUser?.id === user.id}
-                                    title={currentUser?.id === user.id ? "You cannot delete your own account." : "Delete User"}
-                                >
-                                  <Trash2 className="h-4 w-4" /><span className="sr-only">Delete User</span>
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                        ))
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+            <Button
+              variant="outline"
+              onClick={() => {
+                void fetchUsers();
+                void fetchStats();
+              }}
+            >
+              <RefreshCw
+                className={`mr-2 h-4 w-4 ${usersLoading || statsLoading ? 'animate-spin' : ''}`}
+              />
+              Refresh Data
+            </Button>
           </div>
 
-          {/* ΔΙΟΡΘΩΣΗ: Συμπληρώθηκε το περιεχόμενο των dialogs */}
-          <Dialog open={isInfoDialogOpen} onOpenChange={setInfoDialogOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>User Information</DialogTitle>
-                <DialogDescription>Details for {selectedUser?.email}.</DialogDescription>
-              </DialogHeader>
-              {selectedUser && (
-                  <div className="space-y-4 py-4 text-sm">
-                    <div className="flex justify-between">
-                      <strong className="text-muted-foreground">User ID:</strong>
-                      <span>{selectedUser.id}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <strong className="text-muted-foreground">Email:</strong>
-                      <span>{selectedUser.email}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <strong className="text-muted-foreground">Role:</strong>
-                      <Badge variant={selectedUser.role === 'ADMIN' ? 'destructive' : 'secondary'}>
-                        {selectedUser.role}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <strong className="text-muted-foreground">Interest Zone Active:</strong>
-                      {selectedUser.hasActiveInterestZone ? (
-                          <span className="flex items-center text-green-600">
-              <CheckCircle2 className="mr-2 h-4 w-4" /> Yes
-            </span>
-                      ) : (
-                          <span className="flex items-center text-red-600">
-              <XCircle className="mr-2 h-4 w-4" /> No
-            </span>
-                      )}
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <strong className="text-muted-foreground">Collision Zone Active:</strong>
-                      {selectedUser.hasActiveCollisionZone ? (
-                          <span className="flex items-center text-green-600">
-              <CheckCircle2 className="mr-2 h-4 w-4" /> Yes
-            </span>
-                      ) : (
-                          <span className="flex items-center text-red-600">
-              <XCircle className="mr-2 h-4 w-4" /> No
-            </span>
-                      )}
-                    </div>
-                  </div>
-              )}
-              <DialogFooter>
-                <Button onClick={() => setInfoDialogOpen(false)}>Close</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-5">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Users
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold">{usersLoading ? '...' : users.length}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Active Vessels
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold">{statsLoading ? '...' : stats.activeVessels}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Stopped Vessels
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold">{statsLoading ? '...' : stats.stoppedVessels}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Zones of Interest
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold">{statsLoading ? '...' : stats.interestZones}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Collision Zones
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold">{statsLoading ? '...' : stats.collisionZones}</p>
+              </CardContent>
+            </Card>
+            {statsError && <p className="col-span-full text-sm text-red-500">{statsError}</p>}
+          </div>
 
-          <Dialog open={isEditDialogOpen} onOpenChange={setEditDialogOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Edit User Role</DialogTitle>
-                <DialogDescription>Change the role for {selectedUser?.email}.</DialogDescription>
-              </DialogHeader>
-              <div className="py-4">
-                <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as User['role'])}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="registered">Registered</SelectItem>
-                  </SelectContent>
-                </Select>
+          <Card>
+            <CardHeader>
+              <CardTitle>Simulation Control</CardTitle>
+              <CardDescription>Adjust the real-time data simulation speed.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-2">
+              <div className="flex items-center gap-4">
+                <PauseCircle className="h-6 w-6 text-muted-foreground" />
+                <Slider
+                  value={[simulationSpeed]}
+                  onValueChange={(value) => setSimulationSpeed(value[0])}
+                  onValueCommit={(value) => handleSpeedUpdate(value[0])}
+                  min={0.5}
+                  max={50}
+                  step={0.5}
+                />
+                <FastForward className="h-6 w-6 text-muted-foreground" />
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
-                <Button onClick={() => { void handleUpdateUserRole(); }}>Save Changes</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">Current Speed</p>
+                <p className="text-2xl font-bold tracking-tighter">{simulationSpeed.toFixed(1)}x</p>
+                {isUpdatingSpeed && (
+                  <p className="animate-pulse text-xs text-blue-500">Updating...</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>User Management</CardTitle>
+              <CardDescription>Manage system users and their permissions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {usersError && <p className="text-red-500">{usersError}</p>}
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User Email</TableHead>
+                    <TableHead className="text-center">Role</TableHead>
+                    <TableHead className="text-center">Interest Zone</TableHead>
+                    <TableHead className="text-center">Collision Zone</TableHead>
+                    <TableHead className="w-[150px] text-center">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {usersLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center">
+                        Loading users...
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    users.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell>
+                          <div className="font-medium">{user.email}</div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant={user.role === 'ADMIN' ? 'destructive' : 'secondary'}>
+                            {user.role}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {user.hasActiveInterestZone ? (
+                            <Badge
+                              variant="default"
+                              className="bg-green-100 text-green-800 hover:bg-green-100"
+                            >
+                              <CheckCircle2 className="mr-1 h-4 w-4" /> Active
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline">
+                              <XCircle className="mr-1 h-4 w-4" /> Inactive
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {user.hasActiveCollisionZone ? (
+                            <Badge
+                              variant="default"
+                              className="bg-green-100 text-green-800 hover:bg-green-100"
+                            >
+                              <CheckCircle2 className="mr-1 h-4 w-4" /> Active
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline">
+                              <XCircle className="mr-1 h-4 w-4" /> Inactive
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="flex justify-center space-x-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => openEditDialog(user)}
+                            disabled={currentUser?.id === user.id}
+                            title={
+                              currentUser?.id === user.id
+                                ? 'You cannot edit your own role.'
+                                : 'Edit User'
+                            }
+                          >
+                            <Edit className="h-4 w-4" />
+                            <span className="sr-only">Edit User</span>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => openInfoDialog(user)}
+                          >
+                            <Info className="h-4 w-4" />
+                            <span className="sr-only">User Info</span>
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => handleDeleteUser(user.id)}
+                            disabled={currentUser?.id === user.id}
+                            title={
+                              currentUser?.id === user.id
+                                ? 'You cannot delete your own account.'
+                                : 'Delete User'
+                            }
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Delete User</span>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </div>
+
+        <Dialog open={isInfoDialogOpen} onOpenChange={setInfoDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>User Information</DialogTitle>
+              <DialogDescription>Details for {selectedUser?.email}.</DialogDescription>
+            </DialogHeader>
+            {selectedUser && (
+              <div className="space-y-4 py-4 text-sm">
+                <div className="flex justify-between">
+                  <strong className="text-muted-foreground">User ID:</strong>
+                  <span>{selectedUser.id}</span>
+                </div>
+                <div className="flex justify-between">
+                  <strong className="text-muted-foreground">Email:</strong>
+                  <span>{selectedUser.email}</span>
+                </div>
+                <div className="flex justify-between">
+                  <strong className="text-muted-foreground">Role:</strong>
+                  <Badge variant={selectedUser.role === 'ADMIN' ? 'destructive' : 'secondary'}>
+                    {selectedUser.role}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <strong className="text-muted-foreground">Interest Zone Active:</strong>
+                  {selectedUser.hasActiveInterestZone ? (
+                    <span className="flex items-center text-green-600">
+                      <CheckCircle2 className="mr-2 h-4 w-4" /> Yes
+                    </span>
+                  ) : (
+                    <span className="flex items-center text-red-600">
+                      <XCircle className="mr-2 h-4 w-4" /> No
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <strong className="text-muted-foreground">Collision Zone Active:</strong>
+                  {selectedUser.hasActiveCollisionZone ? (
+                    <span className="flex items-center text-green-600">
+                      <CheckCircle2 className="mr-2 h-4 w-4" /> Yes
+                    </span>
+                  ) : (
+                    <span className="flex items-center text-red-600">
+                      <XCircle className="mr-2 h-4 w-4" /> No
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button onClick={() => setInfoDialogOpen(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isEditDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit User Role</DialogTitle>
+              <DialogDescription>Change the role for {selectedUser?.email}.</DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Select
+                value={selectedRole}
+                onValueChange={(value) => setSelectedRole(value as User['role'])}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="registered">Registered</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  void handleUpdateUserRole();
+                }}
+              >
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
+    </div>
   );
 };
 

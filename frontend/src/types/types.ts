@@ -63,7 +63,9 @@ export interface CollisionZoneDTO {
   radiusInMeters: number;
 }
 
-export type ZoneDataWithType = (ZoneOfInterestDTO | CollisionZoneDTO) & { type: 'interest' | 'collision' };
+export type ZoneDataWithType = (ZoneOfInterestDTO | CollisionZoneDTO) & {
+  type: 'interest' | 'collision';
+};
 
 export interface AppNotification {
   id: string;
