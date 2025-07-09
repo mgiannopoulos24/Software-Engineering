@@ -2,9 +2,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { AppNotification } from '@/types/types';
 import { formatDistanceToNow } from 'date-fns';
-import {
-  Bell, Bookmark, ChevronDown, CircleAlert, LogOut, Map, Menu, Settings, ShieldCheck, Siren, Trash2, User, Users, X, LogIn, UserPlus
-} from 'lucide-react';
+import { Bell, Bookmark, ChevronDown, LogOut, Map, Menu, Settings, ShieldCheck, Siren, Trash2, User, Users, X, LogIn, UserPlus, Ship } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
@@ -155,13 +153,20 @@ const Navbar = () => {
                           <Bookmark size={20} />
                       </Link>
                   </Tooltip>
-                  {isAdmin && (
-                    <Tooltip text="Admin Dashboard">
-                      <Link to="/admin/dashboard" className="rounded-full p-2 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white">
-                        <Users size={20} />
-                      </Link>
-                    </Tooltip>
-                  )}
+                    {isAdmin && (
+                        <>
+                            <Tooltip text="Admin Dashboard">
+                                <Link to="/admin/dashboard" className="rounded-full p-2 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white">
+                                    <Users size={20} />
+                                </Link>
+                            </Tooltip>
+                            <Tooltip text="Manage Ships">
+                                <Link to="/admin/manage-ships" className="rounded-full p-2 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white">
+                                    <Ship size={20} />
+                                </Link>
+                            </Tooltip>
+                        </>
+                    )}
                   <NotificationsDropdown />
                 </>
               ) : (

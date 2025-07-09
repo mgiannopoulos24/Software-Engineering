@@ -11,7 +11,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Service που περιέχει την επιχειρησιακή λογική (business logic)
@@ -40,36 +44,73 @@ public class AdminService {
      */
     @Transactional
     public ShipDetailsDTO updateShipType(Long mmsi, ShipType newShipType) {
-        // 1. Βρες το πλοίο στη βάση. Αν δεν υπάρχει, προκάλεσε εξαίρεση.
         Ship shipToUpdate = shipRepository.findByMmsi(mmsi)
                 .orElseThrow(() -> new ResourceNotFoundException("Ship not found with MMSI: " + mmsi));
 
-        // 2. Ενημέρωσε τον τύπο του πλοίου και αποθήκευσέ το.
         shipToUpdate.setShiptype(newShipType);
         Ship updatedShip = shipRepository.save(shipToUpdate);
 
-        // 3. Αφού ενημερώθηκε το πλοίο, συνθέτουμε το DTO για να το επιστρέψουμε στον controller.
-        // Αυτό εξασφαλίζει ότι το frontend λαμβάνει την πιο πρόσφατη κατάσταση.
+        return createShipDetailsDTO(updatedShip);
+    }
+
+    /**
+     * Ανακτά όλα τα πλοία που είναι καταχωρημένα στο σύστημα, μαζί με τα τελευταία
+     * δυναμικά τους δεδομένα, αν υπάρχουν. Δεν φιλτράρει πλοία χωρίς δεδομένα θέσης.
+     *
+     * @return Μια λίστα από ShipDetailsDTO, ένα για κάθε πλοίο στη βάση.
+     */
+    @Transactional(readOnly = true)
+    public List<ShipDetailsDTO> getAllShipsForAdmin() {
+        List<Ship> allShips = shipRepository.findAll();
+        if (allShips.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<String> allMmsiList = allShips.stream()
+                .map(ship -> ship.getMmsi().toString())
+                .collect(Collectors.toList());
+
+        List<AisData> latestAisDataList = aisDataRepository.findLatestAisDataForMmsiList(allMmsiList);
+        Map<String, AisData> latestAisDataMap = latestAisDataList.stream()
+                .collect(Collectors.toMap(AisData::getMmsi, data -> data));
+
+        return allShips.stream()
+                .map(ship -> {
+                    ShipDetailsDTO dto = createShipDetailsDTO(ship);
+                    AisData latestData = latestAisDataMap.get(ship.getMmsi().toString());
+                    if (latestData != null) {
+                        populateDynamicData(dto, latestData);
+                    }
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Βοηθητική μέθοδος για τη δημιουργία ενός DTO από μια οντότητα Ship.
+     * @param ship Η οντότητα Ship.
+     * @return Το αρχικό ShipDetailsDTO με τα στατικά δεδομένα.
+     */
+    private ShipDetailsDTO createShipDetailsDTO(Ship ship) {
         ShipDetailsDTO dto = new ShipDetailsDTO();
-        dto.setMmsi(updatedShip.getMmsi());
-        dto.setShiptype(updatedShip.getShiptype());
-
-        // 4. Βρες τα τελευταία δυναμικά δεδομένα (AIS) για αυτό το πλοίο.
-        Optional<AisData> latestAisData = aisDataRepository.findTopByMmsiOrderByTimestampEpochDesc(mmsi.toString());
-
-        // 5. Αν υπάρχουν, πρόσθεσέ τα στο DTO.
-        latestAisData.ifPresent(ais -> {
-            dto.setNavigationalStatus(ais.getNavigationalStatus());
-            dto.setRateOfTurn(ais.getRateOfTurn());
-            dto.setSpeedOverGround(ais.getSpeedOverGround());
-            dto.setCourseOverGround(ais.getCourseOverGround());
-            dto.setTrueHeading(ais.getTrueHeading());
-            dto.setLongitude(ais.getLongitude());
-            dto.setLatitude(ais.getLatitude());
-            dto.setLastUpdateTimestampEpoch(ais.getTimestampEpoch());
-        });
-
-        // 6. Επίστρεψε το πλήρες DTO.
+        dto.setMmsi(ship.getMmsi());
+        dto.setShiptype(ship.getShiptype());
         return dto;
+    }
+
+    /**
+     * Βοηθητική μέθοδος για την πλήρωση των δυναμικών δεδομένων σε ένα DTO.
+     * @param dto Το DTO προς ενημέρωση.
+     * @param ais Η οντότητα AisData με τα δυναμικά δεδομένα.
+     */
+    private void populateDynamicData(ShipDetailsDTO dto, AisData ais) {
+        dto.setNavigationalStatus(ais.getNavigationalStatus());
+        dto.setRateOfTurn(ais.getRateOfTurn());
+        dto.setSpeedOverGround(ais.getSpeedOverGround());
+        dto.setCourseOverGround(ais.getCourseOverGround());
+        dto.setTrueHeading(ais.getTrueHeading());
+        dto.setLongitude(ais.getLongitude());
+        dto.setLatitude(ais.getLatitude());
+        dto.setLastUpdateTimestampEpoch(ais.getTimestampEpoch());
     }
 }

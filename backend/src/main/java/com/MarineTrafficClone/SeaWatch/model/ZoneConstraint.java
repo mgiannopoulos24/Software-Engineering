@@ -3,10 +3,7 @@ package com.MarineTrafficClone.SeaWatch.model;
 import com.MarineTrafficClone.SeaWatch.enumeration.ZoneConstraintType;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 /**
  * Οντότητα (Entity) που αναπαριστά έναν μεμονωμένο περιορισμό (constraint)
@@ -49,5 +46,7 @@ public class ZoneConstraint {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "zone_of_interest_id", nullable = false)
     @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private ZoneOfInterest zoneOfInterest;
 }

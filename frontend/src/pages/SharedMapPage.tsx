@@ -17,12 +17,21 @@ import {
 import { drawZone } from '@/utils/mapUtils';
 import L from 'leaflet';
 import { Settings2, History } from 'lucide-react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 
 type ZoneType = 'interest' | 'collision';
+
+// Default state για τα φίλτρα
+const initialFilterState: FilterState = {
+    vesselType: [],
+    vesselStatus: [],
+    speedRange: [0, 50],
+    myFleetOnly: false,
+    mmsiSearch: '',
+};
 
 const SharedMapPage: React.FC = () => {
     // --- CONTEXTS & AUTH ---
@@ -38,7 +47,7 @@ const SharedMapPage: React.FC = () => {
 
     // --- REFS ---
     const mapInstanceRef = useRef<L.Map | null>(null);
-    const mapComponentRef = useRef<MapComponentRef>(null);
+    const mapComponentRef = useRef<MapComponentRef | null>(null);
     const interestZoneLayerRef = useRef<L.Circle | null>(null);
     const collisionZoneLayerRef = useRef<L.Circle | null>(null);
     const mapClickHandlerRef = useRef<L.LeafletMouseEventHandlerFn | null>(null);
@@ -46,11 +55,10 @@ const SharedMapPage: React.FC = () => {
 
     // --- STATE ---
     const [allVessels, setAllVessels] = useState<Map<string, RealTimeShipUpdateDTO>>(new Map());
-    const [filteredVessels, setFilteredVessels] = useState<RealTimeShipUpdateDTO[]>([]);
     const [coordinates, setCoordinates] = useState('Hover over the map');
     const [isFiltersOpen, setIsFiltersOpen] = useState(false);
     const [selectedVessel, setSelectedVessel] = useState<RealTimeShipUpdateDTO | null>(null);
-    const [filters, setFilters] = useState<FilterState>({ vesselType: [], vesselStatus: [] });
+    const [filters, setFilters] = useState<FilterState>(initialFilterState);
     const [isCreatingZone, setIsCreatingZone] = useState(false);
     const [activeZoneType, setActiveZoneType] = useState<ZoneType>('interest');
     const [shipTrack, setShipTrack] = useState<TrackPointDTO[]>([]);
@@ -64,6 +72,44 @@ const SharedMapPage: React.FC = () => {
     const [managedZone, setManagedZone] = useState<ZoneDataWithType | null>(null);
 
     const [searchParams, setSearchParams] = useSearchParams();
+
+    const filteredVessels = useMemo(() => {
+        const vesselsArray = Array.from(allVessels.values());
+
+        // Αν δεν είναι ενεργό κανένα φίλτρο (εκτός του speed που έχει πάντα τιμή),
+        // επιστρέφουμε όλα τα πλοία για καλύτερη απόδοση.
+        if (
+            filters.vesselType.length === 0 &&
+            filters.vesselStatus.length === 0 &&
+            !filters.myFleetOnly &&
+            filters.mmsiSearch === '' &&
+            filters.speedRange[0] === 0 &&
+            filters.speedRange[1] === 50
+        ) {
+            return vesselsArray;
+        }
+
+        return vesselsArray.filter(vessel => {
+            const [minSpeed, maxSpeed] = filters.speedRange;
+            const speed = vessel.speedOverGround ?? 0;
+
+            const speedMatch = speed >= minSpeed && speed <= maxSpeed;
+            const typeMatch = filters.vesselType.length === 0 || filters.vesselType.includes(vessel.shiptype);
+            const statusMatch = filters.vesselStatus.length === 0 || filters.vesselStatus.includes(vessel.navigationalStatus?.toString() ?? '-1');
+            const fleetMatch = !filters.myFleetOnly || isShipInFleet(vessel.mmsi);
+            const mmsiMatch = filters.mmsiSearch === '' || vessel.mmsi.startsWith(filters.mmsiSearch);
+
+            return speedMatch && typeMatch && statusMatch && fleetMatch && mmsiMatch;
+        });
+    }, [allVessels, filters, isShipInFleet]);
+
+    // Handler για την αλλαγή των φίλτρων
+    const handleFilterChange = useCallback(<K extends keyof FilterState>(key: K, value: FilterState[K]) => {
+        setFilters(prev => ({
+            ...prev,
+            [key]: value
+        }));
+    }, []);
 
     useEffect(() => {
         currentTrackMmsiRef.current = currentTrackMmsi;
@@ -206,14 +252,6 @@ const SharedMapPage: React.FC = () => {
 
     }, [isConnected, client, addOrUpdateVessel]);
 
-    useEffect(() => {
-        const vesselsArray = Array.from(allVessels.values());
-        setFilteredVessels(vesselsArray.filter(vessel =>
-            (filters.vesselType.length === 0 || filters.vesselType.includes(vessel.shiptype)) &&
-            (filters.vesselStatus.length === 0 || filters.vesselStatus.includes(vessel.navigationalStatus?.toString() ?? '-1'))
-        ));
-    }, [allVessels, filters]);
-
     // --- MAP AND ZONE CREATION ---
     const fetchInitialData = useCallback(async () => {
         try {
@@ -353,9 +391,10 @@ const SharedMapPage: React.FC = () => {
             <FiltersPanel
                 isOpen={isFiltersOpen}
                 filters={filters}
-                onMultiSelectChange={(key, value) => setFilters(prev => ({ ...prev, [key]: prev[key].includes(value) ? prev[key].filter(v => v !== value) : [...prev[key], value] }))}
-                onReset={() => setFilters({ vesselType: [], vesselStatus: [] })}
+                onFilterChange={handleFilterChange}
+                onReset={() => setFilters(initialFilterState)}
                 onClose={() => setIsFiltersOpen(false)}
+                isAuthenticated={isAuthenticated}
             />
 
             {managedZone && (

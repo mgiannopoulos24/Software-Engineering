@@ -2,8 +2,9 @@ import Index from '@/pages/Index';
 import Login from '@/pages/Login';
 import Signup from '@/pages/Signup';
 import AdminDashboard from '@/pages/admin/AdminPage';
+import ManageShips from '@/pages/admin/ManageShips';
 import SavedVessels from '@/pages/user/SavedVessels';
-import SettingsPage from '@/pages/user/SettingsPage'; // <-- ΠΡΟΣΘΗΚΗ IMPORT
+import SettingsPage from '@/pages/user/SettingsPage';
 import UserPage from '@/pages/user/UserPage';
 import SharedMapPage from '@/pages/SharedMapPage';
 
@@ -33,6 +34,12 @@ const routes: RouteConfig[] = [
   {
     path: '/admin/dashboard',
     element: <AdminDashboard />,
+    protected: true,
+    roles: ['ADMIN'],
+  },
+  {
+    path: '/admin/manage-ships',
+    element: <ManageShips />,
     protected: true,
     roles: ['ADMIN'],
   },

@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 /**
  * REST Controller για λειτουργίες που αφορούν αποκλειστικά τους διαχειριστές (Admins).
  * Η πρόσβαση σε αυτόν τον controller προστατεύεται από το Spring Security
@@ -21,6 +23,17 @@ public class AdminController {
     @Autowired
     public AdminController(AdminService adminService) {
         this.adminService = adminService;
+    }
+
+    /**
+     * Endpoint για την ανάκτηση όλων των πλοίων που υπάρχουν στο σύστημα.
+     *
+     * @return Ένα ResponseEntity που περιέχει μια λίστα με ShipDetailsDTO και status 200 OK.
+     */
+    @GetMapping("/ships")
+    public ResponseEntity<List<ShipDetailsDTO>> getAllShips() {
+        List<ShipDetailsDTO> allShips = adminService.getAllShipsForAdmin();
+        return ResponseEntity.ok(allShips);
     }
 
     /**

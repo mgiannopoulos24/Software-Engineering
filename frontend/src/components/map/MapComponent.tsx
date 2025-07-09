@@ -3,7 +3,7 @@
 import { RealTimeShipUpdateDTO, TrackPointDTO } from '@/types/types';
 import { getVesselIcon } from '@/utils/vesselIcon';
 import { getVesselStatusDescription } from '@/utils/vesselUtils';
-import { Anchor, Bookmark, BookmarkX, Compass, Gauge, History, Loader2, Ship as ShipIcon, Wind } from 'lucide-react';
+import { Anchor, Bookmark, BookmarkX, Compass, Gauge, History, Loader2, MapPin, Ship as ShipIcon, Wind } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import React, { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
@@ -54,6 +54,8 @@ const createPopupHtml = (
     const headingHtml = `${vessel.trueHeading !== 511 ? vessel.trueHeading + ' °' : 'N/A'}`;
     const statusHtml = getVesselStatusDescription(vessel.navigationalStatus);
     const lastUpdateHtml = new Date(vessel.timestampEpoch * 1000).toLocaleString();
+
+    const positionHtml = `Lat: ${vessel.latitude?.toFixed(4) ?? 'N/A'}, Lon: ${vessel.longitude?.toFixed(4) ?? 'N/A'}`;
 
     let trackButtonHtml = '';
     if (isTrackLoading) {
@@ -111,6 +113,7 @@ const createPopupHtml = (
           <h4 style="margin: 0; font-size: 16px; font-weight: bold;">Vessel: ${vessel.mmsi}</h4>
         </div>
         <div style="padding: 8px 12px 12px 12px; background: white;">
+            ${detailRow(iconToHtml(<MapPin size={16} />), "Position", positionHtml)}
             ${detailRow(iconToHtml(<ShipIcon size={16} />), "Type", vesselTypeHtml)}
             ${detailRow(iconToHtml(<Gauge size={16} />), "Speed", speedHtml)}
             ${detailRow(iconToHtml(<Wind size={16} />), "Course", courseHtml)}
@@ -224,10 +227,10 @@ const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
 
                 const hideBtn = popupNode.querySelector<HTMLButtonElement>(`#hide-track-btn-${selectedVessel.mmsi}`);
                 if (hideBtn) L.DomEvent.on(hideBtn, 'click', (e) => { L.DomEvent.stop(e); onHideTrackRequest(); });
-                
+
                 const addBtn = popupNode.querySelector<HTMLButtonElement>(`#add-fleet-btn-${selectedVessel.mmsi}`);
                 if (addBtn) L.DomEvent.on(addBtn, 'click', (e) => { L.DomEvent.stop(e); onAddToFleet(Number(selectedVessel.mmsi)); });
-                
+
                 const removeBtn = popupNode.querySelector<HTMLButtonElement>(`#remove-fleet-btn-${selectedVessel.mmsi}`);
                 if (removeBtn) L.DomEvent.on(removeBtn, 'click', (e) => { L.DomEvent.stop(e); onRemoveFromFleet(Number(selectedVessel.mmsi)); });
             };
