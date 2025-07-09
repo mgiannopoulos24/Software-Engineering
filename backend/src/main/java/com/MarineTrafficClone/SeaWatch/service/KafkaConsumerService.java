@@ -96,9 +96,17 @@ public class KafkaConsumerService {
             // 5. Βρίσκουμε τα στατικά στοιχεία του πλοίου (τον τύπο του) από το repository.
             // Αν δεν βρεθεί (π.χ., είναι η πρώτη φορά που βλέπουμε αυτό το MMSI),
             // χρησιμοποιούμε τον τύπο UNKNOWN ως προεπιλογή.
-            ShipType shipType = shipRepository.findByMmsi(mmsiLong)
-                    .map(Ship::getShiptype)
-                    .orElse(ShipType.UNKNOWN);
+            // Προσπαθούμε να βρούμε το πλοίο. Αν δεν υπάρχει, το orElseGet θα εκτελεστεί
+            // για να δημιουργήσει ένα νέο, να το αποθηκεύσει και να το επιστρέψει.
+            Ship ship = shipRepository.findByMmsi(mmsiLong).orElseGet(() -> {
+                log.info("KAFKA CONSUMER: New ship with MMSI {} detected. Creating new entry with UNKNOWN type.", mmsiLong);
+                Ship newShip = new Ship();
+                newShip.setMmsi(mmsiLong);
+                newShip.setShiptype(ShipType.UNKNOWN); // Ορίζουμε τον τύπο ως UNKNOWN
+                return shipRepository.save(newShip); // Το αποθηκεύουμε στη βάση
+            });
+            // Τώρα είμαστε σίγουροι ότι έχουμε μια οντότητα Ship και μπορούμε να πάρουμε τον τύπο της.
+            ShipType shipType = ship.getShiptype();
 
             // 6. Αποστολή ενημερώσεων θέσης μέσω WebSocket στους clients.
             sendRealTimeUpdates(aisData, shipType, mmsiLong);

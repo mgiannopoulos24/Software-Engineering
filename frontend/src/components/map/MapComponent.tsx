@@ -208,7 +208,7 @@ const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
             if (marker.getPopup()) {
                 marker.setPopupContent(popupContent);
             } else {
-                marker.bindPopup(popupContent, { minWidth: 280, closeButton: false, autoPan: true });
+                marker.bindPopup(popupContent, { minWidth: 280, closeButton: true, autoPan: true });
             }
 
             if (!marker.isPopupOpen()) {

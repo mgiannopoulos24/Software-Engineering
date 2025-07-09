@@ -2,11 +2,10 @@
 
 import { getMyFleet, addShipToFleet, removeShipFromFleet } from '@/services/fleetService';
 import { RealTimeShipUpdateDTO, ShipDetailsDTO } from '@/types/types';
-import { Client } from '@stomp/stompjs';
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode, useRef } from 'react';
-import SockJS from 'sockjs-client';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
+import { useWebSocket } from './WebSocketContext';
 
 interface FleetContextType {
     fleet: Map<string, ShipDetailsDTO>;
@@ -28,41 +27,9 @@ export const useFleet = (): FleetContextType => {
 
 export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { currentUser } = useAuth();
+    const { client, isConnected } = useWebSocket();
     const [fleet, setFleet] = useState<Map<string, ShipDetailsDTO>>(new Map());
     const [loading, setLoading] = useState<boolean>(true);
-    const stompClientRef = useRef<Client | null>(null);
-
-    // Συνάρτηση για την ενημέρωση ενός πλοίου στο state του στόλου
-    const updateShipInFleet = useCallback((vesselUpdate: RealTimeShipUpdateDTO) => {
-        setFleet(prevFleet => {
-            // Ελέγχουμε αν το πλοίο που ήρθε από το WebSocket υπάρχει ήδη στον στόλο μας.
-            if (prevFleet.has(vesselUpdate.mmsi)) {
-                // Δημιουργούμε ένα νέο Map για να μην μεταλλάξουμε το προηγούμενο state (immutability)
-                const newFleet = new Map(prevFleet);
-                const existingShip = newFleet.get(vesselUpdate.mmsi)!;
-
-                // Δημιουργούμε ένα νέο, ενημερωμένο αντικείμενο πλοίου.
-                // Χρησιμοποιούμε spread syntax για να κρατήσουμε τα στατικά δεδομένα
-                // και να ενημερώσουμε μόνο τα δυναμικά.
-                const updatedShip: ShipDetailsDTO = {
-                    ...existingShip, // Κρατάει mmsi, shiptype, κτλ.
-                    speedOverGround: vesselUpdate.speedOverGround,
-                    courseOverGround: vesselUpdate.courseOverGround,
-                    longitude: vesselUpdate.longitude,
-                    latitude: vesselUpdate.latitude,
-                    navigationalStatus: vesselUpdate.navigationalStatus,
-                    trueHeading: vesselUpdate.trueHeading,
-                    lastUpdateTimestampEpoch: vesselUpdate.timestampEpoch,
-                };
-
-                // Βάζουμε το ενημερωμένο πλοίο στο νέο Map
-                newFleet.set(vesselUpdate.mmsi, updatedShip);
-                return newFleet; // Επιστρέφουμε το νέο state
-            }
-            // Αν το πλοίο δεν ήταν στον στόλο, δεν κάνουμε τίποτα.
-            return prevFleet;
-        });
-    }, []);
 
     const fetchFleet = useCallback(async () => {
         if (!currentUser) {
@@ -83,58 +50,69 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         }
     }, [currentUser]);
 
-    // Το useEffect αυτό διαχειρίζεται τον κύκλο ζωής της WebSocket σύνδεσης.
-    useEffect(() => {
-        // Αν δεν υπάρχει χρήστης, δεν κάνουμε τίποτα.
-        if (!currentUser) {
-            // Αν υπήρχε παλιά σύνδεση, την κλείνουμε.
-            stompClientRef.current?.deactivate();
-            stompClientRef.current = null;
-            return;
-        }
-
-        // Παίρνουμε το token για την αυθεντικοποίηση στο WebSocket.
-        const token = localStorage.getItem('token');
-        if (!token) return;
-
-        // Δημιουργούμε έναν νέο client. Η λογική είναι παρόμοια με του SharedMapPage.
-        const client = new Client({
-            webSocketFactory: () => new SockJS('/ws-ais'),
-            connectHeaders: { Authorization: `Bearer ${token}` },
-            reconnectDelay: 5000,
-            heartbeatIncoming: 10000,
-            heartbeatOutgoing: 10000,
-        });
-
-        client.onConnect = () => {
-            console.log('✅ FleetContext: WebSocket Connected!');
-            // Κάνουμε subscribe στο private κανάλι για τις ενημερώσεις του στόλου.
-            client.subscribe('/user/queue/fleet-updates', (message) => {
-                const vesselUpdate: RealTimeShipUpdateDTO = JSON.parse(message.body);
-                // Καλούμε τη συνάρτηση που ενημερώνει το state μας.
-                updateShipInFleet(vesselUpdate);
-            });
-        };
-
-        client.onStompError = (frame) => console.error('FleetContext STOMP Error:', frame);
-        client.onWebSocketError = (event) => console.error('FleetContext WebSocket Error:', event);
-
-        // Ενεργοποιούμε τον client.
-        client.activate();
-        stompClientRef.current = client;
-
-        // Η συνάρτηση cleanup του useEffect. Είναι ΚΡΙΣΙΜΗ.
-        // Εκτελείται όταν το component φεύγει από την οθόνη ή όταν αλλάζει το `currentUser`.
-        // Εξασφαλίζει ότι η σύνδεση κλείνει σωστά.
-        return () => {
-            stompClientRef.current?.deactivate();
-        };
-
-    }, [currentUser, updateShipInFleet]); // Τρέχει ξανά αν αλλάξει ο χρήστης ή η συνάρτηση update.
-
+    // Αρχική φόρτωση του στόλου
     useEffect(() => {
         void fetchFleet();
     }, [fetchFleet]);
+
+    // Το useEffect αυτό διαχειρίζεται τον κύκλο ζωής της WebSocket σύνδεσης.
+    useEffect(() => {
+        // Αν δεν είμαστε συνδεδεμένοι ή δεν υπάρχει ο client, μην κάνεις τίποτα.
+        if (!isConnected || !client || !currentUser) {
+            return;
+        }
+
+        // Αυτή η συνάρτηση θα χειρίζεται την ενημέρωση του state του στόλου.
+        const handleFleetUpdate = (vesselUpdate: RealTimeShipUpdateDTO) => {
+            setFleet(prevFleet => {
+                // Ελέγχουμε αν το πλοίο που ήρθε η ενημέρωση υπάρχει ήδη στον στόλο μας.
+                if (prevFleet.has(vesselUpdate.mmsi)) {
+                    // Δημιουργούμε ένα νέο Map για να μην μεταλλάξουμε το παλιό state (immutability).
+                    const newFleet = new Map(prevFleet);
+                    const existingShip = newFleet.get(vesselUpdate.mmsi)!;
+
+                    // Δημιουργούμε το ενημερωμένο αντικείμενο του πλοίου,
+                    // συνδυάζοντας τα παλιά του δεδομένα με τα νέα από το WebSocket.
+                    const updatedShip: ShipDetailsDTO = {
+                        ...existingShip,
+                        speedOverGround: vesselUpdate.speedOverGround,
+                        courseOverGround: vesselUpdate.courseOverGround,
+                        longitude: vesselUpdate.longitude,
+                        latitude: vesselUpdate.latitude,
+                        navigationalStatus: vesselUpdate.navigationalStatus,
+                        trueHeading: vesselUpdate.trueHeading,
+                        lastUpdateTimestampEpoch: vesselUpdate.timestampEpoch,
+                    };
+
+                    // Ενημερώνουμε το νέο Map και το επιστρέφουμε για να γίνει το update του state.
+                    newFleet.set(vesselUpdate.mmsi, updatedShip);
+                    return newFleet;
+                }
+                // Αν το πλοίο δεν ήταν στον στόλο μας, απλά επιστρέφουμε το παλιό state.
+                return prevFleet;
+            });
+        };
+
+        // Κάνουμε subscribe στο private κανάλι για τις ενημερώσεις του στόλου.
+        const subscription = client.subscribe('/user/queue/fleet-updates', (message) => {
+            try {
+                const vesselUpdate: RealTimeShipUpdateDTO = JSON.parse(message.body);
+                handleFleetUpdate(vesselUpdate);
+            } catch (error) {
+                console.error("Failed to parse fleet update message:", error);
+            }
+        });
+
+        console.log('✅ FleetContext: Subscribed to /user/queue/fleet-updates');
+
+        // Η συνάρτηση cleanup που θα εκτελεστεί όταν το component αποσυνδεθεί.
+        return () => {
+            console.log('🔌 FleetContext: Unsubscribing from /user/queue/fleet-updates');
+            subscription.unsubscribe();
+        };
+
+        // Προσθέστε το currentUser στο dependency array!
+    }, [isConnected, client, currentUser]);
 
     const isShipInFleet = (mmsi: string): boolean => {
         return fleet.has(mmsi);

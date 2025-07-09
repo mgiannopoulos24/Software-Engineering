@@ -8,35 +8,38 @@ import { NotificationProvider } from './contexts/NotificationContext';
 import routes from './routes/routes';
 import React from 'react';
 import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
+import { WebSocketProvider } from './contexts/WebSocketContext';
 
 const App: React.FC = () => {
     return (
         <AuthProvider>
             <NotificationProvider>
-                <FleetProvider>
-                    <ZoneProvider>
-                        <Router>
-                            <AuthRedirectHandler />
-                            <Routes>
-                                {routes.map((route, index) => (
-                                    <Route
-                                        key={index}
-                                        path={route.path}
-                                        element={
-                                            route.protected ? (
-                                                <ProtectedRoute allowedRoles={route.roles!}>
+                <WebSocketProvider>
+                    <FleetProvider>
+                        <ZoneProvider>
+                            <Router>
+                                <AuthRedirectHandler />
+                                <Routes>
+                                    {routes.map((route, index) => (
+                                        <Route
+                                            key={index}
+                                            path={route.path}
+                                            element={
+                                                route.protected ? (
+                                                    <ProtectedRoute allowedRoles={route.roles!}>
+                                                        <Layout>{route.element}</Layout>
+                                                    </ProtectedRoute>
+                                                ) : (
                                                     <Layout>{route.element}</Layout>
-                                                </ProtectedRoute>
-                                            ) : (
-                                                <Layout>{route.element}</Layout>
-                                            )
-                                        }
-                                    />
-                                ))}
-                            </Routes>
-                        </Router>
-                    </ZoneProvider>
-                </FleetProvider>
+                                                )
+                                            }
+                                        />
+                                    ))}
+                                </Routes>
+                            </Router>
+                        </ZoneProvider>
+                    </FleetProvider>
+                </WebSocketProvider>
             </NotificationProvider>
         </AuthProvider>
     );

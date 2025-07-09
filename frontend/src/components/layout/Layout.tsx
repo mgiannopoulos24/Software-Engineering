@@ -150,13 +150,11 @@ const Navbar = () => {
                       <Map size={20} />
                     </Link>
                   </Tooltip>
-                  {!isAdmin && (
-                    <Tooltip text="Saved Vessels">
+                  <Tooltip text="Saved Vessels">
                       <Link to="/user/vessels" className="rounded-full p-2 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white">
-                        <Bookmark size={20} />
+                          <Bookmark size={20} />
                       </Link>
-                    </Tooltip>
-                  )}
+                  </Tooltip>
                   {isAdmin && (
                     <Tooltip text="Admin Dashboard">
                       <Link to="/admin/dashboard" className="rounded-full p-2 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white">

@@ -5,7 +5,6 @@ import ZoneControls from '@/components/map/ZoneControls';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFleet } from '@/contexts/FleetContext';
-import { useNotifications } from '@/contexts/NotificationContext';
 import { useZones } from '@/contexts/ZoneContext';
 import {
     RealTimeShipUpdateDTO,
@@ -14,17 +13,14 @@ import {
     ZoneOfInterestDTO,
     CollisionZoneDTO,
     ZoneDataWithType,
-    CollisionNotificationDTO,
-    ZoneViolationNotificationDTO // <-- ΝΕΑ ΕΙΣΑΓΩΓΗ
 } from '@/types/types';
 import { drawZone } from '@/utils/mapUtils';
-import { Client } from '@stomp/stompjs';
 import L from 'leaflet';
 import { Settings2, History } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import SockJS from 'sockjs-client';
 import { toast } from 'sonner';
+import { useWebSocket } from '@/contexts/WebSocketContext';
 
 type ZoneType = 'interest' | 'collision';
 
@@ -37,16 +33,16 @@ const SharedMapPage: React.FC = () => {
         saveInterestZone, removeInterestZone,
         saveCollisionZone, removeCollisionZone
     } = useZones();
-    const { addNotification } = useNotifications();
+    const { client, isConnected } = useWebSocket();
     const isAuthenticated = !!currentUser;
 
     // --- REFS ---
     const mapInstanceRef = useRef<L.Map | null>(null);
-    const stompClientRef = useRef<Client | null>(null);
     const mapComponentRef = useRef<MapComponentRef>(null);
     const interestZoneLayerRef = useRef<L.Circle | null>(null);
     const collisionZoneLayerRef = useRef<L.Circle | null>(null);
     const mapClickHandlerRef = useRef<L.LeafletMouseEventHandlerFn | null>(null);
+    const currentTrackMmsiRef = useRef<string | null>(null);
 
     // --- STATE ---
     const [allVessels, setAllVessels] = useState<Map<string, RealTimeShipUpdateDTO>>(new Map());
@@ -60,13 +56,63 @@ const SharedMapPage: React.FC = () => {
     const [shipTrack, setShipTrack] = useState<TrackPointDTO[]>([]);
     const [currentTrackMmsi, setCurrentTrackMmsi] = useState<string | null>(null);
     const [isTrackLoading, setIsTrackLoading] = useState(false);
-    
+
+    const [zoomRequest, setZoomRequest] = useState<number>(0);
+
     // State for the Zone Management Dialog
     const [isZoneModalOpen, setIsZoneModalOpen] = useState(false);
     const [managedZone, setManagedZone] = useState<ZoneDataWithType | null>(null);
 
     const [searchParams, setSearchParams] = useSearchParams();
 
+    useEffect(() => {
+        currentTrackMmsiRef.current = currentTrackMmsi;
+    }, [currentTrackMmsi]);
+
+    const handleShowTrackRequest = useCallback(async (mmsi: string, silent = false) => {
+        if (!silent) {
+            setIsTrackLoading(true);
+        }
+        setCurrentTrackMmsi(mmsi);
+        setShipTrack([]);
+
+        try {
+            const response = await fetch(`/api/ship-data/track/${mmsi}`);
+            if (!response.ok) throw new Error(`Failed to fetch track for MMSI ${mmsi}`);
+
+            const data: TrackPointDTO[] = await response.json();
+            setShipTrack(data);
+
+            if (data.length === 0 && !silent) {
+                toast.info("No track data found for the last 12 hours.");
+            }
+
+            // Αν η κλήση ΔΕΝ είναι silent και βρέθηκαν δεδομένα,
+            // τότε αυξάνουμε τον μετρητή του zoomRequest για να πυροδοτήσουμε το zoom.
+            if (!silent && data.length > 0) {
+                setZoomRequest(prev => prev + 1);
+            }
+
+        } catch (error) {
+            console.error(error);
+            if (!silent) toast.error("Could not load ship track.");
+            setCurrentTrackMmsi(null);
+        } finally {
+            if (!silent) {
+                setIsTrackLoading(false);
+            }
+        }
+    }, []);
+
+
+    // Αυτό το useEffect είναι ΑΠΟΚΛΕΙΣΤΙΚΑ υπεύθυνο για το ζουμ
+    // και εκτελείται ΜΟΝΟ όταν το zoomRequest αλλάξει.
+    useEffect(() => {
+        // Ο έλεγχος zoomRequest > 0 είναι για να μην τρέξει στην αρχική φόρτωση.
+        if (zoomRequest > 0) {
+            mapComponentRef.current?.zoomToTrack();
+        }
+    }, [zoomRequest]);
     // --- STABILIZED CALLBACK FOR ZONE CLICKS ---
     const handleZoneClick = useCallback((zone: ZoneDataWithType) => {
         setManagedZone(zone);
@@ -88,26 +134,26 @@ const SharedMapPage: React.FC = () => {
             collisionZoneLayerRef.current = drawZone(map, { ...collisionZone, type: 'collision' }, handleZoneClick);
         }
     }, [interestZone, collisionZone, handleZoneClick]);
-    
+
     // --- DIALOG HANDLERS ---
     const handleSaveManagedZone = async (data: ZoneDataWithType) => {
         const promise = data.type === 'interest'
             ? saveInterestZone(data as ZoneOfInterestDTO)
             : saveCollisionZone(data as CollisionZoneDTO);
-        
+
         toast.promise(promise, {
             loading: 'Saving zone...',
             success: `Zone "${data.name}" saved successfully!`,
             error: (err: Error) => err.message || `Failed to save zone "${data.name}".`,
         });
     };
-    
+
     const handleDeleteManagedZone = async () => {
         if (!managedZone) return;
         const promise = managedZone.type === 'interest'
             ? removeInterestZone()
             : removeCollisionZone();
-        
+
         toast.promise(promise, {
             loading: `Deleting "${managedZone.name}"...`,
             success: 'Zone deleted successfully!',
@@ -117,50 +163,48 @@ const SharedMapPage: React.FC = () => {
 
     // --- DATA & WEBSOCKETS ---
     const addOrUpdateVessel = useCallback((vesselUpdate: RealTimeShipUpdateDTO) => {
+        // Ενημέρωση του βασικού state για όλα τα πλοία
         setAllVessels(prevMap => new Map(prevMap).set(vesselUpdate.mmsi, vesselUpdate));
+
+        // Ελέγχουμε αν η ενημέρωση αφορά το πλοίο του οποίου την πορεία βλέπουμε.
+        if (vesselUpdate.mmsi === currentTrackMmsiRef.current) {
+
+            // Δημιουργούμε το νέο σημείο πορείας από την ενημέρωση
+            const newTrackPoint: TrackPointDTO = {
+                latitude: vesselUpdate.latitude,
+                longitude: vesselUpdate.longitude,
+                timestampEpoch: vesselUpdate.timestampEpoch,
+            };
+
+            // Ενημερώνουμε το state του shipTrack, προσθέτοντας το νέο σημείο στο τέλος.
+            // Χρησιμοποιούμε τη μορφή callback του setState για να έχουμε την πιο πρόσφατη
+            // τιμή του track και να αποφύγουμε race conditions.
+            setShipTrack(prevTrack => {
+                // Αποτροπή διπλότυπων σημείων σε περίπτωση που έρθει το ίδιο update ξανά
+                if (prevTrack.length > 0 && prevTrack[prevTrack.length - 1].timestampEpoch >= newTrackPoint.timestampEpoch) {
+                    return prevTrack;
+                }
+                return [...prevTrack, newTrackPoint];
+            });
+        }
     }, []);
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        const connectHeaders = isAuthenticated && token ? { Authorization: `Bearer ${token}` } : {};
-        const client = new Client({
-            webSocketFactory: () => new SockJS('/ws-ais'),
-            connectHeaders, reconnectDelay: 5000, heartbeatIncoming: 10000, heartbeatOutgoing: 10000,
+        if (!isConnected || !client) {
+            return;
+        }
+
+        const subscription = client.subscribe('/topic/ais-updates', (message) => {
+            addOrUpdateVessel(JSON.parse(message.body));
         });
-        client.onConnect = () => {
-            client.subscribe('/topic/ais-updates', (message) => addOrUpdateVessel(JSON.parse(message.body)));
-            if (isAuthenticated) {
+        console.log('✅ SharedMapPage: Subscribed to /topic/ais-updates');
 
-                // --- ZONE VIOLATION SUBSCRIPTION (ΕΝΗΜΕΡΩΜΕΝΟ) ---
-                client.subscribe('/user/queue/notifications', (message) => {
-                    // 1. Διαβάζουμε το μήνυμα με τον σωστό τύπο
-                    const violation: ZoneViolationNotificationDTO = JSON.parse(message.body);
-                    
-                    // 2. Ο τίτλος της ειδοποίησης είναι πλέον πιο συγκεκριμένος
-                    const title = `Violation in "${violation.zoneName}"`;
-
-                    // 3. Η περιγραφή έρχεται έτοιμη από το backend
-                    const description = violation.message;
-
-                    // 4. Εμφανίζουμε το toast και προσθέτουμε την ειδοποίηση στο context
-                    toast.info(title, { description: description, duration: 8000 });
-                    addNotification({ type: 'violation', title: title, description: description });
-                });
-
-                // --- COLLISION ALERT SUBSCRIPTION (ΕΝΗΜΕΡΩΜΕΝΟ) ---
-                client.subscribe('/user/queue/collision-alerts', (message) => {
-                    const alert: CollisionNotificationDTO = JSON.parse(message.body);
-                    const title = `⚠️ Collision Alert in "${alert.zoneName}"`;
-                    const description = alert.message; // Η περιγραφή έρχεται έτοιμη από το backend
-                    toast.error(title, { description: description, duration: 15000 });
-                    addNotification({ type: 'collision', title: title, description: description });
-                });
-            }
+        return () => {
+            console.log('🔌 SharedMapPage: Unsubscribing from /topic/ais-updates');
+            subscription.unsubscribe();
         };
-        client.activate();
-        stompClientRef.current = client;
-        return () => { stompClientRef.current?.deactivate(); };
-    }, [isAuthenticated, addOrUpdateVessel, addNotification]);
+
+    }, [isConnected, client, addOrUpdateVessel]);
 
     useEffect(() => {
         const vesselsArray = Array.from(allVessels.values());
@@ -169,37 +213,14 @@ const SharedMapPage: React.FC = () => {
             (filters.vesselStatus.length === 0 || filters.vesselStatus.includes(vessel.navigationalStatus?.toString() ?? '-1'))
         ));
     }, [allVessels, filters]);
-    
-    const handleShowTrackRequest = useCallback(async (mmsi: string) => {
-        setIsTrackLoading(true);
-        setCurrentTrackMmsi(mmsi);
-        setShipTrack([]);
-        try {
-            const response = await fetch(`/api/ship-data/track/${mmsi}`);
-            if (!response.ok) throw new Error(`Failed to fetch track for MMSI ${mmsi}`);
-            const data: TrackPointDTO[] = await response.json();
-            setShipTrack(data);
-            if (data.length <= 0) {
-              toast.info("No track data found for the last 12 hours.");
-            }
-        } catch (error) {
-            console.error(error);
-            toast.error("Could not load ship track.");
-            setCurrentTrackMmsi(null);
-        } finally {
-            setIsTrackLoading(false);
-        }
-    }, []);
-    
-    const handleHideTrackRequest = () => {
-        setShipTrack([]);
-        setCurrentTrackMmsi(null);
-    };
 
     // --- MAP AND ZONE CREATION ---
     const fetchInitialData = useCallback(async () => {
         try {
-            const response = await fetch('/api/ship-data/active-ships');
+            const token = localStorage.getItem('token');
+            const response = await fetch('/api/ship-data/active-ships', {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            });
             if (!response.ok) throw new Error('Failed to fetch initial ship data');
             const vesselsDetails: ShipDetailsDTO[] = await response.json();
             const initialVesselMap = new Map<string, RealTimeShipUpdateDTO>();
@@ -216,10 +237,11 @@ const SharedMapPage: React.FC = () => {
             });
             setAllVessels(initialVesselMap);
         } catch (error) {
+            console.error("Failed to fetch initial ship data", error);
             toast.error('Could not fetch initial vessel data.');
         }
     }, []);
-    
+
     const handleMapReady = useCallback((map: L.Map) => {
         mapInstanceRef.current = map;
         map.on('mousemove', (e) => setCoordinates(`Lat: ${e.latlng.lat.toFixed(4)}, Lng: ${e.latlng.lng.toFixed(4)}`));
@@ -227,24 +249,29 @@ const SharedMapPage: React.FC = () => {
         void fetchInitialData();
     }, [fetchInitialData]);
 
+    const handleHideTrackRequest = () => {
+        setShipTrack([]);
+        setCurrentTrackMmsi(null);
+    };
+
     const handleMapClickForZoneCreation = useCallback(async (e: L.LeafletMouseEvent) => {
         const { lat, lng } = e.latlng;
-        const newZoneData = { 
-            name: `My New ${activeZoneType === 'interest' ? 'Interest' : 'Collision'} Zone`, 
-            centerLatitude: lat, 
-            centerLongitude: lng, 
-            radiusInMeters: 10000 
+        const newZoneData = {
+            name: `My New ${activeZoneType === 'interest' ? 'Interest' : 'Collision'} Zone`,
+            centerLatitude: lat,
+            centerLongitude: lng,
+            radiusInMeters: 10000
         };
         const promise = activeZoneType === 'interest'
             ? saveInterestZone({ ...newZoneData, constraints: [] })
             : saveCollisionZone(newZoneData);
-        
+
         toast.promise(promise, {
             loading: 'Creating new zone...',
             success: 'New zone created!',
             error: (err: Error) => err.message || 'Failed to create zone.',
         });
-        
+
         setIsCreatingZone(false);
         if (mapInstanceRef.current) mapInstanceRef.current.getContainer().style.cursor = '';
         if (mapClickHandlerRef.current) mapInstanceRef.current?.off('click', mapClickHandlerRef.current);
@@ -254,10 +281,10 @@ const SharedMapPage: React.FC = () => {
     const handleToggleZoneCreation = () => {
         const map = mapInstanceRef.current;
         if (!map) return;
-        
+
         const willBeCreating = !isCreatingZone;
         setIsCreatingZone(willBeCreating);
-        
+
         if (willBeCreating) {
             if ((activeZoneType === 'interest' && interestZone) || (activeZoneType === 'collision' && collisionZone)) {
                 toast.error(`A ${activeZoneType} zone already exists.`, { description: "You can only have one of each. Delete the existing one to create a new one." });
@@ -295,7 +322,7 @@ const SharedMapPage: React.FC = () => {
                 onRemoveFromFleet={removeShip}
                 isAuthenticated={isAuthenticated}
             />
-            
+
             <div id="coordinates" className="absolute bottom-2.5 left-1/2 z-[20] -translate-x-1/2 rounded-md bg-slate-800 bg-opacity-70 px-3 py-1 text-xs text-white shadow-lg">
                 {coordinates}
             </div>
@@ -308,7 +335,7 @@ const SharedMapPage: React.FC = () => {
                     onToggleCreation={handleToggleZoneCreation}
                 />
             )}
-            
+
             {shipTrack.length > 0 && (
                 <div className="absolute bottom-4 right-4 z-[19]">
                     <Button onClick={handleHideTrackRequest} variant="destructive" className="flex items-center space-x-2 shadow-lg">
@@ -330,9 +357,9 @@ const SharedMapPage: React.FC = () => {
                 onReset={() => setFilters({ vesselType: [], vesselStatus: [] })}
                 onClose={() => setIsFiltersOpen(false)}
             />
-            
+
             {managedZone && (
-                 <ZoneManagementDialog 
+                <ZoneManagementDialog
                     isOpen={isZoneModalOpen}
                     onClose={() => {
                         setIsZoneModalOpen(false);

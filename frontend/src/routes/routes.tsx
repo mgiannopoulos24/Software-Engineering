@@ -56,12 +56,11 @@ const routes: RouteConfig[] = [
     protected: true,
     roles: ['REGISTERED', 'ADMIN'],
   },
-  // --- ΠΡΟΣΘΗΚΗ ΝΕΟΥ ROUTE ΕΔΩ ---
   {
     path: '/user/settings',
     element: <SettingsPage />,
     protected: true,
-    roles: ['REGISTERED', 'ADMIN'], // Προσβάσιμο και από τους δύο ρόλους
+    roles: ['REGISTERED', 'ADMIN'],
   },
 ];
 

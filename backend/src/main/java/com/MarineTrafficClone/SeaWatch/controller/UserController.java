@@ -1,9 +1,12 @@
 package com.MarineTrafficClone.SeaWatch.controller;
 
 import com.MarineTrafficClone.SeaWatch.dto.UserDTO;
+import com.MarineTrafficClone.SeaWatch.dto.UserSettingsUpdateDTO;
 import com.MarineTrafficClone.SeaWatch.dto.UserUpdateDTO;
 import com.MarineTrafficClone.SeaWatch.model.UserEntity;
+import com.MarineTrafficClone.SeaWatch.response.UserSettingsUpdateResponse;
 import com.MarineTrafficClone.SeaWatch.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,7 +18,7 @@ import java.util.List;
 /**
  * REST Controller για τη διαχείριση των χρηστών του συστήματος.
  * Περιλαμβάνει λειτουργίες για admin (π.χ. λίστα όλων των χρηστών, αλλαγή ρόλου)
- * και λειτουργίες για τον ίδιο τον χρήστη (π.χ. προβολή του προφίλ του).
+ * και λειτουργίες για τον ίδιο τον χρήστη (π.χ. προβολή/τροποποίηση του προφίλ του).
  */
 @RestController
 @RequestMapping("/api/users")
@@ -52,6 +55,34 @@ public class UserController {
     public ResponseEntity<UserDTO> getCurrentUser(@AuthenticationPrincipal UserEntity currentUser) {
         // Χρησιμοποιούμε τη βοηθητική μέθοδο του service για να μετατρέψουμε την οντότητα UserEntity σε UserDTO.
         return ResponseEntity.ok(userService.convertToDto(currentUser));
+    }
+
+    /**
+     * Endpoint για την ενημέρωση των ρυθμίσεων του τρέχοντος συνδεδεμένου χρήστη.
+     *
+     * @param currentUser Ο τρέχων αυθεντικοποιημένος χρήστης, παρέχεται από το Spring Security.
+     * @param settingsDTO Τα δεδομένα της ενημέρωσης από το frontend.
+     * @return Ένα ResponseEntity που περιέχει το μήνυμα επιτυχίας και, αν χρειάζεται, ένα νέο JWT token.
+     */
+    @PutMapping("/me/settings")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserSettingsUpdateResponse> updateUserSettings(
+            @AuthenticationPrincipal UserEntity currentUser,
+            @Valid @RequestBody UserSettingsUpdateDTO settingsDTO) {
+        try {
+            UserSettingsUpdateResponse response = userService.updateUserSettings(currentUser.getId(), settingsDTO);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            // Αυτή η εξαίρεση πιάνεται για λάθη όπως "λάθος κωδικός" ή "email υπάρχει ήδη".
+            // Θα μπορούσαμε να το κάνουμε πιο εξειδικευμένο με custom exceptions.
+            // Για τώρα, επιστρέφουμε 400 Bad Request.
+            // Σημείωση: Το GlobalExceptionHandler θα μπορούσε επίσης να χειριστεί αυτό.
+            // Εδώ το κάνουμε ρητά για σαφήνεια.
+            UserSettingsUpdateResponse errorResponse = UserSettingsUpdateResponse.builder()
+                    .message(e.getMessage())
+                    .build();
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
     }
 
     /**

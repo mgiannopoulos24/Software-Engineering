@@ -20,8 +20,14 @@ public class WebSocketSecurityConfig extends AbstractSecurityWebSocketMessageBro
     @Override
     protected void configureInbound(MessageSecurityMetadataSourceRegistry messages) {
         messages
-                // Οποιοσδήποτε μπορεί να στείλει CONNECT και DISCONNECT μηνύματα
-                .simpTypeMatchers(SimpMessageType.CONNECT, SimpMessageType.DISCONNECT, SimpMessageType.OTHER).permitAll()
+                // Οποιοσδήποτε μπορεί να στείλει CONNECT, DISCONNECT, OTHER, HEARTBEATS και UNSUBSCRIBE μηνύματα
+                .simpTypeMatchers(
+                        SimpMessageType.CONNECT,
+                        SimpMessageType.DISCONNECT,
+                        SimpMessageType.OTHER,
+                        SimpMessageType.HEARTBEAT,
+                        SimpMessageType.UNSUBSCRIBE
+                ).permitAll()
                 // Οποιοσδήποτε μπορεί να κάνει subscribe σε public topics
                 .simpSubscribeDestMatchers("/topic/**").permitAll()
                 // Για να κάνεις subscribe σε private κανάλια ή να στείλεις μήνυμα στο /app,

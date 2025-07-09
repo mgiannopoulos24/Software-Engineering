@@ -54,7 +54,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 .setTaskScheduler(this.taskScheduler) // Ορίζουμε τον scheduler για τα heartbeats
                 // Ο server θα στέλνει heartbeats κάθε 10 δευτ.
                 // Ο client πρέπει να στέλνει τουλάχιστον κάθε 10 δευτ.
-                .setHeartbeatValue(new long[]{10000, 10000});
+                .setHeartbeatValue(new long[]{20000, 20000});
         config.setApplicationDestinationPrefixes("/app");
         config.setUserDestinationPrefix("/user");
     }

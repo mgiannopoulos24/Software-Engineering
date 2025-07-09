@@ -49,8 +49,7 @@ public class SecurityConfiguration {
                         .requestMatchers(
                                 "/api/auth/**", // Endpoints για login/register.
                                 "/ws-ais/**",    // Το endpoint για τη σύνδεση WebSocket.
-                                "/api/ship-data/**",    // Endpoint για την αρχική φόρτωση των πλοίων στο χάρτη.
-                                "/api/zone/**" // Endpoints για τις ζώνες.
+                                "/api/ship-data/**"   // Endpoint για την αρχική φόρτωση των πλοίων στο χάρτη.
                         ).permitAll()
                         // Ορίζουμε ότι τα admin endpoints απαιτούν τον ρόλο 'ADMIN'.
                         .requestMatchers("/api/admin/**").hasAuthority(RoleType.ADMIN.name())
