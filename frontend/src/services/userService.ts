@@ -35,7 +35,7 @@ export const updateUserSettings = async (payload: UpdateSettingsPayload) => {
     try {
       const errorData = await response.json();
       throw new Error(errorData.message || 'Failed to update settings. Please try again.');
-    } catch (e) {
+    } catch {
       throw new Error('An unexpected error occurred while updating settings.');
     }
   }

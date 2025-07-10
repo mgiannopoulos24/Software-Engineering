@@ -1,11 +1,10 @@
 import Signup from '@/pages/Signup';
 import { render } from '@/tests/test-utils';
-import { screen, waitFor } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { toast } from 'sonner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// ... (τα mocks παραμένουν ίδια) ...
 const mockSignup = vi.fn();
 vi.mock('@/contexts/AuthContext', async (importOriginal) => {
   const mod = await importOriginal<typeof import('@/contexts/AuthContext')>();
@@ -101,7 +100,6 @@ describe('Signup Component', () => {
     );
   });
 
-  // --- ΔΙΟΡΘΩΜΕΝΟ TEST CASE ---
   it('should show error toast on failed submission', async () => {
     const user = userEvent.setup();
     const errorMessage = 'Email is already in use.';

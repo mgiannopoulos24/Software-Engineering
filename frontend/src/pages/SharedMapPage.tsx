@@ -19,7 +19,6 @@ import { drawZone } from '@/utils/mapUtils';
 import L from 'leaflet';
 import { History, Settings2 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 
 type ZoneType = 'interest' | 'collision';

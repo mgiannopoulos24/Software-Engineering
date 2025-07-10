@@ -22,7 +22,10 @@ const AuthRedirectHandler = () => {
       return;
     }
 
+    // Αν ο χρήστης δεν είναι συνδεδεμένος και προσπαθεί να μπει σε προστατευμένη σελίδα,
+    // τον στέλνουμε στη σελίδα login.
     if (!currentUser && !onAuthPage && location.pathname !== '/') {
+      navigate('/login', { replace: true });
     }
   }, [currentUser, loading, location, navigate]);
 
