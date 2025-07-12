@@ -12,7 +12,8 @@ public class SimulationControlServiceTest {
 
     @Test
     void testSetAndGetSpeedFactor() {
-        SimulationControlService service = new SimulationControlService();
+        // Create service with initial speed factor of 1.0
+        SimulationControlService service = new SimulationControlService(1.0);
         
         // Default value should be 1.0
         assertEquals(1.0, service.getSpeedFactor(), 0.001);
@@ -28,7 +29,8 @@ public class SimulationControlServiceTest {
     
     @Test
     void testSetSpeedFactor_withInvalidValue_shouldThrowException() {
-        SimulationControlService service = new SimulationControlService();
+        // Create service with initial speed factor of 1.0
+        SimulationControlService service = new SimulationControlService(1.0);
         
         // Test negative value
         assertThrows(IllegalArgumentException.class, () -> {
@@ -43,6 +45,24 @@ public class SimulationControlServiceTest {
         // Test extremely large value (if there's a max limit)
         assertThrows(IllegalArgumentException.class, () -> {
             service.setSpeedFactor(51.1);
+        });
+    }
+    
+    @Test
+    void testConstructor_withInvalidValue_shouldThrowException() {
+        // Test negative initial value
+        assertThrows(IllegalArgumentException.class, () -> {
+            new SimulationControlService(-1.0);
+        });
+        
+        // Test zero initial value
+        assertThrows(IllegalArgumentException.class, () -> {
+            new SimulationControlService(0.0);
+        });
+        
+        // Test extremely large initial value
+        assertThrows(IllegalArgumentException.class, () -> {
+            new SimulationControlService(51.1);
         });
     }
 }
