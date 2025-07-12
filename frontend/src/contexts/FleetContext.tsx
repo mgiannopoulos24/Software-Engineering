@@ -98,10 +98,10 @@ export const FleetProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       }
     });
 
-    console.log('✅ FleetContext: Subscribed to /user/queue/fleet-updates');
+    console.log('🔌FleetContext: Subscribed to /user/queue/fleet-updates');
 
     return () => {
-      console.log('🔌 FleetContext: Unsubscribing from /user/queue/fleet-updates');
+      console.log('🔌❌FleetContext: Unsubscribing from /user/queue/fleet-updates');
       subscription.unsubscribe();
     };
   }, [isConnected, client, currentUser]);
