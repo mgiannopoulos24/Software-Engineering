@@ -42,9 +42,9 @@ public class SimulationControlServiceTest {
             service.setSpeedFactor(0.0);
         });
         
-        // Test extremely large value (if there's a max limit)
+        // Test extremely large value
         assertThrows(IllegalArgumentException.class, () -> {
-            service.setSpeedFactor(51.1);
+            service.setSpeedFactor(100.1);
         });
     }
     
@@ -62,7 +62,7 @@ public class SimulationControlServiceTest {
         
         // Test extremely large initial value
         assertThrows(IllegalArgumentException.class, () -> {
-            new SimulationControlService(51.1);
+            new SimulationControlService(100.1);
         });
     }
 }
