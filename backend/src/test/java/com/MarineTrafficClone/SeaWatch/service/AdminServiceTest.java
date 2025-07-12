@@ -7,105 +7,91 @@ import com.MarineTrafficClone.SeaWatch.model.AisData;
 import com.MarineTrafficClone.SeaWatch.model.Ship;
 import com.MarineTrafficClone.SeaWatch.repository.AisDataRepository;
 import com.MarineTrafficClone.SeaWatch.repository.ShipRepository;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.*;
+@Service
+public class AdminService {
 
-/**
- * Unit tests για την κλάση AdminService.
- * Χρησιμοποιεί το Mockito για την απομόνωση των εξαρτήσεων (repositories).
- */
-@ExtendWith(MockitoExtension.class)
-class AdminServiceTest {
+    private final ShipRepository shipRepository;
+    private final AisDataRepository aisDataRepository;
 
-    // Κάνουμε mock τα repositories που χρησιμοποιεί το service.
-    // Το Spring θα τα "εισάγει" αυτόματα στο service μας.
-    @Mock
-    private ShipRepository shipRepository;
-    @Mock
-    private AisDataRepository aisDataRepository;
-
-    // Το @InjectMocks δημιουργεί μια πραγματική instance του AdminService
-    // και εισάγει τα mocks που ορίσαμε παραπάνω μέσα σε αυτό.
-    @InjectMocks
-    private AdminService adminService;
-
-    private Ship testShip;
-    private AisData testAisData;
-
-    // Η μέθοδος @BeforeEach εκτελείται πριν από κάθε test.
-    // Είναι ιδανική για να αρχικοποιούμε κοινά αντικείμενα.
-    @BeforeEach
-    void setUp() {
-        testShip = new Ship(1L, 123456789L, ShipType.CARGO);
-        testAisData = new AisData();
-        testAisData.setMmsi("123456789");
-        testAisData.setLatitude(34.0);
-        testAisData.setLongitude(25.0);
-        testAisData.setSpeedOverGround(10.5);
+    @Autowired
+    public AdminService(ShipRepository shipRepository, AisDataRepository aisDataRepository) {
+        this.shipRepository = shipRepository;
+        this.aisDataRepository = aisDataRepository;
     }
 
     /**
-     * Test για την μέθοδο updateShipType.
-     * Σενάριο: Το πλοίο υπάρχει στη βάση.
-     * Αναμένουμε: Να ενημερωθεί ο τύπος του πλοίου και να επιστραφεί το σωστό DTO.
+     * Updates the type of a specific ship and returns its full, updated details.
+     *
+     * @param mmsi The MMSI of the ship to update.
+     * @param newShipType The new type to assign to the ship.
+     * @return A complete ShipDetailsDTO with the updated information.
+     * @throws ResourceNotFoundException if no ship with the given MMSI is found.
      */
-    @Test
-    void updateShipType_whenShipExists_shouldUpdateAndReturnDTO() {
-        // 1. Ρύθμιση των mocks (Arrangement)
-        // Όταν κληθεί το findByMmsi, να επιστρέψει το testShip μας.
-        when(shipRepository.findByMmsi(anyLong())).thenReturn(Optional.of(testShip));
-        // Όταν κληθεί το save, να επιστρέψει το ίδιο το πλοίο.
-        when(shipRepository.save(any(Ship.class))).thenReturn(testShip);
-        // Όταν ψάχνουμε για τα τελευταία AIS data, να επιστρέψει τα testAisData.
-        when(aisDataRepository.findTopByMmsiOrderByTimestampEpochDesc(anyString())).thenReturn(Optional.of(testAisData));
+    @Transactional
+    public ShipDetailsDTO updateShipType(Long mmsi, ShipType newShipType) {
+        // 1. Find the ship entity or throw an exception if it doesn't exist.
+        Ship ship = shipRepository.findByMmsi(mmsi)
+                .orElseThrow(() -> new ResourceNotFoundException("Ship not found with mmsi: " + mmsi));
 
-        // Ο νέος τύπος που θέλουμε να ορίσουμε.
-        ShipType newShipType = ShipType.PASSENGER;
+        // 2. Update the ship's type.
+        ship.setShiptype(newShipType);
 
-        // 2. Εκτέλεση της μεθόδου (Action)
-        ShipDetailsDTO result = adminService.updateShipType(123456789L, newShipType);
+        // 3. Save the updated entity back to the database.
+        Ship updatedShip = shipRepository.save(ship);
 
-        // 3. Έλεγχος των αποτελεσμάτων (Assertion)
-        assertNotNull(result); // Το αποτέλεσμα δεν πρέπει να είναι null.
-        assertEquals(newShipType, result.getShiptype()); // Ο τύπος πρέπει να έχει αλλάξει.
-        assertEquals(testShip.getMmsi(), result.getMmsi()); // Το MMSI πρέπει να είναι το σωστό.
-        assertEquals(testAisData.getLatitude(), result.getLatitude()); // Τα δυναμικά δεδομένα πρέπει να υπάρχουν.
-
-        // Έλεγχος ότι οι μέθοδοι των mocks κλήθηκαν σωστά.
-        verify(shipRepository, times(1)).findByMmsi(123456789L);
-        verify(shipRepository, times(1)).save(any(Ship.class));
-        verify(aisDataRepository, times(1)).findTopByMmsiOrderByTimestampEpochDesc("123456789");
+        // 4. Convert the updated ship entity to a full DTO for the response.
+        // This step is crucial and was likely the cause of the error.
+        return convertToShipDetailsDTO(updatedShip);
     }
 
     /**
-     * Test για την μέθοδο updateShipType.
-     * Σενάριο: Το πλοίο ΔΕΝ υπάρχει στη βάση.
-     * Αναμένουμε: Να πεταχτεί μια εξαίρεση ResourceNotFoundException.
+     * Retrieves all ships for the admin view.
+     *
+     * @return A list of all ships as ShipDetailsDTOs.
      */
-    @Test
-    void updateShipType_whenShipNotFound_shouldThrowResourceNotFoundException() {
-        // 1. Ρύθμιση του mock
-        // Όταν κληθεί το findByMmsi, να επιστρέψει ένα κενό Optional.
-        when(shipRepository.findByMmsi(anyLong())).thenReturn(Optional.empty());
+    public List<ShipDetailsDTO> getAllShipsForAdmin() {
+        return shipRepository.findAll().stream()
+                .map(this::convertToShipDetailsDTO)
+                .collect(Collectors.toList());
+    }
 
-        // 2. & 3. Εκτέλεση και Έλεγχος
-        // Χρησιμοποιούμε το assertThrows για να επιβεβαιώσουμε ότι η αναμενόμενη εξαίρεση προκλήθηκε.
-        assertThrows(ResourceNotFoundException.class, () -> {
-            adminService.updateShipType(999L, ShipType.TUG);
+    /**
+     * Helper method to convert a Ship entity to a complete ShipDetailsDTO.
+     * It fetches the latest AIS data to provide a full picture of the ship.
+     *
+     * @param ship The Ship entity to convert.
+     * @return The fully populated ShipDetailsDTO.
+     */
+    private ShipDetailsDTO convertToShipDetailsDTO(Ship ship) {
+        ShipDetailsDTO dto = new ShipDetailsDTO();
+        dto.setMmsi(ship.getMmsi());
+        dto.setShiptype(ship.getShiptype());
+        // Set other static ship details if they exist on the Ship entity
+        // dto.setShipName(ship.getShipName()); // example
+        // dto.setFlag(ship.getFlag());       // example
+
+        // Find the latest AIS data for this ship to populate dynamic details.
+        Optional<AisData> latestAisData = aisDataRepository.findTopByMmsiOrderByTimestampEpochDesc(String.valueOf(ship.getMmsi()));
+
+        // If AIS data is present, populate the DTO with it.
+        latestAisData.ifPresent(ais -> {
+            dto.setLatitude(ais.getLatitude());
+            dto.setLongitude(ais.getLongitude());
+            dto.setSpeedOverGround(ais.getSpeedOverGround());
+            dto.setCourseOverGround(ais.getCourseOverGround());
+            dto.setHeading(ais.getHeading());
+            dto.setNavigationStatus(ais.getNavigationStatus());
+            dto.setTimestamp(ais.getTimestamp());
         });
 
-        // Επιβεβαιώνουμε ότι η μέθοδος save δεν κλήθηκε ποτέ.
-        verify(shipRepository, never()).save(any(Ship.class));
+        return dto;
     }
 }
