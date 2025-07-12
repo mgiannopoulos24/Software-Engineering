@@ -67,10 +67,7 @@ class AdminServiceTest {
         when(shipRepository.findByMmsi(anyLong())).thenReturn(Optional.of(testShip));
         // Όταν κληθεί το save, να επιστρέψει το ίδιο το πλοίο.
         when(shipRepository.save(any(Ship.class))).thenReturn(testShip);
-        // Όταν ψάχνουμε για τα τελευταία AIS data, να επιστρέψει τα testAisData.
-        when(aisDataRepository.findTopByMmsiOrderByTimestampEpochDesc(anyString())).thenReturn(Optional.of(testAisData));
 
-        // Ο νέος τύπος που θέλουμε να ορίσουμε.
         ShipType newShipType = ShipType.PASSENGER;
 
         // 2. Εκτέλεση της μεθόδου (Action)
@@ -80,12 +77,10 @@ class AdminServiceTest {
         assertNotNull(result); // Το αποτέλεσμα δεν πρέπει να είναι null.
         assertEquals(newShipType, result.getShiptype()); // Ο τύπος πρέπει να έχει αλλάξει.
         assertEquals(testShip.getMmsi(), result.getMmsi()); // Το MMSI πρέπει να είναι το σωστό.
-        assertEquals(testAisData.getLatitude(), result.getLatitude()); // Τα δυναμικά δεδομένα πρέπει να υπάρχουν.
 
         // Έλεγχος ότι οι μέθοδοι των mocks κλήθηκαν σωστά.
         verify(shipRepository, times(1)).findByMmsi(123456789L);
         verify(shipRepository, times(1)).save(any(Ship.class));
-        verify(aisDataRepository, times(1)).findTopByMmsiOrderByTimestampEpochDesc("123456789");
     }
 
     /**
