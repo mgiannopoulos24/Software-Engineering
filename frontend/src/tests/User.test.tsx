@@ -1,4 +1,3 @@
-// Import των mock hooks μετά τη δήλωση των mocks
 import { useAuth } from '@/contexts/AuthContext';
 import { useFleet } from '@/contexts/FleetContext';
 import { useWebSocket } from '@/contexts/WebSocketContext';
@@ -9,23 +8,18 @@ import { RealTimeShipUpdateDTO } from '@/types/types';
 import { vi } from 'vitest';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-// Mock για το ResizeObserver
 global.ResizeObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
   disconnect: vi.fn(),
 }));
 
-// Mock για το IntersectionObserver (μπορεί να χρειαστεί επίσης)
 global.IntersectionObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
   disconnect: vi.fn(),
 }));
 
-// --- Mocks για τα custom Hooks ---
-// Κάνουμε mock τα hooks που παρέχουν state από τα contexts.
-// Αυτό μας δίνει πλήρη έλεγχο στο τι "βλέπει" το component μας.
 vi.mock('@/contexts/AuthContext', async (importOriginal) => {
   const mod = await importOriginal<typeof import('@/contexts/AuthContext')>();
   return {
@@ -55,7 +49,6 @@ vi.mock('@/contexts/WebSocketContext', async (importOriginal) => {
   };
 });
 
-// Mock για τη βιβλιοθήκη Leaflet
 vi.mock('leaflet', () => ({
   default: {
     map: vi.fn(() => ({
@@ -130,7 +123,6 @@ vi.mock('leaflet', () => ({
   },
 }));
 
-// Mock για το mapUtils.ts
 vi.mock('@/utils/mapUtils', () => ({
   drawZone: vi.fn().mockReturnValue({
     addTo: vi.fn(),
@@ -150,15 +142,12 @@ vi.mock('@/utils/mapUtils', () => ({
   removeShip: vi.fn(),
 }));
 
-// Mock για τις κλήσεις API (fetch)
 global.fetch = vi.fn();
 
-// Βοηθητική συνάρτηση για τη δημιουργία ενός mock response του fetch
 const createFetchResponse = (data: unknown, ok = true) => {
   return { ok, json: () => new Promise((resolve) => resolve(data)) };
 };
 
-// Δημιουργία ενός mock vessel για τα tests
 const mockVessel: RealTimeShipUpdateDTO = {
   mmsi: '123456789',
   shiptype: 'cargo',
@@ -172,13 +161,10 @@ const mockVessel: RealTimeShipUpdateDTO = {
 };
 
 describe('SharedMapPage for Registered User', () => {
-  // Ρυθμίζουμε τα mocks πριν από κάθε test
   beforeEach(() => {
-    // --- Reset Mocks ---
     vi.clearAllMocks();
     (fetch as vi.Mock).mockClear();
 
-    // --- Default Mock Implementations ---
     (useAuth as vi.Mock).mockReturnValue({
       currentUser: { id: 1, email: 'user@test.com', role: 'REGISTERED' },
       isRegistered: true,
@@ -206,18 +192,15 @@ describe('SharedMapPage for Registered User', () => {
       isConnected: true,
     });
 
-    // Mock για την αρχική φόρτωση των πλοίων
     (fetch as vi.Mock).mockResolvedValue(createFetchResponse([mockVessel]));
   });
 
   it('renders correctly and fetches initial vessels', async () => {
     render(<SharedMapPage />);
 
-    // Ελέγχουμε αν τα βασικά στοιχεία του UI υπάρχουν
     expect(screen.getByText('Filters')).toBeInTheDocument();
     expect(screen.getByText('Zone Creation')).toBeInTheDocument();
 
-    // Ελέγχουμε αν η κλήση fetch για τα αρχικά δεδομένα έγινε
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith('/api/ship-data/active-ships', expect.anything());
     });
@@ -229,7 +212,6 @@ describe('SharedMapPage for Registered User', () => {
     const filterButton = screen.getByRole('button', { name: /filters/i });
     fireEvent.click(filterButton);
 
-    // Το panel θα πρέπει να είναι ορατό
     await waitFor(() => {
       expect(screen.getByText('Map Filters')).toBeInTheDocument();
       expect(screen.getByLabelText('Search by MMSI')).toBeInTheDocument();
@@ -238,7 +220,6 @@ describe('SharedMapPage for Registered User', () => {
     const closeButton = screen.getByRole('button', { name: /apply & close/i });
     fireEvent.click(closeButton);
 
-    // Το panel θα πρέπει να κλείσει
     await waitFor(() => {
       expect(screen.queryByText('Map Filters')).not.toBeInTheDocument();
     });
@@ -250,20 +231,17 @@ describe('SharedMapPage for Registered User', () => {
     const addInterestZoneButton = getByText(/Add Interest Zone/i);
     expect(addInterestZoneButton).toBeInTheDocument();
 
-    // Κλικ για να μπούμε σε κατάσταση δημιουργίας
     fireEvent.click(addInterestZoneButton);
     expect(getByText(/Cancel Creation/i)).toBeInTheDocument();
 
-    // Κλικ για να ακυρώσουμε
     fireEvent.click(getByText(/Cancel Creation/i));
     expect(getByText(/Add Interest Zone/i)).toBeInTheDocument();
   });
 
   it('shows a toast error if a user tries to create a zone that already exists', async () => {
-    // Setup: Mock that an interest zone already exists
     const mockSave = vi.fn();
     (useZones as vi.Mock).mockReturnValue({
-      interestZone: { id: 1, name: 'Existing Zone' }, // Zone already exists
+      interestZone: { id: 1, name: 'Existing Zone' },
       collisionZone: null,
       saveInterestZone: mockSave,
     });
@@ -273,15 +251,12 @@ describe('SharedMapPage for Registered User', () => {
     const addInterestZoneButton = screen.getByText(/Add Interest Zone/i);
     fireEvent.click(addInterestZoneButton);
 
-    // We expect a toast notification to appear
     await waitFor(() => {
       expect(screen.getByText(/A interest zone already exists/i)).toBeInTheDocument();
     });
 
-    // Ensure the save function was NOT called
     expect(mockSave).not.toHaveBeenCalled();
 
-    // The button should revert to its original state
     expect(screen.getByText(/Add Interest Zone/i)).toBeInTheDocument();
   });
 
@@ -296,7 +271,6 @@ describe('SharedMapPage for Registered User', () => {
       constraints: [],
     };
 
-    // Mock that the hook now returns a zone
     (useZones as vi.Mock).mockReturnValue({
       interestZone: mockInterestZone,
       collisionZone: null,
@@ -304,22 +278,6 @@ describe('SharedMapPage for Registered User', () => {
       removeInterestZone: vi.fn().mockResolvedValue(undefined),
     });
 
-    // We need a way to simulate the click on the zone.
-    // The component passes a callback `handleZoneClick` to `drawZone`.
-    // We can't directly test this easily.
-    // A better approach is to test the dialog itself when it's opened by state.
-
-    // For this test, let's assume the dialog is controlled by `isZoneModalOpen` state.
-    // We can't control it from here, so this part of testing is tricky without
-    // refactoring or exposing more state, which isn't ideal.
-    // Let's focus on what we CAN test: the logic within the dialog when it *is* open.
-    // This means we'd test `ZoneManagementDialog.tsx` separately.
-
-    // So, for this test, we can just confirm the zone is "drawn" (the function is called).
-    // This is a limitation of testing complex map interactions in JSDOM.
     render(<SharedMapPage />);
-    // The assertion would be on the mock `drawZone` utility if we had mocked it.
-    // Since it's a util, let's skip that and assume it's drawn.
-    // The main point is to show how to set up the test state.
   });
 });

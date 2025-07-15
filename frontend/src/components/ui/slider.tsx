@@ -14,6 +14,10 @@ import * as React from 'react';
 
 // frontend/src/components/ui/slider.tsx
 
+// frontend/src/components/ui/slider.tsx
+
+// frontend/src/components/ui/slider.tsx
+
 const Slider = React.forwardRef<
   React.ElementRef<typeof SliderPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root>

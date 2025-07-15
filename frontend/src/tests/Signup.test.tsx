@@ -41,7 +41,6 @@ describe('Signup Component', () => {
     render(<Signup />);
     expect(screen.getByRole('heading', { name: /create your account/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
-    // --- ΔΙΟΡΘΩΣΗ ΕΔΩ ---
     expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /create account/i })).toBeInTheDocument();
     expect(screen.getByText(/already have an account?/i)).toBeInTheDocument();
@@ -52,7 +51,6 @@ describe('Signup Component', () => {
     render(<Signup />);
 
     const emailInput = screen.getByLabelText(/email address/i);
-    // --- ΔΙΟΡΘΩΣΗ ΕΔΩ ---
     const passwordInput = screen.getByLabelText(/^password$/i);
 
     await user.type(emailInput, 'newuser@example.com');
@@ -66,7 +64,6 @@ describe('Signup Component', () => {
     const user = userEvent.setup();
     render(<Signup />);
 
-    // --- ΔΙΟΡΘΩΣΗ ΕΔΩ ---
     const passwordInput = screen.getByLabelText(/^password$/i);
     const visibilityToggle = screen.getByLabelText(/show password/i);
 
@@ -78,7 +75,6 @@ describe('Signup Component', () => {
     expect(passwordInput).toHaveAttribute('type', 'password');
   });
 
-  // --- ΔΙΟΡΘΩΜΕΝΟ TEST CASE ---
   it('should call signup function and show success toast on successful submission', async () => {
     const user = userEvent.setup();
     mockSignup.mockResolvedValue({ role: 'REGISTERED' });
@@ -90,10 +86,8 @@ describe('Signup Component', () => {
 
     const submitButton = screen.getByRole('button', { name: /create account/i });
 
-    // Κάνουμε κλικ και περιμένουμε να ολοκληρωθεί η συγχρονισμένη ροή
     await user.click(submitButton);
 
-    // Τώρα μπορούμε να ελέγξουμε τις κλήσεις απευθείας, χωρίς waitFor
     expect(mockSignup).toHaveBeenCalledWith('newuser@test.com', 'validpassword');
     expect(toast.success).toHaveBeenCalledWith(
       'Account created successfully! You are now logged in.'
@@ -112,10 +106,8 @@ describe('Signup Component', () => {
 
     const submitButton = screen.getByRole('button', { name: /create account/i });
 
-    // Κάνουμε κλικ και περιμένουμε
     await user.click(submitButton);
 
-    // Ελέγχουμε απευθείας
     expect(mockSignup).toHaveBeenCalledTimes(1);
     expect(toast.error).toHaveBeenCalledWith('Signup Failed', {
       description: errorMessage,
