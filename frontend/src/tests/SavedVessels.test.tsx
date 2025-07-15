@@ -3,7 +3,6 @@ import SavedVessels from '@/pages/user/SavedVessels';
 import { render, screen, waitFor } from '@/tests/test-utils';
 import { ShipDetailsDTO } from '@/types/types';
 import userEvent from '@testing-library/user-event';
-import { toast } from 'sonner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockRemoveShip = vi.fn();
