@@ -1,0 +1,47 @@
+name: Update Frontend Dependencies
+
+on:
+  schedule:
+    - cron: '0 0 * * 1' # Run weekly on Mondays at midnight
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  update-dependencies:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Update dependencies
+        run: npm update
+
+      - name: Check for changes
+        id: git-check
+        run: |
+          if git diff --exit-code package-lock.json; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit changes
+        if: steps.git-check.outputs.changed == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add package-lock.json
+          git commit -m "chore: update package-lock.json dependencies"
+          git push
