@@ -2,7 +2,7 @@ name: Update Frontend Dependencies
 
 on:
   schedule:
-    - cron: '0 0 * * 1' # Run weekly on Mondays at midnight
+    - cron: '0 0 * * *' # Run daily at midnight
   workflow_dispatch: # Allow manual trigger
 
 jobs:
@@ -11,6 +11,9 @@ jobs:
     defaults:
       run:
         working-directory: frontend
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
