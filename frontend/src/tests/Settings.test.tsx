@@ -1,7 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import SettingsPage from '@/pages/user/SettingsPage';
 import { updateUserSettings } from '@/services/userService';
-import { fireEvent, render, screen, waitFor } from '@/tests/test-utils';
+import { render, screen, waitFor } from '@/tests/test-utils';
 import userEvent from '@testing-library/user-event';
 import { toast } from 'sonner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
