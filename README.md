@@ -19,7 +19,6 @@ Our project focuses on developing a web platform for monitoring maritime activit
 - **Μάριος Γιαννόπουλος, Α.Μ. 1115202000032**
 - **Γεώργιος Κορύλλος, Α.Μ. 1115202100069**
 - **Αργύριος Λαζαρίδης, Α.Μ. 1115202100083**
-- **Όλγα Πασβάνη, Α.Μ. 1115202100146**
 
 ## Technologies Used
 
