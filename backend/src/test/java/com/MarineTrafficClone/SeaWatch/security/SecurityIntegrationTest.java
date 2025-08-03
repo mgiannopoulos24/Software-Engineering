@@ -16,6 +16,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +33,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @AutoConfigureMockMvc
 @Transactional // Εξασφαλίζει ότι η βάση είναι καθαρή για κάθε test.
+// Παρέχει ένα mock secret key για το JWT Service, ώστε το test context να μπορεί να ξεκινήσει.
+@TestPropertySource(properties = { "jwt.secret-key=dGVzdHNlY3JldHRlc3RzZWNyZXR0ZXN0c2VjcmV0dGVzdHNlY3JldHRlc3RzZWNyZXR0ZXN0c2VjcmV0" })
 class SecurityIntegrationTest extends AbstractTest {
 
     @Autowired
@@ -104,7 +107,7 @@ class SecurityIntegrationTest extends AbstractTest {
 
     @Test
     void accessAdminEndpoint_asRegisteredUser_shouldReturnForbidden() throws Exception {
-        // Σενάριο: Εγγεγραμμένος χρήστης προσπαθεί να δει τη λίστα όλων των χρηστών (admin-only).
+        // Σενάrio: Εγγεγραμμένος χρήστης προσπαθεί να δει τη λίστα όλων των χρηστών (admin-only).
         // Αναμένουμε: 403 Forbidden.
 
         // Δημιουργούμε ένα έγκυρο token για τον απλό χρήστη.
