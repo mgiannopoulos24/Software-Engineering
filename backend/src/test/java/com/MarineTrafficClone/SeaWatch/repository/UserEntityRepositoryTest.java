@@ -8,6 +8,7 @@ import com.MarineTrafficClone.SeaWatch.model.UserEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -21,6 +22,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Το @Transactional εξασφαλίζει ότι κάθε test τρέχει σε "καθαρή" βάση.
  */
 @Transactional
+// Παρέχει ένα mock secret key για το JWT Service, απαραίτητο για να μπορέσει
+// να ξεκινήσει το test context, καθώς το AbstractTest χρησιμοποιεί @SpringBootTest.
+@TestPropertySource(properties = { "jwt.secret-key=dGVzdHNlY3JldHRlc3RzZWNyZXR0ZXN0c2VjcmV0dGVzdHNlY3JldHRlc3RzZWNyZXR0ZXN0c2VjcmV0" })
 class UserEntityRepositoryTest extends AbstractTest {
 
     @Autowired
