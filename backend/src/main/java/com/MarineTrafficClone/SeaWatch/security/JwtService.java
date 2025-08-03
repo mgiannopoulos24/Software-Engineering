@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +22,15 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
+    private final SecretKey jwtSecretKey;
+
+
+    // 2. Τροποποιούμε τον constructor για να κάνει inject την τιμή από το application.properties.
+    public JwtService(@Value("${jwt.secret-key}") String secretKey) {
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+        this.jwtSecretKey = Keys.hmacShaKeyFor(keyBytes);
+    }
+    
     /**
      * Εξάγει το username (στην περίπτωσή μας, το email) από ένα JWT token.
      * @param token Το JWT token.
@@ -64,7 +74,7 @@ public class JwtService {
                 .subject(userDetails.getUsername()) // Ορισμός του "subject" του token (το username).
                 .issuedAt(new Date(System.currentTimeMillis())) // Χρόνος έκδοσης.
                 .expiration(new Date(System.currentTimeMillis() + SecurityConstants.EXPIRATION_TIME)) // Χρόνος λήξης.
-                .signWith(getSignInKey(), Jwts.SIG.HS256) // Υπογραφή του token με το μυστικό κλειδί και τον αλγόριθμο HS256.
+                .signWith(this.jwtSecretKey, Jwts.SIG.HS256) // Υπογραφή του token με το μυστικό κλειδί και τον αλγόριθμο HS256.
                 .compact(); // Δημιουργία της τελικής String αναπαράστασης.
     }
 
@@ -105,20 +115,10 @@ public class JwtService {
     private Claims extractAllClaims(String token) {
         return Jwts
                 .parser()
-                .verifyWith(getSignInKey()) // Επαλήθευση της υπογραφής με το μυστικό κλειδί.
+                .verifyWith(this.jwtSecretKey) // Επαλήθευση της υπογραφής με το μυστικό κλειδί.
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
     }
 
-    /**
-     * Δημιουργεί και επιστρέφει το μυστικό κλειδί (SecretKey) που χρησιμοποιείται για την υπογραφή
-     * και την επαλήθευση των tokens. Το κλειδί δημιουργείται από το SECRET_KEY string
-     * που είναι αποθηκευμένο στις σταθερές ασφαλείας.
-     * @return Το αντικείμενο SecretKey.
-     */
-    private SecretKey getSignInKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(SecurityConstants.SECRET_KEY);
-        return Keys.hmacShaKeyFor(keyBytes);
-    }
 }

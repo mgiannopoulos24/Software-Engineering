@@ -31,6 +31,7 @@ services:
       - SPRING_JPA_HIBERNATE_DDL_AUTO=create-drop
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092 # Το 'kafka:9092' αναφέρεται στο service 'kafka'.
       - SIMULATION_SPEED_FACTOR=1.0 # Ταχύτητα Προσομοίωσης
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY} # Το μυστικό κλειδί για τα JWT, φορτωμένο από το application.properties.
 
   # === Υπηρεσία της Βάσης Δεδομένων PostgreSQL ===
   db:
@@ -99,7 +100,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "5173:80"
+      - "5173:80" # Αντιστοίχιση του port 5173 του host
     depends_on:
       - app
     networks:
