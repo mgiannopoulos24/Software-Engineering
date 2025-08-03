@@ -76,3 +76,10 @@ In order to run the entire application, you need to download the AIS data from t
 - [vessel_types.csv](https://owncloud.skel.iit.demokritos.gr:443/index.php/s/k8eBG9Ze7B5TCjX/download) (Download this with curl)
 
 Once downloaded, place the files in the `backend/src/main/resources/AIS-Data` directory and start the build process.
+
+Lastly, you need to have a `.env` file in the root directory of the project with the following content:
+```env
+JWT_SECRET_KEY=your_jwt_secret_key_here
+```
+You can generate a secure JWT secret key using the following link:
+[JWT Secrets](https://jwtsecrets.com/)
